@@ -18,3 +18,9 @@ frontend/dist/
 *.log
 uploads/fotos/*.jpg
 uploads/fotos/*.png
+
+.agents/
+.cache/
+.claude/
+.local/
+.vs/
