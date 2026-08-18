@@ -1,0 +1,7 @@
+.vs/
+backend/bin/
+backend/obj/
+frontend/.nuxt/
+frontend/.output/
+frontend/node_modules/
+backend/appsettings.Development.json

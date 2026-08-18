@@ -30,6 +30,8 @@ html, body {
   color: var(--color-text);
 }
 
+img, video, canvas { max-width: 100%; }
+
 /* ─── Scrollbar personalizado ────────────────────────────── */
 ::-webkit-scrollbar        { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track  { background: #E5EBEF; }
@@ -38,6 +40,7 @@ html, body {
 /* ─── Página de login / registro ─────────────────────────── */
 .auth-page {
   min-height: 100vh;
+  padding: 24px;
   position: relative;
   overflow: hidden;
   background: #051B2E;
@@ -80,7 +83,7 @@ html, body {
 .auth-card {
   position: relative;
   z-index: 2;
-  width: 100%;
+  width: min(100%, 660px);
   max-width: 660px;
   background: #FFFFFF !important;
   opacity: 1 !important;
@@ -298,6 +301,11 @@ html, body {
   color: var(--color-text);
 }
 
+.page-content .v-table__wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* ─── Tarjetas de estadísticas ───────────────────────────── */
 .stat-card {
   background: white;
@@ -339,6 +347,8 @@ html, body {
 .dashboard-action-card--primary { border-top-color: var(--color-primary); }
 .dashboard-card-title { margin: 0 0 10px; font-size: 25px; line-height: 1.15; }
 .dashboard-card-copy { max-width: 390px; margin: 0 0 26px; color: var(--color-text-muted); font-size: 14px; line-height: 1.6; }
+
+.analisis-empty-state { height: 400px; color: #9CA3AF; text-align: center; }
 
 .stat-icon {
   width: 52px; height: 52px;
@@ -396,10 +406,44 @@ html, body {
 }
 
 /* ─── Responsivo ─────────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .page-content { padding: 30px 28px; }
+  .dashboard-title { font-size: 28px; }
+}
+
 @media (max-width: 768px) {
+  .auth-page { padding: 20px; align-items: flex-start; overflow-y: auto; }
+  .auth-card { margin: 24px auto; }
+  .login-card { min-height: auto; padding: 48px 36px !important; }
+  .login-form { margin-top: 38px; }
+  .auth-logo { max-width: 132px; max-height: 132px; }
+  .v-btn.login-access-button { width: 88% !important; }
+
   .sidebar { transform: translateX(-100%); }
   .sidebar.open { transform: translateX(0); }
-  .page-content { margin-left: 0; padding: 24px 20px; }
+  .page-content,
+  .page-content.sidebar-collapsed { margin-left: 0; padding: 24px 20px; }
+  .dashboard-header { align-items: flex-start !important; gap: 16px; flex-wrap: wrap; }
+  .dashboard-title { font-size: 27px; }
+  .dashboard-action-card { min-height: auto; }
+  .analisis-empty-state { height: 260px !important; }
+  .dashboard-topbar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .stat-card { padding: 18px; }
+  .v-dialog > .v-overlay__content { width: calc(100% - 32px) !important; margin: 16px; }
+}
+
+@media (max-width: 480px) {
+  .auth-page { padding: 12px; }
+  .auth-card { margin: 12px auto; border-radius: 12px !important; }
+  .login-card { padding: 38px 24px !important; }
+  .auth-logo { max-width: 112px; max-height: 112px; }
+  .login-form { margin-top: 30px; }
+  .v-btn.login-access-button { width: 100% !important; }
+  .dashboard-topbar { margin-bottom: 20px !important; }
+  .dashboard-title { font-size: 24px; }
+  .dashboard-card-title { font-size: 22px; }
+  .dashboard-action-card { padding: 24px !important; }
+  .sidebar { width: min(88vw, 310px); }
 }
 
 @media (prefers-reduced-motion: reduce) {

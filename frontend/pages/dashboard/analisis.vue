@@ -73,8 +73,7 @@
 
       <!-- Resultados -->
       <v-col cols="12" md="7">
-        <div v-if="!resultado" class="d-flex flex-column align-center justify-center"
-             style="height:400px;color:#9CA3AF;text-align:center">
+        <div v-if="!resultado" class="analisis-empty-state d-flex flex-column align-center justify-center">
           <v-icon size="80" color="grey-lighten-2" class="mb-4">mdi-text-box-search-outline</v-icon>
           <p class="text-h6 font-weight-medium">Esperando archivo</p>
           <p class="text-body-2">Carga un archivo .txt y presiona "Procesar"</p>
