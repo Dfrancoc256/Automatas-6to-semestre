@@ -1,0 +1,14 @@
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5432;Database=lenguajes_formales;Username=postgres;Password=CAMBIAR;SSL Mode=Prefer"
+  },
+  "Jwt": {
+    "SecretKey": "GENERAR_UNA_CLAVE_ALEATORIA_DE_AL_MENOS_32_CARACTERES",
+    "QrExpirationDays": 365
+  },
+  "Recaptcha": {
+    "SecretKey": "",
+    "SiteKey": "",
+    "BypassInDevelopment": true
+  }
+}

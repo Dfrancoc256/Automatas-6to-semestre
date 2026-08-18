@@ -1,0 +1,415 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap');
+
+/* ─── Variables globales ─────────────────────────────────── */
+:root {
+  --color-primary:    #051B2E;
+  --color-primary-soft:#0D3558;
+  --color-primary-blue:#1A5080;
+  --color-secondary:  #CB3332;
+  --color-accent:     #B48B21;
+  --color-accent-bright:#D4A42B;
+  --color-accent-dark:#7A5E12;
+  --color-accent-soft:#FDF3D8;
+  --color-background: #F5F6F7;
+  --color-surface:    #FFFFFF;
+  --color-text:       #1A1F2B;
+  --color-text-muted: #6B7280;
+  --color-border:     #E2E4E8;
+  --radius-card:      14px;
+  --shadow-card:      0 8px 20px rgba(0,43,92,.08);
+}
+
+/* ─── Reset & base ───────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
+  background: var(--color-background);
+  color: var(--color-text);
+}
+
+/* ─── Scrollbar personalizado ────────────────────────────── */
+::-webkit-scrollbar        { width: 6px; height: 6px; }
+::-webkit-scrollbar-track  { background: #E5EBEF; }
+::-webkit-scrollbar-thumb  { background: var(--color-primary-soft); border-radius: 3px; }
+
+/* ─── Página de login / registro ─────────────────────────── */
+.auth-page {
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  background: #051B2E;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-background,
+.auth-background__slide {
+  position: absolute;
+  inset: 0;
+}
+
+.auth-background { z-index: 0; }
+
+.auth-background::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(120deg, rgba(5,27,46,.57), rgba(13,53,88,.48));
+  pointer-events: none;
+}
+
+.auth-background__slide {
+  z-index: 0;
+  opacity: 0;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  animation: campus-background-cycle 32s ease-in-out infinite;
+}
+
+.auth-background__slide--one { background-image: url('/images/fondo-umg.png'); animation-delay: 0s; }
+.auth-background__slide--two { background-image: url('/images/campus-umg-2.webp'); animation-delay: -24s; }
+.auth-background__slide--three { background-image: url('/images/campus-umg-3.webp'); animation-delay: -16s; }
+.auth-background__slide--four { background-image: url('/images/campus-umg-4.webp'); animation-delay: -8s; }
+
+.auth-card {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 660px;
+  background: #FFFFFF !important;
+  opacity: 1 !important;
+  border-radius: var(--radius-card) !important;
+  border: 1px solid rgba(180,139,33,.42) !important;
+  box-shadow: 0 24px 70px rgba(5,27,46,.42) !important;
+}
+
+.login-card {
+  min-height: 570px;
+  padding: 72px 68px !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  animation: login-card-enter .7s cubic-bezier(.2,.8,.2,1) both;
+}
+
+.login-form {
+  margin-top: 58px;
+}
+
+.login-card--success {
+  animation: login-success .65s cubic-bezier(.2,.8,.2,1) both;
+}
+
+.login-logo {
+  animation: login-logo-enter .85s .15s cubic-bezier(.2,.8,.2,1) both;
+}
+
+/* Acciones principales: amarillo dorado del aro institucional UMG. */
+.v-btn.umg-gold-button {
+  background-color: #B48B21 !important;
+  color: #FFFFFF !important;
+  font-weight: 700;
+}
+
+.v-btn.umg-gold-button .v-btn__overlay {
+  background-color: transparent;
+}
+
+.v-btn.umg-gold-button:hover {
+  background-color: #D4A42B !important;
+}
+
+.v-btn.login-access-button {
+  width: 72% !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.v-btn.login-access-button::before {
+  content: '';
+  position: absolute;
+  inset: -20% auto -20% -45%;
+  width: 26%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.72), transparent);
+  transform: skewX(-22deg);
+  animation: button-shine 2.8s ease-in-out infinite;
+  z-index: 0;
+}
+
+.v-btn.login-access-button .v-btn__content {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes login-card-enter {
+  from { opacity: 0; transform: translateY(24px) scale(.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes campus-background-cycle {
+  0%, 19% { opacity: 1; transform: scale(1); }
+  25%, 94% { opacity: 0; transform: scale(1.055); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes login-logo-enter {
+  from { opacity: 0; transform: translateY(-16px) scale(.78) rotate(-7deg); }
+  to { opacity: 1; transform: translateY(0) scale(1) rotate(0); }
+}
+
+@keyframes login-success {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.025); box-shadow: 0 0 0 8px rgba(180,139,33,.30), 0 24px 70px rgba(5,27,46,.42); }
+  100% { transform: scale(.96); opacity: 0; }
+}
+
+@keyframes button-shine {
+  0%, 42% { left: -45%; }
+  68%, 100% { left: 125%; }
+}
+
+/* ─── Layout principal ───────────────────────────────────── */
+.main-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ─── Sidebar ────────────────────────────────────────────── */
+.sidebar {
+  width: 272px;
+  background: #051B2E;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  position: fixed;
+  top: 0; left: 0;
+  z-index: 100;
+  transition: transform .25s ease;
+}
+
+.sidebar.collapsed {
+  transform: translateX(-100%);
+}
+
+.sidebar-logo {
+  padding: 24px 22px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255,255,255,.12);
+}
+
+.sidebar-logo-icon {
+  width: 58px; height: 58px;
+  flex: 0 0 58px;
+  background: white;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  border: 2px solid var(--color-accent);
+}
+
+.sidebar-logo-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.sidebar-title {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 15px; font-weight: 700; line-height: 1.15;
+  color: white;
+}
+
+.sidebar-subtitle {
+  font-size: 10px; color: rgba(255,255,255,.62); letter-spacing: .04em;
+}
+
+.sidebar-user {
+  margin: 0 16px;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  border-bottom: 1px solid rgba(255,255,255,.12);
+}
+
+.sidebar-user-name { color: white; font-size: 13px; font-weight: 600; }
+.sidebar-user-role { color: rgba(255,255,255,.55); font-size: 10px; letter-spacing: .08em; }
+
+.sidebar-nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+
+.nav-section {
+  padding: 8px 16px 4px;
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1.2px;
+  color: rgba(255,255,255,.4);
+}
+
+.nav-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 20px;
+  cursor: pointer;
+  color: rgba(255,255,255,.75);
+  border-radius: 0 24px 24px 0;
+  margin-right: 12px;
+  transition: background .15s, color .15s;
+  text-decoration: none; font-size: 14px;
+}
+
+.nav-item:hover,
+.nav-item.active {
+  background: rgba(180,139,33,.28);
+  color: white;
+}
+
+.nav-item.active {
+  border-left: 3px solid var(--color-accent);
+  padding-left: 17px;
+  color: #FFF3C4;
+}
+
+/* ─── Área de contenido ──────────────────────────────────── */
+.page-content {
+  margin-left: 272px;
+  padding: 36px 40px;
+  flex: 1;
+  min-height: 100vh;
+  background: #FFFFFF;
+  color: var(--color-text);
+  transition: margin-left .25s ease;
+}
+
+.page-content.sidebar-collapsed { margin-left: 0; }
+
+.page-content > div > .d-flex:first-child .text-medium-emphasis {
+  color: rgba(23,50,77,.72) !important;
+}
+
+.page-content .v-card {
+  color: var(--color-text);
+}
+
+/* ─── Tarjetas de estadísticas ───────────────────────────── */
+.stat-card {
+  background: white;
+  border-radius: var(--radius-card);
+  padding: 20px 24px;
+  box-shadow: var(--shadow-card);
+  display: flex; align-items: center; gap: 16px;
+  border: 1px solid var(--color-border);
+  border-top: 2px solid var(--color-accent);
+}
+
+.dashboard-eyebrow,
+.dashboard-card-kicker {
+  margin: 0 0 6px;
+  color: var(--color-accent-dark);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .12em;
+}
+
+.dashboard-title,
+.dashboard-card-title {
+  font-family: 'Source Serif 4', Georgia, serif;
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.dashboard-title { margin: 0; font-size: 31px; line-height: 1.1; }
+.dashboard-subtitle { margin: 7px 0 0; color: var(--color-text-muted); font-size: 14px; }
+.role-chip { font-size: 11px; font-weight: 700; letter-spacing: .05em; }
+
+.dashboard-action-card {
+  min-height: 255px;
+  border: 1px solid var(--color-border);
+  border-top: 3px solid var(--color-accent);
+  box-shadow: none;
+}
+
+.dashboard-action-card--primary { border-top-color: var(--color-primary); }
+.dashboard-card-title { margin: 0 0 10px; font-size: 25px; line-height: 1.15; }
+.dashboard-card-copy { max-width: 390px; margin: 0 0 26px; color: var(--color-text-muted); font-size: 14px; line-height: 1.6; }
+
+.stat-icon {
+  width: 52px; height: 52px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
+}
+
+.stat-value { font-size: 28px; font-weight: 700; line-height: 1; }
+.stat-label { font-size: 13px; color: #6b7280; margin-top: 4px; }
+
+/* ─── Análisis léxico ────────────────────────────────────── */
+.resultado-chip { margin: 3px; }
+
+.tabla-frecuencia {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabla-frecuencia th,
+.tabla-frecuencia td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 13px;
+}
+
+.tabla-frecuencia th {
+  background: #f9fafb;
+  font-weight: 600; color: #374151;
+}
+
+/* ─── Webcam ─────────────────────────────────────────────── */
+.webcam-container {
+  width: 100%; max-width: 340px;
+  margin: 0 auto;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+  aspect-ratio: 4/3;
+  position: relative;
+}
+
+.webcam-overlay {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+
+.face-guide {
+  width: 160px; height: 200px;
+  border: 3px solid rgba(180,139,33,.95);
+  border-radius: 50%;
+  box-shadow: 0 0 0 9999px rgba(0,0,0,.35);
+}
+
+/* ─── Responsivo ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .page-content { margin-left: 0; padding: 24px 20px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-card,
+  .login-card--success,
+  .login-logo,
+  .v-btn.login-access-button::before,
+  .auth-background__slide {
+    animation: none;
+  }
+
+  .auth-background__slide--one { opacity: 1; }
+}
