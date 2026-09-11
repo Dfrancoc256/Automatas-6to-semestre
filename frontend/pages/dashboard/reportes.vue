@@ -8,6 +8,8 @@
       </div>
     </div>
 
+    <v-alert v-if="error" type="error" variant="tonal" density="compact" class="mb-5">{{ error }}</v-alert>
+
     <v-row v-if="stats">
       <v-col cols="12" sm="6" md="3" v-for="m in metricas" :key="m.l">
         <div class="stat-card">
@@ -54,16 +56,19 @@
       </v-col>
     </v-row>
 
-    <v-skeleton-loader v-else type="card" />
+    <v-skeleton-loader v-else-if="cargando" type="card" />
+    <v-card v-else class="pa-6 text-center"><p>No hay datos disponibles todavía.</p></v-card>
   </div>
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'dashboard', middleware: 'auth' })
+definePageMeta({ layout: 'dashboard', middleware: ['auth', 'role'], roles: ['ADMIN', 'SUPERVISOR'] })
 useHead({ title: 'Estadísticas' })
 
 const { api } = useApi()
 const stats   = ref<any>(null)
+const cargando = ref(true)
+const error = ref('')
 
 const metricas = computed(() => stats.value ? [
   { l: 'Usuarios',      v: stats.value.totalUsuarios,   icon: '👥', bg: '#FFF8E1' },
@@ -76,7 +81,8 @@ onMounted(async () => {
   try {
     const { data } = await api.get('/dashboard/estadisticas')
     stats.value = data
-  } catch { /* ignore */ }
+  } catch (e: any) { error.value = e.response?.data?.mensaje || 'No fue posible cargar las estadísticas.' }
+  finally { cargando.value = false }
 })
 </script>
 <style scoped>.gap-4{gap:16px;}.flex-1{flex:1;}</style>

@@ -15,6 +15,20 @@
       </div>
 
       <v-form @submit.prevent="loginPassword" class="login-form">
+        <label class="login-field-label" for="identificador">Correo o nickname</label>
+        <v-text-field
+          id="identificador"
+          v-model.trim="form.identificador"
+          placeholder="Ingresa tu correo o nickname"
+          prepend-inner-icon="mdi-account-outline"
+          autocomplete="username"
+          :error="!!error"
+          hide-details
+          base-color="primary"
+          color="primary"
+          class="login-password-field mb-5"
+          @update:model-value="error = ''"
+        />
         <label class="login-field-label" for="clave-acceso">Clave de acceso</label>
         <v-text-field
           id="clave-acceso"
@@ -23,6 +37,7 @@
           prepend-inner-icon="mdi-lock"
           :type="mostrarPass ? 'text' : 'password'"
           :append-inner-icon="mostrarPass ? 'mdi-eye-off' : 'mdi-eye'"
+          autocomplete="current-password"
           @click:append-inner="mostrarPass = !mostrarPass"
           :error="!!error"
           hide-details
@@ -36,6 +51,16 @@
           <v-icon size="15" start>mdi-alert-circle-outline</v-icon>{{ error }}
         </p>
 
+        <RecaptchaV2
+          v-if="requiereRecaptcha"
+          v-model:token="recaptchaToken"
+          :site-key="recaptchaSiteKey"
+          class="mt-6"
+        />
+        <v-alert v-else-if="!bypassDesarrollo" type="warning" variant="tonal" density="compact" class="mt-6">
+          Falta configurar la clave pública de reCAPTCHA.
+        </v-alert>
+
         <v-btn
           type="submit"
           color="accent"
@@ -43,6 +68,7 @@
           block
           size="large"
           :loading="cargando"
+          :disabled="!puedeEnviar"
           prepend-icon="mdi-login"
         >
           Ingresar
@@ -60,8 +86,7 @@
       <v-card class="pa-6">
         <v-card-title class="px-0 text-h6">Restablecer contraseña</v-card-title>
         <v-card-text class="px-0">
-          La recuperación de contraseña estará disponible al conectar la base de datos.
-          Por el momento utiliza la clave temporal asignada.
+          Ingresa el correo de tu cuenta para recibir las instrucciones de recuperación.
         </v-card-text>
         <v-card-actions class="px-0 justify-end">
           <v-btn class="umg-gold-button" color="accent" @click="mostrarReset = false">Entendido</v-btn>
@@ -76,15 +101,20 @@ definePageMeta({ layout: 'default' })
 useHead({ title: 'Iniciar sesión' })
 
 const auth     = useAuthStore()
+const { api }  = useApi()
+const config = useRuntimeConfig()
 const mostrarPass  = ref(false)
 const cargando     = ref(false)
 const error        = ref('')
 const mostrarReset = ref(false)
 const accesoExitoso = ref(false)
 
-// Acceso local provisional. Debe reemplazarse al conectar el backend y PostgreSQL.
-const CLAVE_TEMPORAL = 'UMG2026'
-const form = reactive({ password: '' })
+const form = reactive({ identificador: '', password: '' })
+const recaptchaToken = ref('')
+const recaptchaSiteKey = computed(() => config.public.recaptchaSiteKey.trim())
+const requiereRecaptcha = computed(() => recaptchaSiteKey.value.length > 0)
+const bypassDesarrollo = computed(() => import.meta.dev && !requiereRecaptcha.value)
+const puedeEnviar = computed(() => bypassDesarrollo.value || recaptchaToken.value.length > 0)
 
 onMounted(() => {
   auth.restore()
@@ -93,29 +123,41 @@ onMounted(() => {
 
 async function loginPassword() {
   error.value = ''
-  if (!form.password.trim()) {
-    error.value = 'Ingresa la clave para continuar.'
+  if (!identificadorValido(form.identificador)) {
+    error.value = 'Ingresa un correo válido o un nickname de 3 a 50 caracteres.'
+    return
+  }
+  if (form.password.length < 8) {
+    error.value = 'La contraseña debe tener al menos 8 caracteres.'
+    return
+  }
+  if (!puedeEnviar.value) {
+    error.value = 'Completa la verificación reCAPTCHA para continuar.'
     return
   }
 
   cargando.value = true
-  if (form.password !== CLAVE_TEMPORAL) {
-    error.value = 'La clave de acceso no es correcta.'
+  try {
+    const { data } = await api.post('/auth/login', {
+      identificador: form.identificador,
+      password: form.password,
+      recaptchaToken: bypassDesarrollo.value ? 'dev-bypass' : recaptchaToken.value
+    })
+    accesoExitoso.value = true
+    auth.login(data)
+    await new Promise(resolve => setTimeout(resolve, 650))
+    await navigateTo('/dashboard')
+  } catch (e: any) {
+    error.value = e.response?.data?.mensaje || 'No fue posible iniciar sesión.'
+  } finally {
     cargando.value = false
-    return
   }
+}
 
-  accesoExitoso.value = true
-  auth.login({
-    token: 'acceso-local-temporal',
-    rol: 'ADMIN',
-    nickname: 'Administrador',
-    fotoModificada: null,
-    expiracion: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()
-  })
-  await new Promise(resolve => setTimeout(resolve, 650))
-  await navigateTo('/dashboard')
-  cargando.value = false
+function identificadorValido(valor: string) {
+  const identificador = valor.trim()
+  if (identificador.includes('@')) return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identificador)
+  return /^[a-zA-Z0-9_.-]{3,50}$/.test(identificador)
 }
 </script>
 

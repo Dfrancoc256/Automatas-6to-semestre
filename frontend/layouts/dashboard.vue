@@ -32,18 +32,18 @@
       <nav class="sidebar-nav" @click="sidebarOpen = false">
         <div class="nav-section">Principal</div>
 
-        <NuxtLink to="/dashboard" class="nav-item" :class="{ active: $route.path === '/dashboard' }">
+        <NuxtLink to="/dashboard" class="nav-item" title="Dashboard" :class="{ active: $route.path === '/dashboard' }">
           <v-icon size="18">mdi-view-dashboard</v-icon>
           Dashboard
         </NuxtLink>
 
-        <NuxtLink to="/dashboard/analisis" class="nav-item"
+        <NuxtLink to="/dashboard/analisis" class="nav-item" title="Análisis léxico"
                   :class="{ active: $route.path === '/dashboard/analisis' }">
           <v-icon size="18">mdi-text-search</v-icon>
           Análisis Léxico
         </NuxtLink>
 
-        <NuxtLink to="/dashboard/historial" class="nav-item"
+        <NuxtLink to="/dashboard/historial" class="nav-item" title="Historial de análisis"
                   :class="{ active: $route.path === '/dashboard/historial' }">
           <v-icon size="18">mdi-history</v-icon>
           Historial
@@ -51,7 +51,7 @@
 
         <template v-if="auth.isSupervisor">
           <div class="nav-section">Reportes</div>
-          <NuxtLink to="/dashboard/reportes" class="nav-item"
+          <NuxtLink to="/dashboard/reportes" class="nav-item" title="Estadísticas y reportes"
                     :class="{ active: $route.path === '/dashboard/reportes' }">
             <v-icon size="18">mdi-chart-bar</v-icon>
             Estadísticas
@@ -60,12 +60,12 @@
 
         <template v-if="auth.isAdmin">
           <div class="nav-section">Administración</div>
-          <NuxtLink to="/dashboard/usuarios" class="nav-item"
+          <NuxtLink to="/dashboard/usuarios" class="nav-item" title="Usuarios y roles"
                     :class="{ active: $route.path === '/dashboard/usuarios' }">
             <v-icon size="18">mdi-account-group</v-icon>
             Usuarios
           </NuxtLink>
-          <NuxtLink to="/dashboard/bitacora" class="nav-item"
+          <NuxtLink to="/dashboard/bitacora" class="nav-item" title="Bitácora de accesos"
                     :class="{ active: $route.path === '/dashboard/bitacora' }">
             <v-icon size="18">mdi-shield-check</v-icon>
             Bitácora
@@ -73,7 +73,7 @@
         </template>
 
         <div class="nav-section">Cuenta</div>
-        <NuxtLink to="/dashboard/perfil" class="nav-item"
+        <NuxtLink to="/dashboard/perfil" class="nav-item" title="Mi perfil"
                   :class="{ active: $route.path === '/dashboard/perfil' }">
           <v-icon size="18">mdi-account-edit</v-icon>
           Mi Perfil
@@ -82,7 +82,7 @@
 
       <!-- Cerrar sesión -->
       <div style="padding:16px;border-top:1px solid rgba(255,255,255,.12)">
-        <v-btn block variant="outlined" color="white" size="small"
+        <v-btn block variant="outlined" color="white" size="small" title="Cerrar sesión" aria-label="Cerrar sesión"
                prepend-icon="mdi-logout" @click="cerrarSesion">
           Cerrar sesión
         </v-btn>

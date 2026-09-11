@@ -7,8 +7,6 @@
     "QrExpirationDays": 365
   },
   "Recaptcha": {
-    "SecretKey": "",
-    "SiteKey": "",
     "BypassInDevelopment": true
   }
 }

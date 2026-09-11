@@ -32,6 +32,11 @@ public class RegisterDTO
     [MaxLength(7_000_000, ErrorMessage = "La fotografía excede el tamaño permitido")]
     public string? FotoBase64 { get; set; }
 
+    // Versión personalizada para el avatar y la credencial. La original se
+    // conserva exclusivamente como referencia para la futura validación facial.
+    [MaxLength(7_000_000, ErrorMessage = "La fotografía personalizada excede el tamaño permitido")]
+    public string? FotoModificadaBase64 { get; set; }
+
     // Token de reCAPTCHA
     [Required(ErrorMessage = "Verificación reCAPTCHA requerida")]
     public string RecaptchaToken { get; set; } = string.Empty;
@@ -40,10 +45,12 @@ public class RegisterDTO
 public class LoginDTO
 {
     [Required(ErrorMessage = "El nickname o correo es obligatorio")]
+    [MinLength(3, ErrorMessage = "El identificador debe tener al menos 3 caracteres")]
     [MaxLength(254)]
     public string Identificador { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "La contraseña es obligatoria")]
+    [MinLength(8, ErrorMessage = "La contraseña debe tener al menos 8 caracteres")]
     [MaxLength(128)]
     public string Password { get; set; } = string.Empty;
 

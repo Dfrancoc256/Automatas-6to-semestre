@@ -9,6 +9,7 @@
     </div>
 
     <v-card>
+      <v-alert v-if="error" type="error" variant="tonal" density="compact" class="ma-4 mb-0">{{ error }}</v-alert>
       <v-card-text>
         <v-data-table :headers="headers" :items="registros" :loading="cargando"
                       no-data-text="Sin registros" density="comfortable">
@@ -31,12 +32,13 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'dashboard', middleware: 'auth' })
+definePageMeta({ layout: 'dashboard', middleware: ['auth', 'role'], roles: ['ADMIN'] })
 useHead({ title: 'Bitácora' })
 
 const { api }  = useApi()
 const cargando = ref(true)
 const registros = ref<any[]>([])
+const error = ref('')
 
 const headers = [
   { title: 'Usuario',  key: 'usuario',   sortable: true },
@@ -50,6 +52,6 @@ onMounted(async () => {
   try {
     const { data } = await api.get('/dashboard/bitacora')
     registros.value = data.registros
-  } catch { /* ignore */ } finally { cargando.value = false }
+  } catch (e: any) { error.value = e.response?.data?.mensaje || 'No fue posible cargar la bitácora.' } finally { cargando.value = false }
 })
 </script>

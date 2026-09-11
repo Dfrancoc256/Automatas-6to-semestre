@@ -48,7 +48,20 @@
                         :items="['email','whatsapp','ambos']"
                         class="mb-4" />
 
-              <v-btn color="accent" class="umg-gold-button" block size="large" type="submit">
+              <RecaptchaV2
+                v-if="requiereRecaptcha"
+                v-model:token="recaptchaToken"
+                :site-key="recaptchaSiteKey"
+                class="mb-4"
+              />
+              <v-alert v-else-if="!bypassDesarrollo" type="warning" variant="tonal" density="compact" class="mb-4">
+                Falta configurar la clave pública de reCAPTCHA.
+              </v-alert>
+              <v-alert v-if="error" type="error" variant="tonal" density="compact" class="mb-4">
+                {{ error }}
+              </v-alert>
+
+              <v-btn color="accent" class="umg-gold-button" block size="large" type="submit" :disabled="!puedeEnviar">
                 Siguiente <v-icon end>mdi-arrow-right</v-icon>
               </v-btn>
             </v-form>
@@ -70,9 +83,21 @@
 
               <!-- Foto capturada -->
               <div v-if="fotoCapturada" class="mb-4">
-                <img :src="fotoCapturada"
+                <img :src="fotoCapturada" :style="{ filter: filtroActual.css }"
                      style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid #B48B21" />
                 <p class="text-caption mt-1 text-success">✓ Foto capturada</p>
+              </div>
+
+              <div v-if="fotoCapturada" class="mb-4">
+                <p class="text-caption font-weight-bold mb-2">Personaliza tu foto para la credencial</p>
+                <div class="d-flex flex-wrap justify-center gap-2">
+                  <v-btn v-for="filtro in filtros" :key="filtro.id" size="small"
+                         :color="filtroActual.id === filtro.id ? 'accent' : 'primary'"
+                         :variant="filtroActual.id === filtro.id ? 'flat' : 'outlined'"
+                         @click="filtroActual = filtro">
+                    {{ filtro.nombre }}
+                  </v-btn>
+                </div>
               </div>
 
               <canvas ref="canvasEl" style="display:none" width="640" height="480" />
@@ -144,6 +169,7 @@ useHead({ title: 'Registro' })
 
 const auth    = useAuthStore()
 const { api } = useApi()
+const config = useRuntimeConfig()
 
 const paso        = ref(1)
 const mostrarPass = ref(false)
@@ -156,6 +182,11 @@ const form = reactive({
   correo: '', telefono: '', fechaNacimiento: '',
   nickname: '', password: '', metodoNotificacion: 'email'
 })
+const recaptchaToken = ref('')
+const recaptchaSiteKey = computed(() => config.public.recaptchaSiteKey.trim())
+const requiereRecaptcha = computed(() => recaptchaSiteKey.value.length > 0)
+const bypassDesarrollo = computed(() => import.meta.dev && !requiereRecaptcha.value)
+const puedeEnviar = computed(() => bypassDesarrollo.value || recaptchaToken.value.length > 0)
 
 // Webcam
 const videoEl       = ref<HTMLVideoElement | null>(null)
@@ -164,7 +195,20 @@ const streamActivo  = ref(false)
 const fotoCapturada = ref<string | null>(null)
 let   mediaStream: MediaStream | null = null
 
+const filtros = [
+  { id: 'normal', nombre: 'Natural', css: 'none', canvas: 'none' },
+  { id: 'calido', nombre: 'Cálido', css: 'sepia(.28) saturate(1.15)', canvas: 'sepia(28%) saturate(115%)' },
+  { id: 'azul', nombre: 'Azul UMG', css: 'hue-rotate(175deg) saturate(1.1)', canvas: 'hue-rotate(175deg) saturate(110%)' },
+  { id: 'gris', nombre: 'Clásico', css: 'grayscale(1) contrast(1.08)', canvas: 'grayscale(100%) contrast(108%)' }
+]
+const filtroActual = ref(filtros[0]!)
+
 async function siguientePaso() {
+  error.value = ''
+  if (!puedeEnviar.value) {
+    error.value = 'Completa la verificación reCAPTCHA para continuar.'
+    return
+  }
   const { valid } = await formPaso1.value?.validate()
   if (!valid) return
   paso.value = 2
@@ -192,6 +236,20 @@ function capturarFoto() {
   detenerCamara()
 }
 
+async function crearFotoPersonalizada() {
+  if (!fotoCapturada.value) return null
+  const imagen = new Image()
+  imagen.src = fotoCapturada.value
+  await imagen.decode()
+  const lienzo = document.createElement('canvas')
+  lienzo.width = 640
+  lienzo.height = 480
+  const contexto = lienzo.getContext('2d')!
+  contexto.filter = filtroActual.value.canvas
+  contexto.drawImage(imagen, 0, 0, lienzo.width, lienzo.height)
+  return lienzo.toDataURL('image/jpeg', 0.85)
+}
+
 function retomar() {
   fotoCapturada.value = null
   iniciarCamara()
@@ -214,7 +272,8 @@ async function registrar() {
       password:           form.password,
       metodoNotificacion: form.metodoNotificacion,
       fotoBase64:         fotoCapturada.value,
-      recaptchaToken:     import.meta.dev ? 'dev-bypass' : ''
+      fotoModificadaBase64: await crearFotoPersonalizada(),
+      recaptchaToken:     bypassDesarrollo.value ? 'dev-bypass' : recaptchaToken.value
     }
     const { data } = await api.post('/auth/registro', payload)
     auth.login(data)

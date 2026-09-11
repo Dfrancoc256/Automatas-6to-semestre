@@ -35,6 +35,12 @@ namespace LenguajesFormalesAPI.Migrations
                     table.PrimaryKey("PK_usuarios", x => x.id);
                 });
 
+            migrationBuilder.AddCheckConstraint("CK_usuarios_correo", "usuarios", "length(trim(correo)) > 3");
+            migrationBuilder.AddCheckConstraint("CK_usuarios_telefono", "usuarios", "length(trim(telefono)) BETWEEN 8 AND 20");
+            migrationBuilder.AddCheckConstraint("CK_usuarios_nickname", "usuarios", "length(trim(nickname)) BETWEEN 3 AND 50");
+            migrationBuilder.AddCheckConstraint("CK_usuarios_notificacion", "usuarios", "metodo_notificacion IN ('email', 'whatsapp', 'ambos')");
+            migrationBuilder.AddCheckConstraint("CK_usuarios_rol", "usuarios", "rol IN ('ADMIN', 'SUPERVISOR', 'ANALISTA')");
+
             migrationBuilder.CreateTable(
                 name: "bitacora_login",
                 columns: table => new
@@ -58,6 +64,9 @@ namespace LenguajesFormalesAPI.Migrations
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                 });
+
+            migrationBuilder.AddCheckConstraint("CK_bitacora_resultado", "bitacora_login", "resultado IN ('exitoso', 'fallido')");
+            migrationBuilder.AddCheckConstraint("CK_bitacora_metodo", "bitacora_login", "metodo IN ('password', 'facial', 'qr')");
 
             migrationBuilder.CreateTable(
                 name: "resultado_analisis",
@@ -83,6 +92,10 @@ namespace LenguajesFormalesAPI.Migrations
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                 });
+
+            migrationBuilder.AddCheckConstraint("CK_resultado_idioma", "resultado_analisis", "idioma IN ('español', 'inglés', 'ruso', 'chino', 'árabe')");
+            migrationBuilder.AddCheckConstraint("CK_resultado_archivo", "resultado_analisis", "length(trim(nombre_archivo)) > 0");
+            migrationBuilder.AddCheckConstraint("CK_resultado_totales", "resultado_analisis", "total_palabras >= 0 AND total_tokens >= 0");
 
             migrationBuilder.InsertData(
                 table: "usuarios",
