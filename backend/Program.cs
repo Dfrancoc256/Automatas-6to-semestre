@@ -144,20 +144,6 @@ app.UseStaticFiles();
 
 app.MapControllers();
 
-// ── Migraciones automáticas en arranque ──────────────────────────────────
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    try
-    {
-        db.Database.Migrate();
-    }
-    catch (Exception ex)
-    {
-        var log = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        log.LogError(ex, "Error aplicando migraciones");
-        throw;
-    }
-}
-
+// El esquema se administra con backend/database/schema.sql.
+// Ejecuta el script antes de iniciar la API en un entorno nuevo.
 app.Run();

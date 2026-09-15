@@ -1,6 +1,16 @@
 <template>
   <div class="auth-page">
-    <v-card class="auth-card pa-8" elevation="0" style="max-width:520px">
+    <div class="auth-background" aria-hidden="true">
+      <span class="auth-background__slide auth-background__slide--one" />
+      <span class="auth-background__slide auth-background__slide--two" />
+      <span class="auth-background__slide auth-background__slide--three" />
+      <span class="auth-background__slide auth-background__slide--four" />
+    </div>
+    <v-card class="auth-card registro-card pa-8" elevation="0">
+      <div class="auth-access-tabs" aria-label="Acceso y registro">
+        <NuxtLink to="/login">Ingresar</NuxtLink>
+        <NuxtLink to="/registro" class="is-active">Crear cuenta</NuxtLink>
+      </div>
       <div class="text-center mb-6">
         <img class="auth-logo mx-auto mb-3" src="/images/logo-umg-oficial.png"
              alt="Universidad Mariano Gálvez de Guatemala" />
@@ -157,7 +167,7 @@
 
       <div class="text-center mt-4">
         <span class="text-body-2 text-medium-emphasis">¿Ya tienes cuenta? </span>
-        <NuxtLink to="/" class="font-weight-bold" style="color:#B48B21">Inicia sesión</NuxtLink>
+        <NuxtLink to="/login" class="font-weight-bold" style="color:#B48B21">Inicia sesión</NuxtLink>
       </div>
     </v-card>
   </div>
@@ -307,13 +317,25 @@ onUnmounted(() => detenerCamara())
 
 <style scoped>
 .auth-logo {
-  width: 72px; height: 72px;
+  width: 154px; height: 154px;
   object-fit: contain;
-  background: white;
-  border: 3px solid #B48B21;
+  background: transparent;
+  border: 0;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 10px 28px rgba(15,72,102,.30);
+  box-shadow: 0 0 18px 8px rgba(180,139,33,.38), 0 14px 28px rgba(5,27,46,.22);
 }
 .gap-2 { gap: 8px; }
+.registro-card { position: relative; z-index: 2; width: min(100%, 650px); max-width: 650px; height: calc(100dvh - 48px); padding: 20px 26px !important; overflow: hidden; display: flex; flex-direction: column; border: 1px solid rgba(180,139,33,.42) !important; box-shadow: 0 24px 70px rgba(5,27,46,.42) !important; }
+.registro-card .auth-logo { width: 98px; height: 98px; box-shadow: 0 0 14px 6px rgba(180,139,33,.3), 0 10px 22px rgba(5,27,46,.18); }
+.registro-card .text-center.mb-6 { margin-bottom: 12px !important; }.registro-card .text-h5 { font-size: 23px !important; line-height: 1.15; }.registro-card .text-body-2 { font-size: 13px !important; }
+.registro-card :deep(.v-stepper) { display: flex; flex: 1; min-height: 0; flex-direction: column; }
+.registro-card :deep(.v-stepper-header) { min-height: 74px; }.registro-card :deep(.v-stepper-item) { padding: 8px 4px; }.registro-card :deep(.v-stepper-item__title) { font-size: 13px; }.registro-card :deep(.v-stepper-item__avatar) { width: 26px; height: 26px; font-size: 12px; }
+.registro-card :deep(.v-stepper-window) { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: 6px; }
+.registro-card :deep(.v-stepper-window::-webkit-scrollbar) { width: 5px; }
+.registro-card :deep(.v-stepper-window::-webkit-scrollbar-thumb) { background: #B48B21; border-radius: 99px; }
+.auth-access-tabs { display: inline-flex; gap: 4px; padding: 4px; margin: 0 auto 14px; background: #F5F6F7; border: 1px solid #E2E4E8; border-radius: 999px; }
+.auth-access-tabs a { padding: 8px 17px; color: #6B7280; border-radius: 999px; font-size: 12px; font-weight: 700; text-decoration: none; }
+.auth-access-tabs a.is-active { color: #051B2E; background: #fff; box-shadow: 0 2px 7px rgba(5,27,46,.12); }
+@media (max-width: 700px) { .registro-card { height: calc(100dvh - 32px); } }
 </style>
