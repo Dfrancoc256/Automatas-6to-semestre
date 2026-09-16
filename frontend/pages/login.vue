@@ -7,10 +7,10 @@
       <span class="auth-background__slide auth-background__slide--four" />
     </div>
 
-    <v-card :class="['auth-card', 'login-card', 'pa-8', { 'login-card--success': accesoExitoso }]" elevation="0">
+    <v-card v-if="!modoRegistro" :class="['auth-card', 'login-card', 'pa-8', { 'login-card--success': accesoExitoso }]" elevation="0">
       <div class="auth-access-tabs" aria-label="Acceso y registro">
-        <NuxtLink to="/login" class="is-active">Ingresar</NuxtLink>
-        <NuxtLink to="/registro">Crear cuenta</NuxtLink>
+        <button type="button" class="is-active" @click="cambiarModo('login')">Ingresar</button>
+        <button type="button" @click="cambiarModo('registro')">Crear cuenta</button>
       </div>
       <!-- Logo -->
       <div class="text-center mb-6">
@@ -83,9 +83,11 @@
         <v-btn variant="text" color="primary" size="small" @click="mostrarReset = true">
           ¿Olvidaste tu contraseña?
         </v-btn>
-        <p class="login-register-link">¿Aún no tienes cuenta? <NuxtLink to="/registro">Regístrate aquí</NuxtLink></p>
+        <p class="login-register-link">¿Aún no tienes cuenta? <button type="button" @click="cambiarModo('registro')">Regístrate aquí</button></p>
       </div>
     </v-card>
+
+    <AuthRegistrationForm v-else @cambiar-modo="cambiarModo" />
 
     <v-dialog v-model="mostrarReset" max-width="420">
       <v-card class="pa-6">
@@ -106,6 +108,7 @@ definePageMeta({ layout: 'default' })
 useHead({ title: 'Acceso | Analizador Léxico' })
 
 const auth     = useAuthStore()
+const route = useRoute()
 const { api }  = useApi()
 const config = useRuntimeConfig()
 const mostrarPass  = ref(false)
@@ -120,6 +123,11 @@ const recaptchaSiteKey = computed(() => config.public.recaptchaSiteKey.trim())
 const requiereRecaptcha = computed(() => recaptchaSiteKey.value.length > 0)
 const bypassDesarrollo = computed(() => import.meta.dev && !requiereRecaptcha.value)
 const puedeEnviar = computed(() => bypassDesarrollo.value || recaptchaToken.value.length > 0)
+const modoRegistro = computed(() => route.query.modo === 'registro')
+
+function cambiarModo(modo: 'login' | 'registro') {
+  navigateTo({ path: '/login', query: modo === 'registro' ? { modo: 'registro' } : {} })
+}
 
 onMounted(() => {
   auth.restore()
@@ -211,6 +219,7 @@ function identificadorValido(valor: string) {
 .login-register-link { margin: 8px 0 0; color: #6B7280; font-size: 12px; }
 .login-register-link a { color: #7A5E12; font-weight: 700; }
 .auth-access-tabs { display: inline-flex; align-self: center; gap: 4px; padding: 4px; margin-bottom: 26px; background: #F5F6F7; border: 1px solid #E2E4E8; border-radius: 999px; }
-.auth-access-tabs a { padding: 8px 17px; color: #6B7280; border-radius: 999px; font-size: 12px; font-weight: 700; text-decoration: none; }
-.auth-access-tabs a.is-active { color: #051B2E; background: #fff; box-shadow: 0 2px 7px rgba(5,27,46,.12); }
+.auth-access-tabs button { padding: 8px 17px; border: 0; background: transparent; color: #6B7280; border-radius: 999px; font-size: 12px; font-weight: 700; cursor: pointer; }
+.auth-access-tabs button.is-active { color: #051B2E; background: #fff; box-shadow: 0 2px 7px rgba(5,27,46,.12); }
+.login-register-link button { border: 0; background: transparent; color: #7A5E12; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
 </style>

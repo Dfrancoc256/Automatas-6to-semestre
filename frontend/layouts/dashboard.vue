@@ -131,6 +131,12 @@ function alternarSidebar() {
 }
 
 async function cerrarSesion() {
+  const { api } = useApi()
+  try {
+    await api.post('/auth/logout')
+  } catch {
+    // Aunque la sesión del servidor ya no sea válida, se limpia el estado local.
+  }
   auth.logout()
   await navigateTo('/')
 }
