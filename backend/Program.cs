@@ -1,5 +1,6 @@
 using System.Text;
 using System.Threading.RateLimiting;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
@@ -85,6 +86,7 @@ builder.Services.AddScoped<IAuthService,            AuthService>();
 builder.Services.AddScoped<IAnalisisLexicoService,  AnalisisLexicoService>();
 builder.Services.AddScoped<IRecaptchaService,       RecaptchaService>();
 builder.Services.AddScoped<ICredentialService,      CredentialService>();
+builder.Services.AddScoped<IFacialService,          FacialService>();
 builder.Services.AddHttpClient();
 
 // ── Controllers + Swagger ─────────────────────────────────────────────────
@@ -139,8 +141,14 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Servir archivos estáticos (uploads de fotos)
-app.UseStaticFiles();
+// Servir archivos estáticos (uploads de fotos, incluida la foto de enrolamiento facial)
+var carpetaUploads = Path.Combine(builder.Environment.ContentRootPath, "uploads");
+Directory.CreateDirectory(carpetaUploads);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(carpetaUploads),
+    RequestPath  = "/uploads"
+});
 
 app.MapControllers();
 

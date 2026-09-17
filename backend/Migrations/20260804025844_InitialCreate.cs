@@ -87,7 +87,7 @@ namespace LenguajesFormalesAPI.Migrations
             migrationBuilder.InsertData(
                 table: "usuarios",
                 columns: new[] { "id", "activo", "correo", "fecha_nacimiento", "fecha_registro", "foto_modificada", "foto_original", "metodo_notificacion", "nickname", "password_hash", "rol", "telefono" },
-                values: new object[] { 1, true, "admin@lenguajes.umg.edu.gt", new DateTime(1990, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, null, "email", "admin", "$2a$11$/BUgxH0omkS815S/Mn0Gj.uyDU1bBvlsof/OIkazK6aINOEAxYuoi", "ADMIN", "50200000000" });
+                values: new object[] { 1, true, "admin@lenguajes.umg.edu.gt", new DateTime(1990, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, "email", "admin", "$2a$11$/BUgxH0omkS815S/Mn0Gj.uyDU1bBvlsof/OIkazK6aINOEAxYuoi", "ADMIN", "50200000000" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_bitacora_login_usuario_id",

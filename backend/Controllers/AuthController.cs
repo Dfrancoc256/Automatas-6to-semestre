@@ -117,6 +117,37 @@ public class AuthController : ControllerBase
         }
     }
 
+    /// <summary>Login mediante reconocimiento facial (descriptor calculado en el navegador)</summary>
+    [HttpPost("login-facial")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> LoginFacial([FromBody] LoginFacialDTO dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(new { errores = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage) });
+
+        if (!await _recaptcha.ValidarAsync(dto.RecaptchaToken))
+            return BadRequest(new { mensaje = "Verificación reCAPTCHA inválida." });
+
+        var ip        = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "desconocido";
+        var userAgent = Request.Headers.UserAgent.ToString();
+
+        try
+        {
+            var result = await _auth.LoginFacialAsync(dto, ip, userAgent);
+            return result == null
+                ? Unauthorized(new { mensaje = "Rostro no reconocido." })
+                : Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error durante el inicio de sesión facial");
+            return StatusCode(500, new { mensaje = "No fue posible iniciar sesión." });
+        }
+    }
+
     /// <summary>Obtener perfil del usuario autenticado</summary>
     [HttpGet("perfil")]
     [Authorize]

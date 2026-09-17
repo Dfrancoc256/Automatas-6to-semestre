@@ -135,6 +135,10 @@ namespace LenguajesFormalesAPI.Migrations
                         .HasColumnType("character varying(150)")
                         .HasColumnName("correo");
 
+                    b.Property<string>("EncodingFacial")
+                        .HasColumnType("text")
+                        .HasColumnName("encoding_facial");
+
                     b.Property<DateTime>("FechaNacimiento")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("fecha_nacimiento");
@@ -196,8 +200,8 @@ namespace LenguajesFormalesAPI.Migrations
                             Id = 1,
                             Activo = true,
                             Correo = "admin@lenguajes.umg.edu.gt",
-                            FechaNacimiento = new DateTime(1990, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FechaRegistro = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            FechaNacimiento = new DateTime(1990, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            FechaRegistro = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             MetodoNotificacion = "email",
                             Nickname = "admin",
                             PasswordHash = "$2a$11$/BUgxH0omkS815S/Mn0Gj.uyDU1bBvlsof/OIkazK6aINOEAxYuoi",

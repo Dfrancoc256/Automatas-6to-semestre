@@ -10,16 +10,16 @@
 
       <v-stepper v-model="paso" alt-labels flat>
         <v-stepper-header>
-          <v-stepper-item title="Datos" value="1" :complete="paso > 1" />
+          <v-stepper-item title="Datos" :value="1" :complete="paso > 1" />
           <v-divider />
-          <v-stepper-item title="Foto" value="2" :complete="paso > 2" />
+          <v-stepper-item title="Foto" :value="2" :complete="paso > 2" />
           <v-divider />
-          <v-stepper-item title="Listo" value="3" />
+          <v-stepper-item title="Listo" :value="3" />
         </v-stepper-header>
 
         <v-stepper-window>
           <!-- Paso 1: datos básicos -->
-          <v-stepper-window-item value="1">
+          <v-stepper-window-item :value="1">
             <v-form @submit.prevent="siguientePaso" ref="formPaso1">
               <v-text-field v-model="form.correo" label="Correo electrónico"
                             prepend-inner-icon="mdi-email" type="email"
@@ -55,7 +55,7 @@
           </v-stepper-window-item>
 
           <!-- Paso 2: foto -->
-          <v-stepper-window-item value="2">
+          <v-stepper-window-item :value="2">
             <div class="text-center mb-4">
               <p class="text-body-2 mb-4">Toma una foto para tu credencial</p>
 
@@ -72,7 +72,11 @@
               <div v-if="fotoCapturada" class="mb-4">
                 <img :src="fotoCapturada"
                      style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid #B48B21" />
-                <p class="text-caption mt-1 text-success">✓ Foto capturada</p>
+                <p v-if="procesandoRostro" class="text-caption mt-1">Analizando rostro...</p>
+                <p v-else-if="descriptorFacial" class="text-caption mt-1 text-success">✓ Foto capturada · rostro detectado</p>
+                <p v-else class="text-caption mt-1 text-warning">
+                  ✓ Foto capturada · no se detectó un rostro claro (podrás enrolarlo después desde tu perfil)
+                </p>
               </div>
 
               <canvas ref="canvasEl" style="display:none" width="640" height="480" />
@@ -109,7 +113,7 @@
           </v-stepper-window-item>
 
           <!-- Paso 3: éxito -->
-          <v-stepper-window-item value="3">
+          <v-stepper-window-item :value="3">
             <div class="text-center py-6">
               <v-icon size="80" color="success" class="mb-4">mdi-check-circle</v-icon>
               <h2 class="text-h5 font-weight-bold mb-2">¡Registro exitoso!</h2>
@@ -144,6 +148,7 @@ useHead({ title: 'Registro' })
 
 const auth    = useAuthStore()
 const { api } = useApi()
+const { cargarModelos, obtenerDescriptor } = useFacialRecognition()
 
 const paso        = ref(1)
 const mostrarPass = ref(false)
@@ -162,12 +167,15 @@ const videoEl       = ref<HTMLVideoElement | null>(null)
 const canvasEl      = ref<HTMLCanvasElement | null>(null)
 const streamActivo  = ref(false)
 const fotoCapturada = ref<string | null>(null)
+const descriptorFacial  = ref<number[] | null>(null)
+const procesandoRostro  = ref(false)
 let   mediaStream: MediaStream | null = null
 
 async function siguientePaso() {
   const { valid } = await formPaso1.value?.validate()
   if (!valid) return
   paso.value = 2
+  cargarModelos()
   await nextTick()
   await iniciarCamara()
 }
@@ -184,16 +192,26 @@ async function iniciarCamara() {
   }
 }
 
-function capturarFoto() {
+async function capturarFoto() {
   if (!videoEl.value || !canvasEl.value) return
   const ctx = canvasEl.value.getContext('2d')!
   ctx.drawImage(videoEl.value, 0, 0, 640, 480)
   fotoCapturada.value = canvasEl.value.toDataURL('image/jpeg', 0.8)
   detenerCamara()
+
+  procesandoRostro.value = true
+  try {
+    descriptorFacial.value = await obtenerDescriptor(canvasEl.value)
+  } catch {
+    descriptorFacial.value = null
+  } finally {
+    procesandoRostro.value = false
+  }
 }
 
 function retomar() {
   fotoCapturada.value = null
+  descriptorFacial.value = null
   iniciarCamara()
 }
 
@@ -214,6 +232,7 @@ async function registrar() {
       password:           form.password,
       metodoNotificacion: form.metodoNotificacion,
       fotoBase64:         fotoCapturada.value,
+      descriptor:         descriptorFacial.value,
       recaptchaToken:     import.meta.dev ? 'dev-bypass' : ''
     }
     const { data } = await api.post('/auth/registro', payload)

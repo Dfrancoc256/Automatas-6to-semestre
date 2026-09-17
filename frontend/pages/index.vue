@@ -15,6 +15,20 @@
       </div>
 
       <v-form @submit.prevent="loginPassword" class="login-form">
+        <label class="login-field-label" for="identificador">Correo o nickname</label>
+        <v-text-field
+          id="identificador"
+          v-model="form.identificador"
+          placeholder="tu@correo.com o nickname"
+          prepend-inner-icon="mdi-account"
+          :error="!!error"
+          hide-details
+          base-color="primary"
+          color="primary"
+          class="login-password-field mb-4"
+          @update:model-value="error = ''"
+        />
+
         <label class="login-field-label" for="clave-acceso">Clave de acceso</label>
         <v-text-field
           id="clave-acceso"
@@ -49,10 +63,28 @@
         </v-btn>
       </v-form>
 
+      <div class="text-center mt-4">
+        <v-divider class="my-4" />
+        <v-btn
+          variant="outlined"
+          color="primary"
+          block
+          prepend-icon="mdi-face-recognition"
+          @click="abrirLoginFacial"
+        >
+          Ingresar con reconocimiento facial
+        </v-btn>
+      </div>
+
       <div class="text-center mt-5">
         <v-btn variant="text" color="primary" size="small" @click="mostrarReset = true">
           ¿Olvidaste tu contraseña?
         </v-btn>
+      </div>
+
+      <div class="text-center mt-2">
+        <span class="text-body-2 text-medium-emphasis">¿No tienes cuenta? </span>
+        <NuxtLink to="/registro" class="font-weight-bold" style="color:#B48B21">Crear cuenta</NuxtLink>
       </div>
     </v-card>
 
@@ -68,6 +100,34 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <v-dialog v-model="mostrarFacial" max-width="440" @update:model-value="onCerrarFacial">
+      <v-card class="pa-6">
+        <v-card-title class="px-0 text-h6">Reconocimiento facial</v-card-title>
+        <v-card-text class="px-0 text-center">
+          <div class="webcam-container mb-3">
+            <video ref="videoFacialEl" autoplay playsinline
+                   style="width:100%;border-radius:8px;object-fit:cover" />
+          </div>
+          <canvas ref="canvasFacialEl" style="display:none" width="640" height="480" />
+
+          <p class="text-body-2 text-medium-emphasis mb-2">
+            Coloca tu rostro frente a la cámara y presiona "Verificar".
+          </p>
+
+          <v-alert v-if="errorFacial" type="error" variant="tonal" density="compact" class="mb-2">
+            {{ errorFacial }}
+          </v-alert>
+        </v-card-text>
+        <v-card-actions class="px-0 justify-end">
+          <v-btn variant="outlined" @click="mostrarFacial = false">Cancelar</v-btn>
+          <v-btn class="umg-gold-button" color="accent" :loading="verificandoFacial"
+                 prepend-icon="mdi-camera-iris" @click="verificarRostro">
+            Verificar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -76,15 +136,24 @@ definePageMeta({ layout: 'default' })
 useHead({ title: 'Iniciar sesión' })
 
 const auth     = useAuthStore()
+const { api }  = useApi()
+const { cargarModelos, obtenerDescriptor } = useFacialRecognition()
+
 const mostrarPass  = ref(false)
 const cargando     = ref(false)
 const error        = ref('')
 const mostrarReset = ref(false)
 const accesoExitoso = ref(false)
 
-// Acceso local provisional. Debe reemplazarse al conectar el backend y PostgreSQL.
-const CLAVE_TEMPORAL = 'UMG2026'
-const form = reactive({ password: '' })
+// Login facial
+const mostrarFacial    = ref(false)
+const verificandoFacial = ref(false)
+const errorFacial      = ref('')
+const videoFacialEl    = ref<HTMLVideoElement | null>(null)
+const canvasFacialEl   = ref<HTMLCanvasElement | null>(null)
+let   streamFacial: MediaStream | null = null
+
+const form = reactive({ identificador: '', password: '' })
 
 onMounted(() => {
   auth.restore()
@@ -93,29 +162,81 @@ onMounted(() => {
 
 async function loginPassword() {
   error.value = ''
-  if (!form.password.trim()) {
-    error.value = 'Ingresa la clave para continuar.'
+  if (!form.identificador.trim() || !form.password.trim()) {
+    error.value = 'Ingresa tu correo/nickname y tu clave para continuar.'
     return
   }
 
   cargando.value = true
-  if (form.password !== CLAVE_TEMPORAL) {
-    error.value = 'La clave de acceso no es correcta.'
-    cargando.value = false
-    return
-  }
+  try {
+    const { data } = await api.post('/auth/login', {
+      identificador:  form.identificador.trim(),
+      password:       form.password,
+      recaptchaToken: import.meta.dev ? 'dev-bypass' : ''
+    })
 
-  accesoExitoso.value = true
-  auth.login({
-    token: 'acceso-local-temporal',
-    rol: 'ADMIN',
-    nickname: 'Administrador',
-    fotoModificada: null,
-    expiracion: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()
-  })
-  await new Promise(resolve => setTimeout(resolve, 650))
-  await navigateTo('/dashboard')
-  cargando.value = false
+    accesoExitoso.value = true
+    auth.login(data)
+    await new Promise(resolve => setTimeout(resolve, 650))
+    await navigateTo('/dashboard')
+  } catch (e: any) {
+    error.value = e.response?.data?.mensaje || 'La clave de acceso no es correcta.'
+  } finally {
+    cargando.value = false
+  }
+}
+
+async function abrirLoginFacial() {
+  errorFacial.value = ''
+  mostrarFacial.value = true
+  cargarModelos()
+  await nextTick()
+  try {
+    streamFacial = await navigator.mediaDevices.getUserMedia({ video: true })
+    if (videoFacialEl.value) videoFacialEl.value.srcObject = streamFacial
+  } catch {
+    errorFacial.value = 'No se pudo acceder a la cámara.'
+  }
+}
+
+function detenerCamaraFacial() {
+  streamFacial?.getTracks().forEach(t => t.stop())
+  streamFacial = null
+}
+
+function onCerrarFacial(abierto: boolean) {
+  if (!abierto) detenerCamaraFacial()
+}
+
+async function verificarRostro() {
+  if (!videoFacialEl.value || !canvasFacialEl.value) return
+  errorFacial.value = ''
+  verificandoFacial.value = true
+
+  try {
+    const ctx = canvasFacialEl.value.getContext('2d')!
+    ctx.drawImage(videoFacialEl.value, 0, 0, 640, 480)
+
+    const descriptor = await obtenerDescriptor(canvasFacialEl.value)
+    if (!descriptor) {
+      errorFacial.value = 'No se detectó un rostro. Acércate e inténtalo de nuevo.'
+      return
+    }
+
+    const { data } = await api.post('/auth/login-facial', {
+      descriptor,
+      recaptchaToken: import.meta.dev ? 'dev-bypass' : ''
+    })
+
+    auth.login(data)
+    mostrarFacial.value = false
+    detenerCamaraFacial()
+    await navigateTo('/dashboard')
+  } catch (e: any) {
+    errorFacial.value = e.response?.data?.mensaje || 'Rostro no reconocido.'
+  } finally {
+    verificandoFacial.value = false
+  }
 }
 </script>
 
