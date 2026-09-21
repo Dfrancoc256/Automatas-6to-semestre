@@ -53,11 +53,17 @@
           </div>
 
           <div v-else class="text-center">
-            <div class="webcam-container mb-3">
-              <video ref="videoEnrolEl" autoplay playsinline
-                     style="width:100%;border-radius:8px;object-fit:cover" />
-            </div>
-            <canvas ref="canvasEnrolEl" style="display:none" width="640" height="480" />
+            <FaceScanner
+              ref="escanerEnrol"
+              con-foto
+              :ocupado="enrolando"
+              class="mb-3"
+              @capturado="enrolar"
+              @error="alFallarCamara"
+            />
+            <p class="text-body-2 text-medium-emphasis mb-3">
+              Coloca tu rostro dentro del marco. Se capturará automáticamente.
+            </p>
 
             <v-alert v-if="msgFacial" :type="tipoMsgFacial" variant="tonal" density="compact" class="mb-3">
               {{ msgFacial }}
@@ -65,10 +71,6 @@
 
             <div class="d-flex gap-2 justify-center">
               <v-btn variant="outlined" @click="cancelarEnrolamiento">Cancelar</v-btn>
-              <v-btn color="accent" class="umg-gold-button" :loading="enrolando"
-                     prepend-icon="mdi-camera-iris" @click="capturarYEnrolar">
-                Capturar y enrolar
-              </v-btn>
             </div>
           </div>
         </v-card>
@@ -122,7 +124,7 @@ useHead({ title: 'Mi Perfil' })
 
 const auth     = useAuthStore()
 const { api }  = useApi()
-const { cargarModelos, obtenerDescriptor } = useFacialRecognition()
+const { calentar } = useFacialRecognition()
 const { fotoUrl } = useMediaUrl()
 const perfil   = ref<any>(null)
 const fotoPerfilUrl = computed(() => fotoUrl(perfil.value?.fotoModificada))
@@ -139,11 +141,10 @@ const camaraFacialActiva = ref(false)
 const enrolando     = ref(false)
 const msgFacial      = ref('')
 const tipoMsgFacial  = ref<'success' | 'error'>('success')
-const videoEnrolEl  = ref<HTMLVideoElement | null>(null)
-const canvasEnrolEl = ref<HTMLCanvasElement | null>(null)
-let   streamEnrol: MediaStream | null = null
+const escanerEnrol  = ref<{ reiniciar: () => void } | null>(null)
 
 onMounted(async () => {
+  calentar()
   try {
     const { data } = await api.get('/auth/perfil')
     perfil.value = data
@@ -176,67 +177,44 @@ function formatFecha(iso: string) {
   return new Date(iso).toLocaleDateString('es-GT', { day: '2-digit', month: 'long', year: 'numeric' })
 }
 
-async function iniciarEnrolamiento() {
+function iniciarEnrolamiento() {
   msgFacial.value = ''
   camaraFacialActiva.value = true
-  cargarModelos()
-  await nextTick()
-  try {
-    streamEnrol = await navigator.mediaDevices.getUserMedia({ video: true })
-    if (videoEnrolEl.value) videoEnrolEl.value.srcObject = streamEnrol
-  } catch {
-    msgFacial.value = 'No se pudo acceder a la cámara.'
-    tipoMsgFacial.value = 'error'
-  }
-}
-
-function detenerCamaraEnrol() {
-  streamEnrol?.getTracks().forEach(t => t.stop())
-  streamEnrol = null
 }
 
 function cancelarEnrolamiento() {
-  detenerCamaraEnrol()
   camaraFacialActiva.value = false
   msgFacial.value = ''
 }
 
-async function capturarYEnrolar() {
-  if (!videoEnrolEl.value || !canvasEnrolEl.value) return
+function alFallarCamara(mensaje: string) {
+  msgFacial.value = mensaje
+  tipoMsgFacial.value = 'error'
+}
+
+async function enrolar(captura: { descriptor: number[] | null, foto: string | null }) {
+  if (!captura.descriptor || enrolando.value) return
   msgFacial.value = ''
   enrolando.value = true
 
   try {
-    const ctx = canvasEnrolEl.value.getContext('2d')!
-    ctx.drawImage(videoEnrolEl.value, 0, 0, 640, 480)
-
-    const descriptor = await obtenerDescriptor(canvasEnrolEl.value)
-    if (!descriptor) {
-      msgFacial.value = 'No se detectó un rostro claro. Mejora la iluminación e inténtalo de nuevo.'
-      tipoMsgFacial.value = 'error'
-      return
-    }
-
-    const fotoRostro = canvasEnrolEl.value.toDataURL('image/jpeg', 0.8)
-    await api.post('/facial/enrolar', { descriptor })
-    await api.put('/auth/perfil', { fotoModificadaBase64: fotoRostro })
+    await api.post('/facial/enrolar', { descriptor: captura.descriptor })
+    if (captura.foto) await api.put('/auth/perfil', { fotoModificadaBase64: captura.foto })
 
     const { data } = await api.get('/auth/perfil')
     perfil.value = data
 
     msgFacial.value = 'Rostro enrolado correctamente.'
     tipoMsgFacial.value = 'success'
-    detenerCamaraEnrol()
     camaraFacialActiva.value = false
   } catch (e: any) {
     msgFacial.value = e.response?.data?.mensaje || 'No se pudo enrolar el rostro.'
     tipoMsgFacial.value = 'error'
+    setTimeout(() => escanerEnrol.value?.reiniciar(), 1800)
   } finally {
     enrolando.value = false
   }
 }
-
-onUnmounted(() => detenerCamaraEnrol())
 </script>
 
 <style scoped>

@@ -89,20 +89,17 @@ public class AuthService : IAuthService
     {
         var (usuario, confianza) = await _facial.BuscarCoincidenciaAsync(dto.Descriptor);
 
-        if (usuario != null)
-        {
-            _db.BitacoraLogins.Add(new BitacoraLogin
-            {
-                UsuarioId = usuario.Id,
-                IpOrigen  = Limitar(ip, 45),
-                UserAgent = Limitar(userAgent, 300),
-                Resultado = "exitoso",
-                Metodo    = "facial"
-            });
-            await _db.SaveChangesAsync();
-        }
-
         if (usuario == null) return null;
+
+        _db.BitacoraLogins.Add(new BitacoraLogin
+        {
+            UsuarioId = usuario.Id,
+            IpOrigen  = Limitar(ip, 45),
+            UserAgent = Limitar(userAgent, 300),
+            Resultado = "exitoso",
+            Metodo    = "facial"
+        });
+        await _db.SaveChangesAsync();
 
         _logger.LogInformation("Login facial exitoso: {Nickname} (confianza {Confianza}%)", usuario.Nickname, confianza);
         return CrearRespuestaSesion(usuario);
@@ -128,30 +125,21 @@ public class AuthService : IAuthService
         {
             var carpeta = Path.Combine("uploads", "fotos");
             Directory.CreateDirectory(carpeta);
-<<<<<<< HEAD
-            var nombreArchivo = $"{Guid.NewGuid()}.jpg";
-            var bytes = Convert.FromBase64String(
-                dto.FotoBase64.Contains(',') ? dto.FotoBase64.Split(',')[1] : dto.FotoBase64);
-            await File.WriteAllBytesAsync(Path.Combine(carpeta, nombreArchivo), bytes);
-            // Ruta relativa servida bajo /uploads (ver Program.cs) — siempre con "/", nunca la del SO
-            rutaFotoOriginal   = $"fotos/{nombreArchivo}";
-            rutaFotoModificada = rutaFotoOriginal; // misma foto por defecto
-=======
             var nombreOriginal = $"{Guid.NewGuid()}.jpg";
-            rutaFotoOriginal = Path.Combine(carpeta, nombreOriginal);
+            // Rutas relativas servidas bajo /uploads (ver Program.cs) — siempre con "/", nunca la del SO
+            rutaFotoOriginal = $"fotos/{nombreOriginal}";
             var bytesOriginales = Convert.FromBase64String(
                 dto.FotoBase64.Contains(',') ? dto.FotoBase64.Split(',')[1] : dto.FotoBase64);
-            await File.WriteAllBytesAsync(rutaFotoOriginal, bytesOriginales);
+            await File.WriteAllBytesAsync(Path.Combine(carpeta, nombreOriginal), bytesOriginales);
 
             var fotoModificada = string.IsNullOrWhiteSpace(dto.FotoModificadaBase64)
                 ? dto.FotoBase64
                 : dto.FotoModificadaBase64;
             var nombreModificado = $"mod_{Guid.NewGuid()}.jpg";
-            rutaFotoModificada = Path.Combine(carpeta, nombreModificado);
+            rutaFotoModificada = $"fotos/{nombreModificado}";
             var bytesModificados = Convert.FromBase64String(
                 fotoModificada.Contains(',') ? fotoModificada.Split(',')[1] : fotoModificada);
-            await File.WriteAllBytesAsync(rutaFotoModificada, bytesModificados);
->>>>>>> origin/main
+            await File.WriteAllBytesAsync(Path.Combine(carpeta, nombreModificado), bytesModificados);
         }
 
         var usuario = new Usuario

@@ -141,9 +141,11 @@ public class AuthController : ControllerBase
         try
         {
             var result = await _auth.LoginFacialAsync(dto, ip, userAgent);
-            return result == null
-                ? Unauthorized(new { mensaje = "Rostro no reconocido." })
-                : Ok(result);
+            if (result == null)
+                return Unauthorized(new { mensaje = "Rostro no reconocido." });
+
+            EstablecerCookieSesion(result.Token, result.Expiracion);
+            return Ok(result);
         }
         catch (Exception ex)
         {
