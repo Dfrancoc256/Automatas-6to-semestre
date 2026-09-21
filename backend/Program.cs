@@ -9,17 +9,27 @@ using Microsoft.OpenApi.Models;
 using LenguajesFormalesAPI.Data;
 using LenguajesFormalesAPI.Middleware;
 using LenguajesFormalesAPI.Services;
+using LenguajesFormalesAPI.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-if (string.IsNullOrWhiteSpace(connectionString))
-    throw new InvalidOperationException(
-        "ConnectionStrings:DefaultConnection no configurado. Use variables de entorno o appsettings.Development.json.");
+var connectionString =
+    builder.Configuration.GetConnectionString("DefaultConnection");
 
-// ── Base de datos PostgreSQL ───────────────────────────────────────────────
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString));
+// ── Base de datos ─────────────────────────────────────────────────────────
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    // Base temporal mientras PostgreSQL todavía no está configurado.
+    // Los datos desaparecen al cerrar la aplicación.
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseInMemoryDatabase("LenguajesFormalesDev"));
+}
+else
+{
+    // Base de datos PostgreSQL real.
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseNpgsql(connectionString));
+}
 
 // ── JWT Authentication ────────────────────────────────────────────────────
 var jwtSecret = builder.Configuration["Jwt:SecretKey"];
@@ -102,6 +112,7 @@ builder.Services.AddScoped<IAnalisisLexicoService,  AnalisisLexicoService>();
 builder.Services.AddScoped<IRecaptchaService,       RecaptchaService>();
 builder.Services.AddScoped<ICredentialService,      CredentialService>();
 builder.Services.AddHttpClient();
+builder.Services.AddScoped<IEmailService,           EmailService>();
 
 // ── Controllers + Swagger ─────────────────────────────────────────────────
 builder.Services.AddControllers();
@@ -159,7 +170,10 @@ app.UseAuthorization();
 app.UseStaticFiles();
 
 app.MapControllers();
-
 // El esquema se administra con backend/database/schema.sql.
 // Ejecuta el script antes de iniciar la API en un entorno nuevo.
+
+
 app.Run();
+
+
