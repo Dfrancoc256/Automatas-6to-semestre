@@ -9,6 +9,7 @@
     </div>
 
     <v-card>
+      <v-alert v-if="error" type="error" variant="tonal" density="compact" class="ma-4 mb-0">{{ error }}</v-alert>
       <v-card-text>
         <v-data-table :headers="headers" :items="usuarios" :loading="cargando"
                       no-data-text="Sin usuarios" density="comfortable">
@@ -50,12 +51,13 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'dashboard', middleware: 'auth' })
+definePageMeta({ layout: 'dashboard', middleware: ['auth', 'role'], roles: ['ADMIN'] })
 useHead({ title: 'Usuarios' })
 
 const { api }   = useApi()
 const cargando  = ref(true)
 const usuarios  = ref<any[]>([])
+const error = ref('')
 
 const headers = [
   { title: 'Nickname', key: 'nickname', sortable: true },
@@ -70,17 +72,21 @@ onMounted(async () => {
   try {
     const { data } = await api.get('/dashboard/usuarios')
     usuarios.value = data
-  } catch { /* ignore */ } finally { cargando.value = false }
+  } catch (e: any) { error.value = e.response?.data?.mensaje || 'No fue posible cargar los usuarios.' } finally { cargando.value = false }
 })
 
 async function toggleUsuario(u: any) {
-  await api.patch(`/dashboard/usuarios/${u.id}/toggle`)
-  u.activo = !u.activo
+  try {
+    await api.patch(`/dashboard/usuarios/${u.id}/toggle`)
+    u.activo = !u.activo
+  } catch (e: any) { error.value = e.response?.data?.mensaje || 'No fue posible cambiar el estado del usuario.' }
 }
 
 async function cambiarRol(u: any, rol: string) {
-  await api.patch(`/dashboard/usuarios/${u.id}/rol`, { rol })
-  u.rol = rol
+  try {
+    await api.patch(`/dashboard/usuarios/${u.id}/rol`, { rol })
+    u.rol = rol
+  } catch (e: any) { error.value = e.response?.data?.mensaje || 'No fue posible actualizar el rol.' }
 }
 
 function colRol(r: string) {

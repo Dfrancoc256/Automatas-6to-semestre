@@ -128,6 +128,7 @@ public class AuthService : IAuthService
         {
             var carpeta = Path.Combine("uploads", "fotos");
             Directory.CreateDirectory(carpeta);
+<<<<<<< HEAD
             var nombreArchivo = $"{Guid.NewGuid()}.jpg";
             var bytes = Convert.FromBase64String(
                 dto.FotoBase64.Contains(',') ? dto.FotoBase64.Split(',')[1] : dto.FotoBase64);
@@ -135,6 +136,22 @@ public class AuthService : IAuthService
             // Ruta relativa servida bajo /uploads (ver Program.cs) — siempre con "/", nunca la del SO
             rutaFotoOriginal   = $"fotos/{nombreArchivo}";
             rutaFotoModificada = rutaFotoOriginal; // misma foto por defecto
+=======
+            var nombreOriginal = $"{Guid.NewGuid()}.jpg";
+            rutaFotoOriginal = Path.Combine(carpeta, nombreOriginal);
+            var bytesOriginales = Convert.FromBase64String(
+                dto.FotoBase64.Contains(',') ? dto.FotoBase64.Split(',')[1] : dto.FotoBase64);
+            await File.WriteAllBytesAsync(rutaFotoOriginal, bytesOriginales);
+
+            var fotoModificada = string.IsNullOrWhiteSpace(dto.FotoModificadaBase64)
+                ? dto.FotoBase64
+                : dto.FotoModificadaBase64;
+            var nombreModificado = $"mod_{Guid.NewGuid()}.jpg";
+            rutaFotoModificada = Path.Combine(carpeta, nombreModificado);
+            var bytesModificados = Convert.FromBase64String(
+                fotoModificada.Contains(',') ? fotoModificada.Split(',')[1] : fotoModificada);
+            await File.WriteAllBytesAsync(rutaFotoModificada, bytesModificados);
+>>>>>>> origin/main
         }
 
         var usuario = new Usuario

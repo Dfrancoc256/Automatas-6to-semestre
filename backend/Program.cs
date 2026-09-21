@@ -30,6 +30,22 @@ if (string.IsNullOrWhiteSpace(jwtSecret) || Encoding.UTF8.GetByteCount(jwtSecret
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        // La sesión normal viaja en una cookie HttpOnly. Swagger y clientes externos
+        // pueden seguir enviando el token mediante el encabezado Authorization.
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                if (string.IsNullOrEmpty(context.Token)
+                    && context.Request.Cookies.TryGetValue("umg_session", out var token))
+                {
+                    context.Token = token;
+                }
+
+                return Task.CompletedTask;
+            }
+        };
+
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
@@ -152,20 +168,6 @@ app.UseStaticFiles(new StaticFileOptions
 
 app.MapControllers();
 
-// ── Migraciones automáticas en arranque ──────────────────────────────────
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    try
-    {
-        db.Database.Migrate();
-    }
-    catch (Exception ex)
-    {
-        var log = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        log.LogError(ex, "Error aplicando migraciones");
-        throw;
-    }
-}
-
+// El esquema se administra con backend/database/schema.sql.
+// Ejecuta el script antes de iniciar la API en un entorno nuevo.
 app.Run();

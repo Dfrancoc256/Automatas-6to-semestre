@@ -27,7 +27,7 @@ public class ResultadoAnalisis
     public int TotalTokens { get; set; }
 
     // JSON serializado con el detalle del análisis
-    [Column("detalle_json", TypeName = "text")]
+    [Column("detalle_json", TypeName = "jsonb")]
     public string DetalleJson { get; set; } = "{}";
 
     [Column("fecha_analisis")]

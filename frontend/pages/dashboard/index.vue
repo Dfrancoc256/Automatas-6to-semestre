@@ -12,7 +12,7 @@
       </v-chip>
     </div>
 
-    <!-- Estadísticas (Admin/Supervisor) -->
+    <!-- Resumen para Supervisor y Admin cuando el backend está conectado -->
     <template v-if="auth.isSupervisor && stats">
       <v-row class="mb-6">
         <v-col cols="12" sm="6" md="3">
@@ -110,39 +110,42 @@
       </v-row>
     </template>
 
-    <!-- Vista básica para Analista -->
-    <template v-else>
-      <v-row>
-        <v-col cols="12" md="6">
-          <v-card class="dashboard-action-card dashboard-action-card--primary pa-7">
-            <v-icon size="34" color="primary" class="mb-5">mdi-text-search</v-icon>
-            <p class="dashboard-card-kicker">HERRAMIENTA PRINCIPAL</p>
-            <h2 class="dashboard-card-title">Análisis léxico</h2>
-            <p class="dashboard-card-copy">
-              Carga un archivo .txt y obtén un análisis detallado de su contenido léxico.
-            </p>
-            <v-btn class="umg-gold-button" color="accent" prepend-icon="mdi-arrow-right"
-                   @click="navigateTo('/dashboard/analisis')">
-              Comenzar análisis
-            </v-btn>
-          </v-card>
-        </v-col>
-        <v-col cols="12" md="6">
-          <v-card class="dashboard-action-card pa-7">
-            <v-icon size="34" color="accent" class="mb-5">mdi-history</v-icon>
-            <p class="dashboard-card-kicker">CONSULTA PERSONAL</p>
-            <h2 class="dashboard-card-title">Mi historial</h2>
-            <p class="dashboard-card-copy">
-              Revisa todos tus análisis anteriores con sus resultados.
-            </p>
-            <v-btn color="primary" variant="outlined" prepend-icon="mdi-arrow-right"
-                   @click="navigateTo('/dashboard/historial')">
-              Ver historial
+    <section class="module-hub mt-9" aria-labelledby="modulos-disponibles">
+      <div class="module-hub__header d-flex align-center justify-space-between mb-5 flex-wrap gap-3">
+        <div>
+          <p class="dashboard-eyebrow mb-1">ACCESOS RÁPIDOS</p>
+          <h2 id="modulos-disponibles" class="dashboard-card-title mb-0">Módulos disponibles</h2>
+        </div>
+        <v-chip color="primary" variant="tonal" size="small">
+          <v-icon start size="16">mdi-view-grid</v-icon>
+          {{ modulos.length }} módulos habilitados
+        </v-chip>
+      </div>
+
+      <v-row class="module-grid">
+        <v-col v-for="modulo in modulos" :key="modulo.ruta" cols="12" sm="6" lg="4">
+          <v-card class="module-card pa-6" :class="{ 'module-card--featured': modulo.primario }">
+            <div class="d-flex align-start justify-space-between mb-5">
+              <div class="module-card__icon" :class="`module-card__icon--${modulo.color}`">
+                <v-icon size="28">{{ modulo.icono }}</v-icon>
+              </div>
+              <v-chip size="x-small" color="success" variant="tonal">
+                <v-icon start size="12">mdi-check-circle</v-icon>Disponible
+              </v-chip>
+            </div>
+            <p class="dashboard-card-kicker">{{ modulo.categoria }}</p>
+            <h2 class="module-card__title">{{ modulo.titulo }}</h2>
+            <p class="module-card__copy">{{ modulo.descripcion }}</p>
+            <v-btn :class="modulo.primario ? 'umg-gold-button' : ''"
+              :color="modulo.primario ? 'accent' : 'primary'"
+              :variant="modulo.primario ? 'flat' : 'outlined'"
+              prepend-icon="mdi-arrow-right" @click="navigateTo(modulo.ruta)">
+              {{ modulo.accion }}
             </v-btn>
           </v-card>
         </v-col>
       </v-row>
-    </template>
+    </section>
   </div>
 </template>
 
@@ -153,6 +156,57 @@ useHead({ title: 'Dashboard' })
 const auth    = useAuthStore()
 const { api } = useApi()
 const stats   = ref<any>(null)
+
+const modulos = computed(() => {
+  const disponibles = [
+    {
+      ruta: '/dashboard/analisis', icono: 'mdi-text-search', color: 'primary', primario: true,
+      categoria: 'HERRAMIENTA PRINCIPAL', titulo: 'Análisis léxico',
+      descripcion: 'Carga un archivo .txt, selecciona el idioma y revisa las palabras y patrones identificados.',
+      accion: 'Iniciar análisis'
+    },
+    {
+      ruta: '/dashboard/historial', icono: 'mdi-history', color: 'accent', primario: false,
+      categoria: 'CONSULTA', titulo: 'Historial de análisis',
+      descripcion: 'Consulta los análisis procesados y abre el detalle de cada resultado.',
+      accion: 'Ver historial'
+    },
+    {
+      ruta: '/dashboard/perfil', icono: 'mdi-account-edit', color: 'primary', primario: false,
+      categoria: 'CUENTA', titulo: 'Gestión de perfil',
+      descripcion: 'Actualiza tu información, método de notificación y contraseña.',
+      accion: 'Administrar perfil'
+    }
+  ]
+
+  if (auth.isSupervisor) {
+    disponibles.push({
+      ruta: '/dashboard/reportes', icono: 'mdi-chart-bar', color: 'accent', primario: false,
+      categoria: 'SUPERVISIÓN', titulo: 'Estadísticas y reportes',
+      descripcion: 'Revisa indicadores de análisis y actividad general del sistema.',
+      accion: 'Ver estadísticas'
+    })
+  }
+
+  if (auth.isAdmin) {
+    disponibles.push(
+      {
+        ruta: '/dashboard/usuarios', icono: 'mdi-account-group', color: 'primary', primario: false,
+        categoria: 'ADMINISTRACIÓN', titulo: 'Usuarios y roles',
+        descripcion: 'Gestiona cuentas, asigna roles y controla el estado de los usuarios.',
+        accion: 'Gestionar usuarios'
+      },
+      {
+        ruta: '/dashboard/bitacora', icono: 'mdi-shield-check', color: 'accent', primario: false,
+        categoria: 'AUDITORÍA', titulo: 'Bitácora de accesos',
+        descripcion: 'Consulta quién ingresó, cuándo lo hizo y el resultado de cada acceso.',
+        accion: 'Consultar bitácora'
+      }
+    )
+  }
+
+  return disponibles
+})
 
 onMounted(async () => {
   if (auth.isSupervisor) {
