@@ -192,9 +192,9 @@
     "semantic_hash": ""
   },
   "frontend/pages/dashboard/perfil.vue": {
-    "mtime": 1790019322.7155666,
-    "seen": 1790020061.500023,
-    "ast_hash": "57a6d7946351627a6d89bf72da49ddf7",
+    "mtime": 1790017603.6341217,
+    "seen": 1790017844.3956788,
+    "ast_hash": "6b3d000109209eb2470ae1bfc465983a",
     "semantic_hash": ""
   },
   "frontend/pages/dashboard/reportes.vue": {
@@ -282,9 +282,9 @@
     "semantic_hash": ""
   },
   ".claude/settings.local.json": {
-    "mtime": 1790019504.6826012,
-    "seen": 1790020061.494615,
-    "ast_hash": "692f79400dfd458759d4da52d48daca3",
+    "mtime": 1790017713.5558624,
+    "seen": 1790017844.3931193,
+    "ast_hash": "d4a90bed9f23e27189188586f52fb9d2",
     "semantic_hash": ""
   },
   "backend/Controllers/FacialController.cs": {
@@ -300,9 +300,9 @@
     "semantic_hash": ""
   },
   "frontend/composables/useFacialRecognition.ts": {
-    "mtime": 1790019417.7393773,
-    "seen": 1790020061.4990144,
-    "ast_hash": "c21431e5e87479fdd150f87648de35fe",
+    "mtime": 1789618911.4970343,
+    "seen": 1790017844.3956788,
+    "ast_hash": "1e85081f2522aecd00e02f88b01f81de",
     "semantic_hash": ""
   },
   "frontend/public/models/face_landmark_68_model-weights_manifest.json": {
@@ -354,9 +354,9 @@
     "semantic_hash": ""
   },
   "frontend/components/auth/RegistrationForm.vue": {
-    "mtime": 1790019322.7155666,
-    "seen": 1790020061.4990144,
-    "ast_hash": "b2bcc9a2d83fb6bac69475c352cd06bb",
+    "mtime": 1790017682.6940641,
+    "seen": 1790017844.3956788,
+    "ast_hash": "d6b6a81e97c73ee3d21c545c291da922",
     "semantic_hash": ""
   },
   "frontend/composables/useMediaUrl.ts": {
@@ -372,15 +372,9 @@
     "semantic_hash": ""
   },
   "frontend/pages/login.vue": {
-    "mtime": 1790019285.518542,
-    "seen": 1790020061.5010376,
-    "ast_hash": "e26421829677ee458a488f3731d9ab4e",
-    "semantic_hash": ""
-  },
-  "frontend/components/FaceScanner.vue": {
-    "mtime": 1790019504.864715,
-    "seen": 1790020061.49792,
-    "ast_hash": "6364cfdaa3c66f1d69bdb936a29b13c1",
+    "mtime": 1790017682.6950655,
+    "seen": 1790017844.3956788,
+    "ast_hash": "d5975daee38176084dc102eaee914d8b",
     "semantic_hash": ""
   }
 }

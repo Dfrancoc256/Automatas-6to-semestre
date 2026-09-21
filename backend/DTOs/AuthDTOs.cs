@@ -32,15 +32,13 @@ public class RegisterDTO
     [MaxLength(7_000_000, ErrorMessage = "La fotografía excede el tamaño permitido")]
     public string? FotoBase64 { get; set; }
 
-<<<<<<< HEAD
-    // Descriptor facial (128 valores) calculado en el navegador con face-api.js al tomar la foto
-    public List<double>? Descriptor { get; set; }
-=======
     // Versión personalizada para el avatar y la credencial. La original se
     // conserva exclusivamente como referencia para la futura validación facial.
     [MaxLength(7_000_000, ErrorMessage = "La fotografía personalizada excede el tamaño permitido")]
     public string? FotoModificadaBase64 { get; set; }
->>>>>>> origin/main
+
+    // Descriptor facial (128 valores) calculado en el navegador con face-api.js al tomar la foto
+    public List<double>? Descriptor { get; set; }
 
     // Token de reCAPTCHA
     [Required(ErrorMessage = "Verificación reCAPTCHA requerida")]
