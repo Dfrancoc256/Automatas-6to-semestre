@@ -2,6 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
+    <!-- Permite ejecutar el proyecto net8.0 con un runtime .NET mayor instalado. -->
+    <RollForward>Major</RollForward>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>68aa504c-87dd-4b40-8e0d-13f670ace580</UserSecretsId>
