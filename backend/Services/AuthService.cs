@@ -22,17 +22,23 @@ public class AuthService : IAuthService
     private readonly IJwtService  _jwt;
     private readonly IFacialService _facial;
     private readonly ILogger<AuthService> _logger;
+    private readonly bool _sinBaseDeDatos;
 
-    public AuthService(AppDbContext db, IJwtService jwt, IFacialService facial, ILogger<AuthService> logger)
+    public AuthService(AppDbContext db, IJwtService jwt, IFacialService facial,
+        ILogger<AuthService> logger, IConfiguration configuration)
     {
         _db     = db;
         _jwt    = jwt;
         _facial = facial;
         _logger = logger;
+        _sinBaseDeDatos = configuration.GetValue<bool>("Demo:SinBaseDeDatos");
     }
 
     public async Task<AuthResponseDTO?> LoginAsync(LoginDTO dto, string ip, string userAgent)
     {
+        if (_sinBaseDeDatos)
+            return LoginLocal(dto);
+
         var identificador = dto.Identificador.Trim();
         var correoNormalizado = identificador.ToLowerInvariant();
         var usuario = await _db.Usuarios
@@ -59,6 +65,28 @@ public class AuthService : IAuthService
         if (!exitoso || usuario == null) return null;
 
         return CrearRespuestaSesion(usuario);
+    }
+
+    // Solo para ejecución local sin PostgreSQL. No persiste usuarios ni bitácora.
+    private AuthResponseDTO? LoginLocal(LoginDTO dto)
+    {
+        var identificador = dto.Identificador.Trim().ToLowerInvariant();
+        const string hashPrueba = "$2a$11$.BlW6Nc4T70xY/kIFpGLeuFQIgE6SZpDq7w0fNKYcgV9fmxsrywZ6";
+        var identificadorValido = identificador is "admin@umg.edu.gt" or "admin_umg";
+
+        if (!identificadorValido || !BCrypt.Net.BCrypt.Verify(dto.Password, hashPrueba))
+            return null;
+
+        _logger.LogWarning("Inicio de sesión local sin base de datos para {Usuario}", identificador);
+        return CrearRespuestaSesion(new Usuario
+        {
+            Id = 1,
+            Correo = "admin@umg.edu.gt",
+            Nickname = "admin_umg",
+            Rol = "ADMIN",
+            Activo = true,
+            FechaRegistro = DateTime.UtcNow
+        });
     }
 
     public async Task<AuthResponseDTO?> LoginQrAsync(LoginQrDTO dto, string ip, string userAgent)
