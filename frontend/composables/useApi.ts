@@ -6,10 +6,13 @@ export function useApi() {
 
   const client = axios.create({
     baseURL: config.public.apiBase,
-    timeout: 30000
+    timeout: 30000,
+    // Permite que el navegador envíe la cookie HttpOnly de sesión al API.
+    withCredentials: true
   })
 
-  // Adjuntar JWT en cada request
+  // Compatibilidad temporal para clientes que aún entregan un token explícito.
+  // La aplicación web usa la cookie HttpOnly emitida por el backend.
   client.interceptors.request.use((req) => {
     if (authStore.user?.token) {
       req.headers.Authorization = `Bearer ${authStore.user.token}`

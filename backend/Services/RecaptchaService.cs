@@ -44,17 +44,22 @@ public class RecaptchaService : IRecaptchaService
         try
         {
             var client = _httpFactory.CreateClient();
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(8));
             var response = await client.PostAsync(
                 "https://www.google.com/recaptcha/api/siteverify",
                 new FormUrlEncodedContent(new Dictionary<string, string>
                 {
                     ["secret"]   = secretKey,
                     ["response"] = token
-                }));
+                }), timeout.Token);
+
+            if (!response.IsSuccessStatusCode)
+                return false;
 
             var json = await response.Content.ReadAsStringAsync();
             var doc  = JsonDocument.Parse(json);
-            return doc.RootElement.GetProperty("success").GetBoolean();
+            return doc.RootElement.TryGetProperty("success", out var success)
+                && success.ValueKind is JsonValueKind.True;
         }
         catch (Exception ex)
         {

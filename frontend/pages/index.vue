@@ -1,163 +1,88 @@
 <template>
-  <div class="auth-page">
-    <div class="auth-background" aria-hidden="true">
-      <span class="auth-background__slide auth-background__slide--one" />
-      <span class="auth-background__slide auth-background__slide--two" />
-      <span class="auth-background__slide auth-background__slide--three" />
-      <span class="auth-background__slide auth-background__slide--four" />
-    </div>
+  <main class="landing-page">
+    <header class="landing-nav">
+      <NuxtLink to="/" class="landing-brand" aria-label="Inicio">
+        <img src="/images/logo-umg-oficial.png" alt="Universidad Mariano Gálvez de Guatemala">
+        <span><strong>Universidad Mariano Gálvez</strong><small>Analizador léxico</small></span>
+      </NuxtLink>
 
-    <v-card :class="['auth-card', 'login-card', 'pa-8', { 'login-card--success': accesoExitoso }]" elevation="0">
-      <!-- Logo -->
-      <div class="text-center mb-6">
-        <img class="auth-logo login-logo mx-auto mb-3" src="/images/logo-umg-oficial.png"
-             alt="Universidad Mariano Gálvez de Guatemala" />
+      <nav class="landing-links" aria-label="Navegación principal">
+        <a href="#proceso">Proceso</a><a href="#capacidades">Capacidades</a><a href="#acceso">Acceso</a>
+      </nav>
+      <div class="landing-nav__actions">
+        <v-btn to="/registro" class="landing-register" variant="text">Crear cuenta</v-btn>
+        <v-btn to="/login" class="landing-login" variant="outlined" prepend-icon="mdi-login">Ingresar</v-btn>
       </div>
+    </header>
 
-      <v-form @submit.prevent="loginPassword" class="login-form">
-        <label class="login-field-label" for="clave-acceso">Clave de acceso</label>
-        <v-text-field
-          id="clave-acceso"
-          v-model="form.password"
-          placeholder="Ingresa tu clave"
-          prepend-inner-icon="mdi-lock"
-          :type="mostrarPass ? 'text' : 'password'"
-          :append-inner-icon="mostrarPass ? 'mdi-eye-off' : 'mdi-eye'"
-          @click:append-inner="mostrarPass = !mostrarPass"
-          :error="!!error"
-          hide-details
-          base-color="primary"
-          color="primary"
-          class="login-password-field"
-          @update:model-value="error = ''"
-        />
-
-        <p v-if="error" class="login-field-error">
-          <v-icon size="15" start>mdi-alert-circle-outline</v-icon>{{ error }}
-        </p>
-
-        <v-btn
-          type="submit"
-          color="accent"
-          class="umg-gold-button login-access-button mt-10"
-          block
-          size="large"
-          :loading="cargando"
-          prepend-icon="mdi-login"
-        >
-          Ingresar
-        </v-btn>
-      </v-form>
-
-      <div class="text-center mt-5">
-        <v-btn variant="text" color="primary" size="small" @click="mostrarReset = true">
-          ¿Olvidaste tu contraseña?
-        </v-btn>
+    <section class="landing-hero" aria-labelledby="landing-title">
+      <div class="landing-hero__media" aria-hidden="true">
+        <span class="landing-hero__image landing-hero__image--one" />
+        <span class="landing-hero__image landing-hero__image--two" />
+        <span class="landing-hero__image landing-hero__image--three" />
       </div>
-    </v-card>
+      <div class="landing-hero__overlay" />
+      <div class="landing-hero__content landing-reveal">
+        <p class="landing-eyebrow"><span /> Plataforma académica</p>
+        <h1 id="landing-title">Convierte texto en<br><span>conocimiento útil.</span></h1>
+        <p class="landing-lead">Analiza documentos <strong>.txt</strong>, identifica componentes léxicos y conserva resultados trazables para tu proceso académico.</p>
+        <div class="landing-actions">
+          <v-btn to="/login" class="umg-gold-button landing-primary" size="large" prepend-icon="mdi-arrow-right">Iniciar análisis</v-btn>
+          <v-btn to="/registro" class="landing-register-cta" variant="text" append-icon="mdi-arrow-right">Crear una cuenta</v-btn>
+        </div>
+        <div class="landing-stats" aria-label="Características principales">
+          <div><strong>5</strong><span>idiomas disponibles</span></div>
+          <div><strong>.txt</strong><span>formato de análisis</span></div>
+          <div><strong>100%</strong><span>historial consultable</span></div>
+        </div>
+      </div>
+    </section>
 
-    <v-dialog v-model="mostrarReset" max-width="420">
-      <v-card class="pa-6">
-        <v-card-title class="px-0 text-h6">Restablecer contraseña</v-card-title>
-        <v-card-text class="px-0">
-          La recuperación de contraseña estará disponible al conectar la base de datos.
-          Por el momento utiliza la clave temporal asignada.
-        </v-card-text>
-        <v-card-actions class="px-0 justify-end">
-          <v-btn class="umg-gold-button" color="accent" @click="mostrarReset = false">Entendido</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-  </div>
+    <section id="proceso" class="landing-section landing-process">
+      <div class="landing-section__intro landing-reveal"><p class="landing-section__label">01 · Proceso</p><h2>Una ruta clara, desde el archivo hasta el resultado.</h2></div>
+      <div class="landing-steps">
+        <article class="landing-reveal"><v-icon>mdi-file-upload-outline</v-icon><span>01</span><h3>Carga</h3><p>Selecciona tu documento de texto y el idioma que deseas procesar.</p></article>
+        <article class="landing-reveal"><v-icon>mdi-text-search</v-icon><span>02</span><h3>Analiza</h3><p>El sistema clasifica palabras, pronombres, verbos y patrones del contenido.</p></article>
+        <article class="landing-reveal"><v-icon>mdi-chart-box-outline</v-icon><span>03</span><h3>Consulta</h3><p>Revisa y conserva tus hallazgos desde tu historial personal.</p></article>
+      </div>
+    </section>
+
+    <section id="capacidades" class="landing-section landing-capabilities">
+      <div class="landing-capabilities__panel landing-reveal">
+        <p class="landing-section__label">02 · Capacidades</p><h2>Lecturas que dejan evidencia.</h2>
+        <p>Una vista ordenada para identificar la estructura del texto, no solo contar palabras.</p>
+        <ul><li><v-icon>mdi-check-circle-outline</v-icon> Frecuencias y palabras poco comunes</li><li><v-icon>mdi-check-circle-outline</v-icon> Sustantivos, verbos y pronombres</li><li><v-icon>mdi-check-circle-outline</v-icon> Patrones léxicos por idioma</li></ul>
+      </div>
+      <div class="landing-results landing-reveal" aria-label="Resumen de resultados">
+        <div class="landing-result-card landing-result-card--large"><span>Resultado de análisis</span><strong>Palabras clave</strong><div class="landing-bars"><i /><i /><i /><i /></div></div>
+        <div class="landing-result-card"><v-icon>mdi-translate</v-icon><strong>Idiomas</strong><small>ES · EN · RU · ZH · AR</small></div>
+        <div class="landing-result-card"><v-icon>mdi-history</v-icon><strong>Historial</strong><small>Consulta tus resultados cuando los necesites.</small></div>
+      </div>
+    </section>
+
+    <section id="acceso" class="landing-cta landing-reveal"><div><p class="landing-section__label">03 · Acceso</p><h2>Tu próxima lectura empieza aquí.</h2><p>Crea tu cuenta para acceder al panel académico o inicia sesión si ya cuentas con credenciales.</p></div><div class="landing-cta__actions"><v-btn to="/registro" class="umg-gold-button" size="large" prepend-icon="mdi-account-plus-outline">Crear cuenta</v-btn><v-btn to="/login" class="landing-login--inverse" variant="outlined" size="large" prepend-icon="mdi-login">Ingresar</v-btn></div></section>
+    <footer class="landing-footer"><span>Universidad Mariano Gálvez de Guatemala</span><span>Analizador léxico · {{ new Date().getFullYear() }}</span></footer>
+  </main>
 </template>
 
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
-useHead({ title: 'Iniciar sesión' })
+useHead({ title: 'Analizador Léxico | Universidad Mariano Gálvez' })
 
-const auth     = useAuthStore()
-const mostrarPass  = ref(false)
-const cargando     = ref(false)
-const error        = ref('')
-const mostrarReset = ref(false)
-const accesoExitoso = ref(false)
-
-// Acceso local provisional. Debe reemplazarse al conectar el backend y PostgreSQL.
-const CLAVE_TEMPORAL = 'UMG2026'
-const form = reactive({ password: '' })
+let revealObserver: IntersectionObserver | undefined
 
 onMounted(() => {
-  auth.restore()
-  if (auth.isAuthenticated) navigateTo('/dashboard')
+  const sections = document.querySelectorAll<HTMLElement>('.landing-reveal')
+  revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('is-visible')
+        revealObserver?.unobserve(entry.target)
+      }
+    })
+  }, { threshold: 0.14 })
+  sections.forEach(section => revealObserver?.observe(section))
 })
 
-async function loginPassword() {
-  error.value = ''
-  if (!form.password.trim()) {
-    error.value = 'Ingresa la clave para continuar.'
-    return
-  }
-
-  cargando.value = true
-  if (form.password !== CLAVE_TEMPORAL) {
-    error.value = 'La clave de acceso no es correcta.'
-    cargando.value = false
-    return
-  }
-
-  accesoExitoso.value = true
-  auth.login({
-    token: 'acceso-local-temporal',
-    rol: 'ADMIN',
-    nickname: 'Administrador',
-    fotoModificada: null,
-    expiracion: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()
-  })
-  await new Promise(resolve => setTimeout(resolve, 650))
-  await navigateTo('/dashboard')
-  cargando.value = false
-}
+onBeforeUnmount(() => revealObserver?.disconnect())
 </script>
-
-<style scoped>
-.auth-logo {
-  width: 154px; height: 154px;
-  object-fit: contain;
-  background: transparent;
-  border: 0;
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  outline: none;
-  box-shadow:
-    0 0 18px 8px rgba(180,139,33,.38),
-    0 14px 28px rgba(5,27,46,.22);
-}
-
-.login-field-label {
-  display: block;
-  margin-bottom: 8px;
-  color: #1A1F2B;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: .01em;
-}
-
-:deep(.login-password-field .v-field) {
-  min-height: 56px;
-  border-radius: 9px;
-  background: #F5F6F7;
-}
-
-:deep(.login-password-field .v-field--focused) {
-  box-shadow: 0 0 0 3px rgba(26,80,128,.14);
-}
-
-.login-field-error {
-  display: flex;
-  align-items: center;
-  margin: 8px 0 0;
-  color: #B42318;
-  font-size: 12px;
-  line-height: 1.35;
-}
-</style>

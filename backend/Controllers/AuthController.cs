@@ -46,6 +46,7 @@ public class AuthController : ControllerBase
         try
         {
             var result = await _auth.RegistrarAsync(dto);
+            EstablecerCookieSesion(result.Token, result.Expiracion);
             return Ok(result);
         }
         catch (InvalidOperationException ex)
@@ -82,6 +83,7 @@ public class AuthController : ControllerBase
             if (result == null)
                 return Unauthorized(new { mensaje = "Credenciales incorrectas." });
 
+            EstablecerCookieSesion(result.Token, result.Expiracion);
             return Ok(result);
         }
         catch (Exception ex)
@@ -106,13 +108,48 @@ public class AuthController : ControllerBase
         try
         {
             var result = await _auth.LoginQrAsync(dto, ip, userAgent);
-            return result == null
-                ? Unauthorized(new { mensaje = "Código QR inválido o vencido." })
-                : Ok(result);
+            if (result == null)
+                return Unauthorized(new { mensaje = "Código QR inválido o vencido." });
+
+            EstablecerCookieSesion(result.Token, result.Expiracion);
+            return Ok(result);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error durante el inicio de sesión QR");
+            return StatusCode(500, new { mensaje = "No fue posible iniciar sesión." });
+        }
+    }
+
+    /// <summary>Login mediante reconocimiento facial (descriptor calculado en el navegador)</summary>
+    [HttpPost("login-facial")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> LoginFacial([FromBody] LoginFacialDTO dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(new { errores = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage) });
+
+        if (!await _recaptcha.ValidarAsync(dto.RecaptchaToken))
+            return BadRequest(new { mensaje = "Verificación reCAPTCHA inválida." });
+
+        var ip        = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "desconocido";
+        var userAgent = Request.Headers.UserAgent.ToString();
+
+        try
+        {
+            var result = await _auth.LoginFacialAsync(dto, ip, userAgent);
+            if (result == null)
+                return Unauthorized(new { mensaje = "Rostro no reconocido." });
+
+            EstablecerCookieSesion(result.Token, result.Expiracion);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error durante el inicio de sesión facial");
             return StatusCode(500, new { mensaje = "No fue posible iniciar sesión." });
         }
     }
@@ -176,5 +213,31 @@ public class AuthController : ControllerBase
         {
             return BadRequest(new { mensaje = ex.Message });
         }
+    }
+
+    /// <summary>Elimina la cookie de sesión del navegador actual.</summary>
+    [HttpPost("logout")]
+    [Authorize]
+    public IActionResult Logout()
+    {
+        Response.Cookies.Delete("umg_session", new CookieOptions
+        {
+            Path = "/",
+            SameSite = SameSiteMode.Lax,
+            Secure = Request.IsHttps
+        });
+        return NoContent();
+    }
+
+    private void EstablecerCookieSesion(string token, DateTime expiracion)
+    {
+        Response.Cookies.Append("umg_session", token, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = Request.IsHttps,
+            SameSite = SameSiteMode.Lax,
+            Expires = new DateTimeOffset(expiracion),
+            Path = "/"
+        });
     }
 }

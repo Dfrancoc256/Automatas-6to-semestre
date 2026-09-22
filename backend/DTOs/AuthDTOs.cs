@@ -32,6 +32,14 @@ public class RegisterDTO
     [MaxLength(7_000_000, ErrorMessage = "La fotografía excede el tamaño permitido")]
     public string? FotoBase64 { get; set; }
 
+    // Versión personalizada para el avatar y la credencial. La original se
+    // conserva exclusivamente como referencia para la futura validación facial.
+    [MaxLength(7_000_000, ErrorMessage = "La fotografía personalizada excede el tamaño permitido")]
+    public string? FotoModificadaBase64 { get; set; }
+
+    // Descriptor facial (128 valores) calculado en el navegador con face-api.js al tomar la foto
+    public List<double>? Descriptor { get; set; }
+
     // Token de reCAPTCHA
     [Required(ErrorMessage = "Verificación reCAPTCHA requerida")]
     public string RecaptchaToken { get; set; } = string.Empty;
@@ -40,10 +48,12 @@ public class RegisterDTO
 public class LoginDTO
 {
     [Required(ErrorMessage = "El nickname o correo es obligatorio")]
+    [MinLength(3, ErrorMessage = "El identificador debe tener al menos 3 caracteres")]
     [MaxLength(254)]
     public string Identificador { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "La contraseña es obligatoria")]
+    [MinLength(8, ErrorMessage = "La contraseña debe tener al menos 8 caracteres")]
     [MaxLength(128)]
     public string Password { get; set; } = string.Empty;
 
@@ -54,12 +64,20 @@ public class LoginDTO
 
 public class LoginFacialDTO
 {
-    // Foto en base64 capturada en el login
-    [Required]
-    public string FotoBase64 { get; set; } = string.Empty;
+    // Descriptor facial (128 valores) calculado en el navegador con face-api.js
+    [Required(ErrorMessage = "No se detectó un rostro en la cámara.")]
+    [MinLength(1)]
+    public List<double> Descriptor { get; set; } = new();
 
     [Required]
     public string RecaptchaToken { get; set; } = string.Empty;
+}
+
+public class EnrolarFacialDTO
+{
+    [Required(ErrorMessage = "No se detectó un rostro en la cámara.")]
+    [MinLength(1)]
+    public List<double> Descriptor { get; set; } = new();
 }
 
 public class LoginQrDTO
@@ -106,6 +124,7 @@ public class UsuarioPerfilDTO
     public string? FotoModificada { get; set; }
     public string Rol { get; set; } = string.Empty;
     public DateTime FechaRegistro { get; set; }
+    public bool TieneRostroEnrolado { get; set; }
 }
 
 public class ActualizarPerfilDTO

@@ -1,5 +1,6 @@
 using System.Text;
 using System.Threading.RateLimiting;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
@@ -9,17 +10,27 @@ using Microsoft.OpenApi.Models;
 using LenguajesFormalesAPI.Data;
 using LenguajesFormalesAPI.Middleware;
 using LenguajesFormalesAPI.Services;
+using LenguajesFormalesAPI.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-if (string.IsNullOrWhiteSpace(connectionString))
-    throw new InvalidOperationException(
-        "ConnectionStrings:DefaultConnection no configurado. Use variables de entorno o appsettings.Development.json.");
+var connectionString =
+    builder.Configuration.GetConnectionString("DefaultConnection");
 
-// ── Base de datos PostgreSQL ───────────────────────────────────────────────
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString));
+// ── Base de datos ─────────────────────────────────────────────────────────
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    // Base temporal mientras PostgreSQL todavía no está configurado.
+    // Los datos desaparecen al cerrar la aplicación.
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseInMemoryDatabase("LenguajesFormalesDev"));
+}
+else
+{
+    // Base de datos PostgreSQL real.
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseNpgsql(connectionString));
+}
 
 // ── JWT Authentication ────────────────────────────────────────────────────
 var jwtSecret = builder.Configuration["Jwt:SecretKey"];
@@ -29,6 +40,22 @@ if (string.IsNullOrWhiteSpace(jwtSecret) || Encoding.UTF8.GetByteCount(jwtSecret
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        // La sesión normal viaja en una cookie HttpOnly. Swagger y clientes externos
+        // pueden seguir enviando el token mediante el encabezado Authorization.
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                if (string.IsNullOrEmpty(context.Token)
+                    && context.Request.Cookies.TryGetValue("umg_session", out var token))
+                {
+                    context.Token = token;
+                }
+
+                return Task.CompletedTask;
+            }
+        };
+
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
@@ -85,7 +112,9 @@ builder.Services.AddScoped<IAuthService,            AuthService>();
 builder.Services.AddScoped<IAnalisisLexicoService,  AnalisisLexicoService>();
 builder.Services.AddScoped<IRecaptchaService,       RecaptchaService>();
 builder.Services.AddScoped<ICredentialService,      CredentialService>();
+builder.Services.AddScoped<IFacialService,          FacialService>();
 builder.Services.AddHttpClient();
+builder.Services.AddScoped<IEmailService,           EmailService>();
 
 // ── Controllers + Swagger ─────────────────────────────────────────────────
 builder.Services.AddControllers();
@@ -139,25 +168,20 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Servir archivos estáticos (uploads de fotos)
-app.UseStaticFiles();
+// Servir archivos estáticos (uploads de fotos, incluida la foto de enrolamiento facial)
+var carpetaUploads = Path.Combine(builder.Environment.ContentRootPath, "uploads");
+Directory.CreateDirectory(carpetaUploads);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(carpetaUploads),
+    RequestPath  = "/uploads"
+});
 
 app.MapControllers();
+// El esquema se administra con backend/database/schema.sql.
+// Ejecuta el script antes de iniciar la API en un entorno nuevo.
 
-// ── Migraciones automáticas en arranque ──────────────────────────────────
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    try
-    {
-        db.Database.Migrate();
-    }
-    catch (Exception ex)
-    {
-        var log = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        log.LogError(ex, "Error aplicando migraciones");
-        throw;
-    }
-}
 
 app.Run();
+
+
