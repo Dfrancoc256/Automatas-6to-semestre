@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 
 export interface AuthUser {
-  token: string
+  token?: string
   rol: string
   nickname: string
   fotoModificada: string | null
@@ -15,7 +15,7 @@ export const useAuthStore = defineStore('auth', {
   }),
 
   getters: {
-    isAuthenticated: (s) => !!s.user?.token,
+    isAuthenticated: (s) => !!s.user,
     isAdmin:        (s) => s.user?.rol === 'ADMIN',
     isSupervisor:   (s) => s.user?.rol === 'SUPERVISOR' || s.user?.rol === 'ADMIN',
     isAnalista:     (s) => !!s.user
@@ -23,39 +23,38 @@ export const useAuthStore = defineStore('auth', {
 
   actions: {
     login(data: AuthUser) {
-      this.user = data
-      if (import.meta.client) {
-        localStorage.setItem('auth', JSON.stringify(data))
-      }
+      // El token se guarda exclusivamente en la cookie HttpOnly del backend.
+      // Esta cookie solo mantiene el perfil necesario para la interfaz.
+      const { token: _token, codigoQr: _codigoQr, ...perfil } = data
+      this.user = perfil
+      const sesion = useCookie<Omit<AuthUser, 'token' | 'codigoQr'> | null>('umg_session_meta', {
+        maxAge: 60 * 60 * 8,
+        sameSite: 'lax',
+        secure: !import.meta.dev,
+        path: '/'
+      })
+      sesion.value = perfil
     },
     logout() {
       this.user = null
-      if (import.meta.client) {
-        localStorage.removeItem('auth')
-      }
+      const sesion = useCookie('umg_session_meta', { path: '/' })
+      sesion.value = null
     },
     restore() {
-      if (import.meta.client) {
-        const raw = localStorage.getItem('auth')
-        if (raw) {
-          try {
-            const data: AuthUser = JSON.parse(raw)
-            const exp = new Date(data.expiracion)
-            const esSesionValida = typeof data.token === 'string'
-              && data.token.length > 0
-              && typeof data.rol === 'string'
-              && typeof data.nickname === 'string'
-              && !Number.isNaN(exp.getTime())
-
-            if (esSesionValida && exp > new Date()) {
-              this.user = data
-            } else {
-              localStorage.removeItem('auth')
-            }
-          } catch {
-            localStorage.removeItem('auth')
-          }
-        }
+      const sesion = useCookie<Omit<AuthUser, 'token' | 'codigoQr'> | null>('umg_session_meta', {
+        maxAge: 60 * 60 * 8,
+        sameSite: 'lax',
+        secure: !import.meta.dev,
+        path: '/'
+      })
+      const data = sesion.value
+      const exp = data ? new Date(data.expiracion) : null
+      if (data && typeof data.rol === 'string' && typeof data.nickname === 'string'
+        && exp && !Number.isNaN(exp.getTime()) && exp > new Date()) {
+        this.user = data
+      } else {
+        this.user = null
+        sesion.value = null
       }
     }
   }

@@ -1,11 +1,17 @@
 import vuetify from 'vite-plugin-vuetify'
 
+// Mantiene el archivo tipado aun cuando el proyecto no instala los tipos de
+// Node de forma explícita; Nuxt evalúa esta configuración en el servidor.
+const environment = (globalThis as typeof globalThis & {
+  process?: { env?: Record<string, string | undefined> }
+}).process?.env ?? {}
+
 export default defineNuxtConfig({
   devtools: { enabled: false },
 
   devServer: {
-    port: Number(process.env.NUXT_PORT || 5000),
-    host: process.env.NUXT_HOST || 'localhost'
+    port: Number(environment.NUXT_PORT || 5000),
+    host: environment.NUXT_HOST || 'localhost'
   },
 
   build: {
@@ -29,8 +35,8 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      apiBase:            process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8080/api',
-      recaptchaSiteKey:   process.env.NUXT_PUBLIC_RECAPTCHA_SITE_KEY || ''
+      apiBase:            environment.NUXT_PUBLIC_API_BASE || 'http://localhost:8080/api',
+      recaptchaSiteKey:   environment.NUXT_PUBLIC_RECAPTCHA_SITE_KEY || ''
     }
   },
 

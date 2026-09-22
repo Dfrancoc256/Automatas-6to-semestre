@@ -10,6 +10,7 @@ public interface IAuthService
 {
     Task<AuthResponseDTO?> LoginAsync(LoginDTO dto, string ip, string userAgent);
     Task<AuthResponseDTO?> LoginQrAsync(LoginQrDTO dto, string ip, string userAgent);
+    Task<AuthResponseDTO?> LoginFacialAsync(LoginFacialDTO dto, string ip, string userAgent);
     Task<AuthResponseDTO> RegistrarAsync(RegisterDTO dto);
     Task<UsuarioPerfilDTO?> ObtenerPerfilAsync(int usuarioId);
     Task<bool> ActualizarPerfilAsync(int usuarioId, ActualizarPerfilDTO dto);
@@ -19,12 +20,14 @@ public class AuthService : IAuthService
 {
     private readonly AppDbContext _db;
     private readonly IJwtService  _jwt;
+    private readonly IFacialService _facial;
     private readonly ILogger<AuthService> _logger;
 
-    public AuthService(AppDbContext db, IJwtService jwt, ILogger<AuthService> logger)
+    public AuthService(AppDbContext db, IJwtService jwt, IFacialService facial, ILogger<AuthService> logger)
     {
         _db     = db;
         _jwt    = jwt;
+        _facial = facial;
         _logger = logger;
     }
 
@@ -82,6 +85,26 @@ public class AuthService : IAuthService
         return CrearRespuestaSesion(usuario);
     }
 
+    public async Task<AuthResponseDTO?> LoginFacialAsync(LoginFacialDTO dto, string ip, string userAgent)
+    {
+        var (usuario, confianza) = await _facial.BuscarCoincidenciaAsync(dto.Descriptor);
+
+        if (usuario == null) return null;
+
+        _db.BitacoraLogins.Add(new BitacoraLogin
+        {
+            UsuarioId = usuario.Id,
+            IpOrigen  = Limitar(ip, 45),
+            UserAgent = Limitar(userAgent, 300),
+            Resultado = "exitoso",
+            Metodo    = "facial"
+        });
+        await _db.SaveChangesAsync();
+
+        _logger.LogInformation("Login facial exitoso: {Nickname} (confianza {Confianza}%)", usuario.Nickname, confianza);
+        return CrearRespuestaSesion(usuario);
+    }
+
     public async Task<AuthResponseDTO> RegistrarAsync(RegisterDTO dto)
     {
         var correo = dto.Correo.Trim().ToLowerInvariant();
@@ -102,24 +125,34 @@ public class AuthService : IAuthService
         {
             var carpeta = Path.Combine("uploads", "fotos");
             Directory.CreateDirectory(carpeta);
-            var nombreArchivo = $"{Guid.NewGuid()}.jpg";
-            rutaFotoOriginal   = Path.Combine(carpeta, nombreArchivo);
-            var bytes = Convert.FromBase64String(
+            var nombreOriginal = $"{Guid.NewGuid()}.jpg";
+            // Rutas relativas servidas bajo /uploads (ver Program.cs) — siempre con "/", nunca la del SO
+            rutaFotoOriginal = $"fotos/{nombreOriginal}";
+            var bytesOriginales = Convert.FromBase64String(
                 dto.FotoBase64.Contains(',') ? dto.FotoBase64.Split(',')[1] : dto.FotoBase64);
-            await File.WriteAllBytesAsync(rutaFotoOriginal, bytes);
-            rutaFotoModificada = rutaFotoOriginal; // misma foto por defecto
+            await File.WriteAllBytesAsync(Path.Combine(carpeta, nombreOriginal), bytesOriginales);
+
+            var fotoModificada = string.IsNullOrWhiteSpace(dto.FotoModificadaBase64)
+                ? dto.FotoBase64
+                : dto.FotoModificadaBase64;
+            var nombreModificado = $"mod_{Guid.NewGuid()}.jpg";
+            rutaFotoModificada = $"fotos/{nombreModificado}";
+            var bytesModificados = Convert.FromBase64String(
+                fotoModificada.Contains(',') ? fotoModificada.Split(',')[1] : fotoModificada);
+            await File.WriteAllBytesAsync(Path.Combine(carpeta, nombreModificado), bytesModificados);
         }
 
         var usuario = new Usuario
         {
             Correo              = correo,
             Telefono            = dto.Telefono.Trim(),
-            FechaNacimiento     = dto.FechaNacimiento,
+            FechaNacimiento     = DateTime.SpecifyKind(dto.FechaNacimiento, DateTimeKind.Utc),
             Nickname            = nickname,
             PasswordHash        = BCrypt.Net.BCrypt.HashPassword(dto.Password),
             MetodoNotificacion  = dto.MetodoNotificacion,
             FotoOriginal        = rutaFotoOriginal,
             FotoModificada      = rutaFotoModificada,
+            EncodingFacial      = dto.Descriptor is { Count: > 0 } ? JsonSerializer.Serialize(dto.Descriptor) : null,
             Rol                 = "ANALISTA",
             Activo              = true,
             FechaRegistro       = DateTime.UtcNow
@@ -149,7 +182,8 @@ public class AuthService : IAuthService
             MetodoNotificacion = u.MetodoNotificacion,
             FotoModificada     = u.FotoModificada,
             Rol                = u.Rol,
-            FechaRegistro      = u.FechaRegistro
+            FechaRegistro      = u.FechaRegistro,
+            TieneRostroEnrolado = !string.IsNullOrWhiteSpace(u.EncodingFacial)
         };
     }
 
@@ -176,11 +210,10 @@ public class AuthService : IAuthService
             var carpeta = Path.Combine("uploads", "fotos");
             Directory.CreateDirectory(carpeta);
             var nombreArchivo = $"{Guid.NewGuid()}.jpg";
-            var ruta  = Path.Combine(carpeta, nombreArchivo);
             var bytes = Convert.FromBase64String(
                 dto.FotoBase64.Contains(',') ? dto.FotoBase64.Split(',')[1] : dto.FotoBase64);
-            await File.WriteAllBytesAsync(ruta, bytes);
-            usuario.FotoOriginal = ruta;
+            await File.WriteAllBytesAsync(Path.Combine(carpeta, nombreArchivo), bytes);
+            usuario.FotoOriginal = $"fotos/{nombreArchivo}";
         }
 
         if (!string.IsNullOrEmpty(dto.FotoModificadaBase64))
@@ -188,13 +221,12 @@ public class AuthService : IAuthService
             var carpeta = Path.Combine("uploads", "fotos");
             Directory.CreateDirectory(carpeta);
             var nombreArchivo = $"mod_{Guid.NewGuid()}.jpg";
-            var ruta  = Path.Combine(carpeta, nombreArchivo);
             var bytes = Convert.FromBase64String(
                 dto.FotoModificadaBase64.Contains(',')
                     ? dto.FotoModificadaBase64.Split(',')[1]
                     : dto.FotoModificadaBase64);
-            await File.WriteAllBytesAsync(ruta, bytes);
-            usuario.FotoModificada = ruta;
+            await File.WriteAllBytesAsync(Path.Combine(carpeta, nombreArchivo), bytes);
+            usuario.FotoModificada = $"fotos/{nombreArchivo}";
         }
 
         await _db.SaveChangesAsync();

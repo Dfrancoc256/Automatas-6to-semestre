@@ -216,7 +216,7 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'dashboard', middleware: 'auth' })
+definePageMeta({ layout: 'dashboard', middleware: ['auth', 'role'], roles: ['ADMIN', 'SUPERVISOR', 'ANALISTA'] })
 useHead({ title: 'Análisis Léxico' })
 
 const { api } = useApi()
@@ -285,7 +285,7 @@ async function procesar() {
   try {
     const { data } = await api.post('/analisis/procesar', {
       contenido: contenido.value,
-      idioma:    idioma.value,
+      idioma: idioma.value,
       nombreArchivo: archivo.value?.name || 'archivo.txt'
     })
     resultado.value = data
