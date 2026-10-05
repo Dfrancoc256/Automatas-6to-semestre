@@ -10,6 +10,8 @@ using LenguajesFormalesAPI.Data;
 using LenguajesFormalesAPI.Middleware;
 using LenguajesFormalesAPI.Services;
 using LenguajesFormalesAPI.Interfaces;
+using Microsoft.Extensions.FileProviders;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -168,6 +170,19 @@ app.UseAuthorization();
 
 // Servir archivos estáticos (uploads de fotos)
 app.UseStaticFiles();
+
+var uploadsPath = Path.Combine(
+    builder.Environment.ContentRootPath,
+    "uploads"
+);
+
+Directory.CreateDirectory(uploadsPath);
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadsPath),
+    RequestPath = "/uploads"
+});
 
 app.MapControllers();
 // El esquema se administra con backend/database/schema.sql.

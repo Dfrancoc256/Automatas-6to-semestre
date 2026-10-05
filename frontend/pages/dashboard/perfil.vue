@@ -13,7 +13,11 @@
       <v-col cols="12" md="4">
         <v-card class="pa-6 text-center">
           <v-avatar size="96" class="mb-4" color="accent">
-            <v-img v-if="perfil?.fotoModificada" :src="`/uploads/${perfil.fotoModificada}`" />
+            <v-img
+            v-if="perfil?.fotoModificada"
+            :src="obtenerUrlFoto(perfil.fotoModificada)"
+            cover
+          />
             <span v-else class="text-white text-h4 font-weight-bold">
               {{ perfil?.nickname?.charAt(0)?.toUpperCase() }}
             </span>
@@ -118,4 +122,17 @@ async function guardar() {
 function formatFecha(iso: string) {
   return new Date(iso).toLocaleDateString('es-GT', { day: '2-digit', month: 'long', year: 'numeric' })
 }
+
+function obtenerUrlFoto(ruta: string | null | undefined) {
+  if (!ruta) return ''
+
+  const rutaLimpia = ruta.replace(/\\/g, '/')
+
+  if (rutaLimpia.startsWith('http://') || rutaLimpia.startsWith('https://')) {
+    return rutaLimpia
+  }
+
+  return `http://localhost:8080/${rutaLimpia.replace(/^\/+/, '')}`
+}
+
 </script>

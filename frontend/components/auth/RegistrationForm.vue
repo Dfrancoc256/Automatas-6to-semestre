@@ -13,16 +13,16 @@
 
       <v-stepper v-model="paso" alt-labels flat>
         <v-stepper-header>
-          <v-stepper-item title="Datos" value="1" :complete="paso > 1" />
+          <v-stepper-item title="Datos" :value="1" :complete="paso > 1" />
           <v-divider />
-          <v-stepper-item title="Foto" value="2" :complete="paso > 2" />
+          <v-stepper-item title="Foto" :value="2" :complete="paso > 2" />
           <v-divider />
-          <v-stepper-item title="Listo" value="3" />
+          <v-stepper-item title="Listo" :value="3" />
         </v-stepper-header>
 
         <v-stepper-window>
           <!-- Paso 1: datos básicos -->
-          <v-stepper-window-item value="1">
+          <v-stepper-window-item :value="1">
             <v-form @submit.prevent="siguientePaso" ref="formPaso1">
               <v-text-field v-model="form.correo" label="Correo electrónico"
                             prepend-inner-icon="mdi-email" type="email"
@@ -71,7 +71,7 @@
           </v-stepper-window-item>
 
           <!-- Paso 2: foto -->
-          <v-stepper-window-item value="2">
+          <v-stepper-window-item :value="2">
             <div class="text-center mb-4">
               <p class="text-body-2 mb-4">Toma una foto para tu credencial</p>
 
@@ -85,10 +85,44 @@
               </div>
 
               <!-- Foto capturada -->
+<!-- Foto capturada -->
               <div v-if="fotoCapturada" class="mb-4">
-                <img :src="fotoCapturada" :style="{ filter: filtroActual.css }"
-                     style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid #B48B21" />
-                <p class="text-caption mt-1 text-success">✓ Foto capturada</p>
+                <div
+                  ref="previewFotoEl"
+                  class="foto-preview"
+                >
+                  <img
+                    :src="fotoCapturada"
+                    :style="{ filter: filtroActual.css }"
+                    class="foto-preview-imagen"
+                    draggable="false"
+                  />
+
+                  <img
+                    v-if="stickerActual !== 'ninguno'"
+                    :src="stickersImagenes[stickerActual]"
+                    class="foto-preview-sticker"
+                    :style="{
+                      left: stickerPosicion.x + 'px',
+                      top: stickerPosicion.y + 'px',
+                      width: stickerTamano + 'px',
+                      height: stickerTamano + 'px'
+                    }"
+                    draggable="false"
+                    @pointerdown="iniciarArrastreSticker"
+                  />
+                </div>
+
+                <p class="text-caption mt-1 text-success">
+                  ✓ Foto capturada
+                </p>
+
+                <p
+                  v-if="stickerActual !== 'ninguno'"
+                  class="text-caption text-medium-emphasis mt-1"
+                >
+                  Arrastra el sticker para colocarlo donde quieras.
+                </p>
               </div>
 
               <div v-if="fotoCapturada" class="mb-4">
@@ -101,6 +135,12 @@
                     {{ filtro.nombre }}
                   </v-btn>
                 </div>
+              </div>
+
+
+              <!-- Stickers -->
+              <div v-if="fotoCapturada" class="mb-4">
+                <PhotoStickerSelector v-model="stickerActual" />
               </div>
 
               <canvas ref="canvasEl" style="display:none" width="640" height="480" />
@@ -137,7 +177,7 @@
           </v-stepper-window-item>
 
           <!-- Paso 3: éxito -->
-          <v-stepper-window-item value="3">
+          <v-stepper-window-item :value="3">
             <div class="text-center py-6">
               <v-icon size="80" color="success" class="mb-4">mdi-check-circle</v-icon>
               <h2 class="text-h5 font-weight-bold mb-2">¡Registro exitoso!</h2>
@@ -193,6 +233,7 @@ const puedeEnviar = computed(() => bypassDesarrollo.value || recaptchaToken.valu
 // Webcam
 const videoEl       = ref<HTMLVideoElement | null>(null)
 const canvasEl      = ref<HTMLCanvasElement | null>(null)
+const previewFotoEl = ref<HTMLElement | null>(null)
 const streamActivo  = ref(false)
 const fotoCapturada = ref<string | null>(null)
 let   mediaStream: MediaStream | null = null
@@ -204,6 +245,89 @@ const filtros = [
   { id: 'gris', nombre: 'Clásico', css: 'grayscale(1) contrast(1.08)', canvas: 'grayscale(100%) contrast(108%)' }
 ]
 const filtroActual = ref(filtros[0]!)
+const stickerActual = ref('ninguno')
+const stickerPosicion = reactive({
+  x: 75,
+  y: 10
+})
+
+const stickerTamano = ref(40)
+
+const arrastrandoSticker = ref(false)
+const offsetSticker = reactive({
+  x: 0,
+  y: 0
+})
+const stickersImagenes: Record<string, string> = {
+  graduacion: '/stickers/graduacion.png',
+  lentes: '/stickers/lentes.png',
+  corona: '/stickers/corona.png',
+  estrella: '/stickers/estrella.png',
+  corazon: '/stickers/corazon.png'
+}
+function cargarImagen(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const imagen = new Image()
+
+    imagen.onload = () => resolve(imagen)
+    imagen.onerror = reject
+
+    imagen.src = src
+  })
+}
+
+
+function iniciarArrastreSticker(event: PointerEvent) {
+  if (!previewFotoEl.value) return
+
+  arrastrandoSticker.value = true
+
+  const rect = previewFotoEl.value.getBoundingClientRect()
+
+  offsetSticker.x =
+    event.clientX - rect.left - stickerPosicion.x
+
+  offsetSticker.y =
+    event.clientY - rect.top - stickerPosicion.y
+
+  window.addEventListener('pointermove', moverSticker)
+  window.addEventListener('pointerup', detenerArrastreSticker)
+
+  event.preventDefault()
+}
+
+function moverSticker(event: PointerEvent) {
+  if (!arrastrandoSticker.value || !previewFotoEl.value) return
+
+  const rect = previewFotoEl.value.getBoundingClientRect()
+
+  let nuevaX =
+    event.clientX - rect.left - offsetSticker.x
+
+  let nuevaY =
+    event.clientY - rect.top - offsetSticker.y
+
+  // Evitar que el sticker salga de la fotografía
+  nuevaX = Math.max(
+    0,
+    Math.min(nuevaX, rect.width - stickerTamano.value)
+  )
+
+  nuevaY = Math.max(
+    0,
+    Math.min(nuevaY, rect.height - stickerTamano.value)
+  )
+
+  stickerPosicion.x = nuevaX
+  stickerPosicion.y = nuevaY
+}
+
+function detenerArrastreSticker() {
+  arrastrandoSticker.value = false
+
+  window.removeEventListener('pointermove', moverSticker)
+  window.removeEventListener('pointerup', detenerArrastreSticker)
+}
 
 async function siguientePaso() {
   error.value = ''
@@ -226,8 +350,7 @@ async function iniciarCamara() {
       streamActivo.value = true
     }
   } catch {
-    error.value = 'No se pudo acceder a la cámara. Puedes continuar sin foto.'
-  }
+      error.value = 'No se pudo acceder a la cámara. Verifica los permisos e inténtalo nuevamente.'  }
 }
 
 function capturarFoto() {
@@ -238,18 +361,81 @@ function capturarFoto() {
   detenerCamara()
 }
 
-async function crearFotoPersonalizada() {
-  if (!fotoCapturada.value) return null
-  const imagen = new Image()
-  imagen.src = fotoCapturada.value
-  await imagen.decode()
-  const lienzo = document.createElement('canvas')
-  lienzo.width = 640
-  lienzo.height = 480
-  const contexto = lienzo.getContext('2d')!
-  contexto.filter = filtroActual.value.canvas
-  contexto.drawImage(imagen, 0, 0, lienzo.width, lienzo.height)
-  return lienzo.toDataURL('image/jpeg', 0.85)
+async function crearFotoPersonalizada(): Promise<string | null> {
+  if (!fotoCapturada.value) {
+    return null
+  }
+
+  const canvas = document.createElement('canvas')
+  canvas.width = 640
+  canvas.height = 480
+
+  const ctx = canvas.getContext('2d')
+
+  if (!ctx) {
+    return fotoCapturada.value
+  }
+
+  try {
+    // 1. Cargar la fotografía original
+    const foto = await cargarImagen(fotoCapturada.value)
+
+    // 2. Aplicar el filtro seleccionado
+    ctx.filter = filtroActual.value.canvas
+
+    // 3. Dibujar la fotografía
+    ctx.drawImage(
+      foto,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    )
+
+    // El sticker no debe heredar el filtro
+    ctx.filter = 'none'
+
+    // 4. Dibujar sticker si el usuario seleccionó uno
+    if (stickerActual.value !== 'ninguno') {
+      const rutaSticker = stickersImagenes[stickerActual.value]
+
+      if (rutaSticker) {
+        const sticker = await cargarImagen(rutaSticker)
+
+        // La preview mide 120 x 120
+        // El canvas final mide 640 x 480
+        const escalaX = canvas.width / 120
+        const escalaY = canvas.height / 120
+
+        // Convertir posición de la preview al canvas final
+        const x = stickerPosicion.x * escalaX
+        const y = stickerPosicion.y * escalaY
+
+        const ancho = stickerTamano.value * escalaX
+        const alto = stickerTamano.value * escalaY
+
+        ctx.drawImage(
+          sticker,
+          x,
+          y,
+          ancho,
+          alto
+        )
+      }
+    }
+
+    // 5. Convertir la imagen final a Base64
+    return canvas.toDataURL('image/jpeg', 0.85)
+
+  } catch (error) {
+    console.error(
+      'Error creando fotografía personalizada:',
+      error
+    )
+
+    // Si ocurre algún problema, devolver la foto original
+    return fotoCapturada.value
+  }
 }
 
 function retomar() {
@@ -304,7 +490,10 @@ async function descargarCredencial() {
   }
 }
 
-onUnmounted(() => detenerCamara())
+onUnmounted(() => {
+  detenerCamara()
+  detenerArrastreSticker()
+})
 </script>
 
 <style scoped>
@@ -317,6 +506,38 @@ onUnmounted(() => detenerCamara())
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 0 18px 8px rgba(180,139,33,.38), 0 14px 28px rgba(5,27,46,.22);
 }
+
+.foto-preview {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.foto-preview-imagen {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #B48B21;
+}
+
+.foto-preview-sticker {
+  position: absolute;
+  object-fit: contain;
+  z-index: 2;
+
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.foto-preview-sticker:active {
+  cursor: grabbing;
+}
+
 .gap-2 { gap: 8px; }
 .registro-card { position: relative; z-index: 2; width: min(100%, 650px); max-width: 650px; height: calc(100dvh - 48px); padding: 20px 26px !important; overflow: hidden; display: flex; flex-direction: column; border: 1px solid rgba(180,139,33,.42) !important; box-shadow: 0 24px 70px rgba(5,27,46,.42) !important; }
 .registro-card .auth-logo { width: 98px; height: 98px; box-shadow: 0 0 14px 6px rgba(180,139,33,.3), 0 10px 22px rgba(5,27,46,.18); }

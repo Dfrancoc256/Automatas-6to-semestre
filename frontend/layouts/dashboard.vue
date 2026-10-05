@@ -18,7 +18,12 @@
       <!-- Avatar de usuario -->
       <div class="sidebar-user px-4 py-3 flex items-center gap-3">
         <v-avatar size="36" color="accent">
-          <v-img v-if="auth.user?.fotoModificada" :src="auth.user.fotoModificada" />
+          <v-img
+            v-if="auth.user?.fotoModificada"
+            :src="obtenerUrlFoto(auth.user.fotoModificada)"
+            cover
+          />
+
           <span v-else class="text-white text-sm font-bold">
             {{ auth.user?.nickname?.charAt(0).toUpperCase() }}
           </span>
@@ -140,6 +145,21 @@ async function cerrarSesion() {
   auth.logout()
   await navigateTo('/')
 }
+
+function obtenerUrlFoto(ruta: string | null | undefined) {
+  if (!ruta) return ''
+
+  // Por si PostgreSQL/Windows devuelve \
+  const rutaLimpia = ruta.replace(/\\/g, '/')
+
+  // Si algún día el backend ya devuelve una URL completa
+  if (rutaLimpia.startsWith('http://') || rutaLimpia.startsWith('https://')) {
+    return rutaLimpia
+  }
+
+  return `http://localhost:8080/${rutaLimpia.replace(/^\/+/, '')}`
+}
+
 </script>
 
 <style scoped>
