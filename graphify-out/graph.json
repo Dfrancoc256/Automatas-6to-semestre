@@ -143,6 +143,25 @@
       "source_location": "L7"
     },
     {
+      "id": "backend_controllers_whatsappcontroller_lenguajesformalesapi_controllers_whatsappcontroller",
+      "label": "WhatsAppController",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "LenguajesFormalesAPI.Services",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "LenguajesFormalesAPI.Controllers",
+        "scope_chain": [
+          "s147"
+        ]
+      },
+      "norm_label": "whatsappcontroller",
+      "source_file": "backend/Controllers/WhatsAppController.cs",
+      "source_location": "L8"
+    },
+    {
       "id": "backend_dtos_sendemaildto_lenguajesformalesapi_dtos_sendemaildto",
       "label": "SendEmailDto",
       "_callable": true,
@@ -159,6 +178,25 @@
       },
       "norm_label": "sendemaildto",
       "source_file": "backend/DTOs/SendEmailDto.cs",
+      "source_location": "L5"
+    },
+    {
+      "id": "backend_dtos_sendwhatsappdto_lenguajesformalesapi_dtos_sendwhatsappdto",
+      "label": "SendWhatsAppDto",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "LenguajesFormalesAPI.Services",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "LenguajesFormalesAPI.DTOs",
+        "scope_chain": [
+          "s46"
+        ]
+      },
+      "norm_label": "sendwhatsappdto",
+      "source_file": "backend/DTOs/SendWhatsAppDto.cs",
       "source_location": "L5"
     },
     {
@@ -181,8 +219,8 @@
       "source_location": "L3"
     },
     {
-      "id": "backend_middleware_auditmiddleware_lenguajesformalesapi_middleware_auditmiddleware",
-      "label": "AuditMiddleware",
+      "id": "backend_interfaces_iwhatsappservice_lenguajesformalesapi_interfaces_iwhatsappservice",
+      "label": "IWhatsAppService",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
@@ -190,14 +228,14 @@
       "community_name": "LenguajesFormalesAPI.Services",
       "file_type": "code",
       "metadata": {
-        "namespace": "LenguajesFormalesAPI.Middleware",
+        "namespace": "LenguajesFormalesAPI.Interfaces",
         "scope_chain": [
           "s0"
         ]
       },
-      "norm_label": "auditmiddleware",
-      "source_file": "backend/Middleware/AuditMiddleware.cs",
-      "source_location": "L7"
+      "norm_label": "iwhatsappservice",
+      "source_file": "backend/Interfaces/IWhatsAppService.cs",
+      "source_location": "L3"
     },
     {
       "id": "backend_services_emailservice_lenguajesformalesapi_services_emailservice",
@@ -217,6 +255,25 @@
       "norm_label": "emailservice",
       "source_file": "backend/Services/EmailService.cs",
       "source_location": "L8"
+    },
+    {
+      "id": "backend_services_whatsappservice_lenguajesformalesapi_services_whatsappservice",
+      "label": "WhatsAppService",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "LenguajesFormalesAPI.Services",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "LenguajesFormalesAPI.Services",
+        "scope_chain": [
+          "s106"
+        ]
+      },
+      "norm_label": "whatsappservice",
+      "source_file": "backend/Services/WhatsAppService.cs",
+      "source_location": "L12"
     },
     {
       "id": "backend_controllers_analisiscontroller_lenguajesformalesapi_controllers_analisiscontroller",
@@ -776,6 +833,25 @@
       "norm_label": "authresponsedto",
       "source_file": "backend/DTOs/AuthDTOs.cs",
       "source_location": "L107"
+    },
+    {
+      "id": "backend_middleware_auditmiddleware_lenguajesformalesapi_middleware_auditmiddleware",
+      "label": "AuditMiddleware",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 57,
+      "community_name": "AuditMiddleware",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "LenguajesFormalesAPI.Middleware",
+        "scope_chain": [
+          "s0"
+        ]
+      },
+      "norm_label": "auditmiddleware",
+      "source_file": "backend/Middleware/AuditMiddleware.cs",
+      "source_location": "L7"
     },
     {
       "id": "backend_services_credentialservice_lenguajesformalesapi_services_credentialservice",
@@ -1340,6 +1416,24 @@
       "source_location": "L18"
     },
     {
+      "id": "backend_controllers_whatsappcontroller_lenguajesformalesapi_controllers_whatsappcontroller_send",
+      "label": ".Send()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "LenguajesFormalesAPI.Services",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "LenguajesFormalesAPI.Controllers",
+        "scope_chain": [
+          "s147"
+        ]
+      },
+      "norm_label": ".send()",
+      "source_file": "backend/Controllers/WhatsAppController.cs",
+      "source_location": "L21"
+    },
+    {
       "id": "backend_interfaces_iemailservice_lenguajesformalesapi_interfaces_iemailservice_sendemailasync",
       "label": ".SendEmailAsync()",
       "_callable": true,
@@ -1358,30 +1452,22 @@
       "source_location": "L5"
     },
     {
-      "id": "backend_middleware_auditmiddleware_lenguajesformalesapi_middleware_auditmiddleware_invokeasync",
-      "label": ".InvokeAsync()",
+      "id": "backend_interfaces_iwhatsappservice_lenguajesformalesapi_interfaces_iwhatsappservice_sendtextasync",
+      "label": ".SendTextAsync()",
       "_callable": true,
       "_origin": "ast",
       "community": 12,
       "community_name": "LenguajesFormalesAPI.Services",
       "file_type": "code",
       "metadata": {
-        "namespace": "LenguajesFormalesAPI.Middleware",
+        "namespace": "LenguajesFormalesAPI.Interfaces",
         "scope_chain": [
           "s0"
-        ],
-        "unresolved_calls": [
-          {
-            "callee": "LogInformation",
-            "receiver_type": "ILogger",
-            "lang": "csharp",
-            "line": "L31"
-          }
         ]
       },
-      "norm_label": ".invokeasync()",
-      "source_file": "backend/Middleware/AuditMiddleware.cs",
-      "source_location": "L18"
+      "norm_label": ".sendtextasync()",
+      "source_file": "backend/Interfaces/IWhatsAppService.cs",
+      "source_location": "L9"
     },
     {
       "id": "backend_services_emailservice_lenguajesformalesapi_services_emailservice_sendemailasync",
@@ -1432,6 +1518,88 @@
       "norm_label": ".sendemailasync()",
       "source_file": "backend/Services/EmailService.cs",
       "source_location": "L17"
+    },
+    {
+      "id": "backend_services_whatsappservice_lenguajesformalesapi_services_whatsappservice_normalizarnumero",
+      "label": ".NormalizarNumero()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "LenguajesFormalesAPI.Services",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "LenguajesFormalesAPI.Services",
+        "scope_chain": [
+          "s106"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "Replace",
+            "receiver_type": "Regex",
+            "lang": "csharp",
+            "line": "L72"
+          }
+        ]
+      },
+      "norm_label": ".normalizarnumero()",
+      "source_file": "backend/Services/WhatsAppService.cs",
+      "source_location": "L70"
+    },
+    {
+      "id": "backend_services_whatsappservice_lenguajesformalesapi_services_whatsappservice_sendtextasync",
+      "label": ".SendTextAsync()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "LenguajesFormalesAPI.Services",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "LenguajesFormalesAPI.Services",
+        "scope_chain": [
+          "s106"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "LogWarning",
+            "receiver_type": "ILogger",
+            "lang": "csharp",
+            "line": "L33"
+          },
+          {
+            "callee": "EscapeDataString",
+            "receiver_type": "Uri",
+            "lang": "csharp",
+            "line": "L44"
+          },
+          {
+            "callee": "Create",
+            "receiver_type": "JsonContent",
+            "lang": "csharp",
+            "line": "L46"
+          },
+          {
+            "callee": "FromSeconds",
+            "receiver_type": "TimeSpan",
+            "lang": "csharp",
+            "line": "L53"
+          },
+          {
+            "callee": "SendAsync",
+            "receiver_type": "HttpClient",
+            "lang": "csharp",
+            "line": "L54"
+          },
+          {
+            "callee": "LogError",
+            "receiver_type": "ILogger",
+            "lang": "csharp",
+            "line": "L59"
+          }
+        ]
+      },
+      "norm_label": ".sendtextasync()",
+      "source_file": "backend/Services/WhatsAppService.cs",
+      "source_location": "L25"
     },
     {
       "id": "frontend_pages_dashboard_perfil_alfallarcamara",
@@ -2415,19 +2583,19 @@
             "callee": "HashData",
             "receiver_type": "SHA256",
             "lang": "csharp",
-            "line": "L351"
+            "line": "L369"
           },
           {
             "callee": "ToHexString",
             "receiver_type": "Convert",
             "lang": "csharp",
-            "line": "L352"
+            "line": "L370"
           }
         ]
       },
       "norm_label": ".calcularhash()",
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L349"
+      "source_location": "L367"
     },
     {
       "id": "backend_services_authservice_lenguajesformalesapi_services_authservice_crearrespuestasesion",
@@ -2445,7 +2613,7 @@
       },
       "norm_label": ".crearrespuestasesion()",
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L358"
+      "source_location": "L376"
     },
     {
       "id": "backend_services_authservice_lenguajesformalesapi_services_authservice_limitar",
@@ -2463,7 +2631,7 @@
       },
       "norm_label": ".limitar()",
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L355"
+      "source_location": "L373"
     },
     {
       "id": "backend_services_authservice_lenguajesformalesapi_services_authservice_loginasync",
@@ -2481,7 +2649,7 @@
       },
       "norm_label": ".loginasync()",
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L43"
+      "source_location": "L46"
     },
     {
       "id": "backend_services_authservice_lenguajesformalesapi_services_authservice_loginfacialasync",
@@ -2501,13 +2669,13 @@
             "callee": "LogInformation",
             "receiver_type": "ILogger",
             "lang": "csharp",
-            "line": "L113"
+            "line": "L116"
           }
         ]
       },
       "norm_label": ".loginfacialasync()",
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L97"
+      "source_location": "L100"
     },
     {
       "id": "backend_services_authservice_lenguajesformalesapi_services_authservice_loginqrasync",
@@ -2525,7 +2693,7 @@
       },
       "norm_label": ".loginqrasync()",
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L73"
+      "source_location": "L76"
     },
     {
       "id": "backend_services_authservice_lenguajesformalesapi_services_authservice_registrarasync",
@@ -2545,61 +2713,67 @@
             "callee": "Combine",
             "receiver_type": "Path",
             "lang": "csharp",
-            "line": "L139"
+            "line": "L142"
           },
           {
             "callee": "CreateDirectory",
             "receiver_type": "Directory",
             "lang": "csharp",
-            "line": "L140"
+            "line": "L143"
           },
           {
             "callee": "NewGuid",
             "receiver_type": "Guid",
             "lang": "csharp",
-            "line": "L143"
+            "line": "L146"
           },
           {
             "callee": "FromBase64String",
             "receiver_type": "Convert",
             "lang": "csharp",
-            "line": "L145"
+            "line": "L148"
           },
           {
             "callee": "WriteAllBytesAsync",
             "receiver_type": "File",
             "lang": "csharp",
-            "line": "L147"
+            "line": "L150"
           },
           {
             "callee": "SpecifyKind",
             "receiver_type": "DateTime",
             "lang": "csharp",
-            "line": "L163"
+            "line": "L166"
           },
           {
             "callee": "Serialize",
             "receiver_type": "JsonSerializer",
             "lang": "csharp",
-            "line": "L169"
+            "line": "L172"
           },
           {
             "callee": "LogInformation",
             "receiver_type": "ILogger",
             "lang": "csharp",
-            "line": "L212"
+            "line": "L215"
           },
           {
             "callee": "LogError",
             "receiver_type": "ILogger",
             "lang": "csharp",
-            "line": "L271"
+            "line": "L274"
+          },
+          {
+            "callee": "Run",
+            "receiver_type": "Task",
+            "lang": "csharp",
+            "line": "L293"
           }
         ]
       },
       "norm_label": ".registrarasync()",
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L117"
+      "source_location": "L120"
     },
     {
       "id": "backend_data_appdbcontext_lenguajesformalesapi_data_appdbcontext_onmodelcreating",
@@ -2668,6 +2842,32 @@
       "norm_label": "seleccionar()",
       "source_file": "frontend/components/photo/StickerSelector.vue",
       "source_location": "L70"
+    },
+    {
+      "id": "backend_middleware_auditmiddleware_lenguajesformalesapi_middleware_auditmiddleware_invokeasync",
+      "label": ".InvokeAsync()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 57,
+      "community_name": "AuditMiddleware",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "LenguajesFormalesAPI.Middleware",
+        "scope_chain": [
+          "s0"
+        ],
+        "unresolved_calls": [
+          {
+            "callee": "LogInformation",
+            "receiver_type": "ILogger",
+            "lang": "csharp",
+            "line": "L31"
+          }
+        ]
+      },
+      "norm_label": ".invokeasync()",
+      "source_file": "backend/Middleware/AuditMiddleware.cs",
+      "source_location": "L18"
     },
     {
       "id": "frontend_pages_login_abrirloginfacial",
@@ -3089,37 +3289,37 @@
             "callee": "Combine",
             "receiver_type": "Path",
             "lang": "csharp",
-            "line": "L323"
+            "line": "L341"
           },
           {
             "callee": "CreateDirectory",
             "receiver_type": "Directory",
             "lang": "csharp",
-            "line": "L324"
+            "line": "L342"
           },
           {
             "callee": "NewGuid",
             "receiver_type": "Guid",
             "lang": "csharp",
-            "line": "L325"
+            "line": "L343"
           },
           {
             "callee": "FromBase64String",
             "receiver_type": "Convert",
             "lang": "csharp",
-            "line": "L326"
+            "line": "L344"
           },
           {
             "callee": "WriteAllBytesAsync",
             "receiver_type": "File",
             "lang": "csharp",
-            "line": "L328"
+            "line": "L346"
           }
         ]
       },
       "norm_label": ".actualizarperfilasync()",
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L303"
+      "source_location": "L321"
     },
     {
       "id": "backend_services_authservice_lenguajesformalesapi_services_authservice_obtenerperfilasync",
@@ -3137,7 +3337,7 @@
       },
       "norm_label": ".obtenerperfilasync()",
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L284"
+      "source_location": "L302"
     },
     {
       "id": "backend_services_authservice_lenguajesformalesapi_services_iauthservice_actualizarperfilasync",
@@ -4325,6 +4525,50 @@
       "source_location": "L1"
     },
     {
+      "id": "backend_controllers_whatsappcontroller",
+      "label": "WhatsAppController.cs",
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "LenguajesFormalesAPI.Services",
+      "file_type": "code",
+      "norm_label": "whatsappcontroller.cs",
+      "source_file": "backend/Controllers/WhatsAppController.cs",
+      "source_location": "L1"
+    },
+    {
+      "id": "backend_controllers_whatsappcontroller_cs_httppost",
+      "label": "HttpPost",
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "LenguajesFormalesAPI.Services",
+      "file_type": "code",
+      "norm_label": "httppost",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "backend_controllers_whatsappcontroller_cs_iactionresult",
+      "label": "IActionResult",
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "LenguajesFormalesAPI.Services",
+      "file_type": "code",
+      "norm_label": "iactionresult",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "backend_controllers_whatsappcontroller_cs_task",
+      "label": "Task",
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "LenguajesFormalesAPI.Services",
+      "file_type": "code",
+      "norm_label": "task",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
       "id": "backend_dtos_sendemaildto",
       "label": "SendEmailDto.cs",
       "_origin": "ast",
@@ -4387,6 +4631,51 @@
       "source_location": "L7"
     },
     {
+      "id": "backend_dtos_sendwhatsappdto",
+      "label": "SendWhatsAppDto.cs",
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "LenguajesFormalesAPI.Services",
+      "file_type": "code",
+      "norm_label": "sendwhatsappdto.cs",
+      "source_file": "backend/DTOs/SendWhatsAppDto.cs",
+      "source_location": "L1"
+    },
+    {
+      "id": "backend_dtos_sendwhatsappdto_lenguajesformalesapi_dtos_sendwhatsappdto_message",
+      "label": "Message",
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "LenguajesFormalesAPI.Services",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "LenguajesFormalesAPI.DTOs",
+        "scope_chain": [
+          "s46"
+        ]
+      },
+      "norm_label": "message",
+      "source_file": "backend/DTOs/SendWhatsAppDto.cs",
+      "source_location": "L12"
+    },
+    {
+      "id": "backend_dtos_sendwhatsappdto_lenguajesformalesapi_dtos_sendwhatsappdto_to",
+      "label": "To",
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "LenguajesFormalesAPI.Services",
+      "file_type": "code",
+      "metadata": {
+        "namespace": "LenguajesFormalesAPI.DTOs",
+        "scope_chain": [
+          "s46"
+        ]
+      },
+      "norm_label": "to",
+      "source_file": "backend/DTOs/SendWhatsAppDto.cs",
+      "source_location": "L8"
+    },
+    {
       "id": "backend_interfaces_iemailservice",
       "label": "IEmailService.cs",
       "_origin": "ast",
@@ -4409,29 +4698,18 @@
       "source_location": ""
     },
     {
-      "id": "backend_middleware_auditmiddleware",
-      "label": "AuditMiddleware.cs",
+      "id": "backend_interfaces_iwhatsappservice",
+      "label": "IWhatsAppService.cs",
       "_origin": "ast",
       "community": 12,
       "community_name": "LenguajesFormalesAPI.Services",
       "file_type": "code",
-      "norm_label": "auditmiddleware.cs",
-      "source_file": "backend/Middleware/AuditMiddleware.cs",
+      "norm_label": "iwhatsappservice.cs",
+      "source_file": "backend/Interfaces/IWhatsAppService.cs",
       "source_location": "L1"
     },
     {
-      "id": "backend_middleware_auditmiddleware_cs_ilogger",
-      "label": "ILogger",
-      "_origin": "ast",
-      "community": 12,
-      "community_name": "LenguajesFormalesAPI.Services",
-      "file_type": "code",
-      "norm_label": "ilogger",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "backend_middleware_auditmiddleware_cs_task",
+      "id": "backend_interfaces_iwhatsappservice_cs_task",
       "label": "Task",
       "_origin": "ast",
       "community": 12,
@@ -4487,6 +4765,50 @@
     },
     {
       "id": "backend_services_emailservice_cs_task",
+      "label": "Task",
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "LenguajesFormalesAPI.Services",
+      "file_type": "code",
+      "norm_label": "task",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "backend_services_whatsappservice",
+      "label": "WhatsAppService.cs",
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "LenguajesFormalesAPI.Services",
+      "file_type": "code",
+      "norm_label": "whatsappservice.cs",
+      "source_file": "backend/Services/WhatsAppService.cs",
+      "source_location": "L1"
+    },
+    {
+      "id": "backend_services_whatsappservice_cs_iconfiguration",
+      "label": "IConfiguration",
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "LenguajesFormalesAPI.Services",
+      "file_type": "code",
+      "norm_label": "iconfiguration",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "backend_services_whatsappservice_cs_ilogger",
+      "label": "ILogger",
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "LenguajesFormalesAPI.Services",
+      "file_type": "code",
+      "norm_label": "ilogger",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "backend_services_whatsappservice_cs_task",
       "label": "Task",
       "_origin": "ast",
       "community": 12,
@@ -4572,22 +4894,6 @@
       "type": "namespace"
     },
     {
-      "id": "csharp_namespace:fc9c365f7ffa15fa",
-      "label": "LenguajesFormalesAPI.Middleware",
-      "_origin": "ast",
-      "community": 12,
-      "community_name": "LenguajesFormalesAPI.Services",
-      "file_type": "code",
-      "metadata": {
-        "kind": "csharp_namespace",
-        "namespace": "LenguajesFormalesAPI.Middleware"
-      },
-      "norm_label": "lenguajesformalesapi.middleware",
-      "source_file": "backend/Middleware/AuditMiddleware.cs",
-      "source_location": "L1",
-      "type": "namespace"
-    },
-    {
       "id": "csharp_namespace:fdf39ac8ea2de2d5",
       "label": "LenguajesFormalesAPI.Services",
       "_origin": "ast",
@@ -4604,24 +4910,13 @@
       "type": "namespace"
     },
     {
-      "id": "httpcontext",
-      "label": "HttpContext",
+      "id": "httpclient",
+      "label": "HttpClient",
       "_origin": "ast",
       "community": 12,
       "community_name": "LenguajesFormalesAPI.Services",
       "file_type": "code",
-      "norm_label": "httpcontext",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "requestdelegate",
-      "label": "RequestDelegate",
-      "_origin": "ast",
-      "community": 12,
-      "community_name": "LenguajesFormalesAPI.Services",
-      "file_type": "code",
-      "norm_label": "requestdelegate",
+      "norm_label": "httpclient",
       "source_file": "",
       "source_location": ""
     },
@@ -8691,6 +8986,161 @@
       "source_location": "L1"
     },
     {
+      "id": "backend_middleware_auditmiddleware",
+      "label": "AuditMiddleware.cs",
+      "_origin": "ast",
+      "community": 57,
+      "community_name": "AuditMiddleware",
+      "file_type": "code",
+      "norm_label": "auditmiddleware.cs",
+      "source_file": "backend/Middleware/AuditMiddleware.cs",
+      "source_location": "L1"
+    },
+    {
+      "id": "backend_middleware_auditmiddleware_cs_ilogger",
+      "label": "ILogger",
+      "_origin": "ast",
+      "community": 57,
+      "community_name": "AuditMiddleware",
+      "file_type": "code",
+      "norm_label": "ilogger",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "backend_middleware_auditmiddleware_cs_task",
+      "label": "Task",
+      "_origin": "ast",
+      "community": 57,
+      "community_name": "AuditMiddleware",
+      "file_type": "code",
+      "norm_label": "task",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "csharp_namespace:fc9c365f7ffa15fa",
+      "label": "LenguajesFormalesAPI.Middleware",
+      "_origin": "ast",
+      "community": 57,
+      "community_name": "AuditMiddleware",
+      "file_type": "code",
+      "metadata": {
+        "kind": "csharp_namespace",
+        "namespace": "LenguajesFormalesAPI.Middleware"
+      },
+      "norm_label": "lenguajesformalesapi.middleware",
+      "source_file": "backend/Middleware/AuditMiddleware.cs",
+      "source_location": "L1",
+      "type": "namespace"
+    },
+    {
+      "id": "httpcontext",
+      "label": "HttpContext",
+      "_origin": "ast",
+      "community": 57,
+      "community_name": "AuditMiddleware",
+      "file_type": "code",
+      "norm_label": "httpcontext",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "requestdelegate",
+      "label": "RequestDelegate",
+      "_origin": "ast",
+      "community": 57,
+      "community_name": "AuditMiddleware",
+      "file_type": "code",
+      "norm_label": "requestdelegate",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "infra_whatsapp_readme",
+      "label": "README.md",
+      "_origin": "ast",
+      "community": 58,
+      "community_name": "WhatsApp con Evolution API en Render",
+      "file_type": "document",
+      "node_kind": "page",
+      "norm_label": "readme.md",
+      "source_file": "infra/whatsapp/README.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "infra_whatsapp_readme_1_desplegar_en_render_10_min",
+      "label": "1. Desplegar en Render (\u2248 10 min)",
+      "_origin": "ast",
+      "community": 58,
+      "community_name": "WhatsApp con Evolution API en Render",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "1. desplegar en render (\u2248 10 min)",
+      "source_file": "infra/whatsapp/README.md",
+      "source_location": "L9"
+    },
+    {
+      "id": "infra_whatsapp_readme_2_crear_la_instancia_y_vincular_el_n\u00famero",
+      "label": "2. Crear la instancia y vincular el n\u00famero",
+      "_origin": "ast",
+      "community": 58,
+      "community_name": "WhatsApp con Evolution API en Render",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "2. crear la instancia y vincular el numero",
+      "source_file": "infra/whatsapp/README.md",
+      "source_location": "L21"
+    },
+    {
+      "id": "infra_whatsapp_readme_3_pegar_las_claves_en_el_backend",
+      "label": "3. Pegar las claves en el backend",
+      "_origin": "ast",
+      "community": 58,
+      "community_name": "WhatsApp con Evolution API en Render",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "3. pegar las claves en el backend",
+      "source_file": "infra/whatsapp/README.md",
+      "source_location": "L37"
+    },
+    {
+      "id": "infra_whatsapp_readme_4_probar",
+      "label": "4. Probar",
+      "_origin": "ast",
+      "community": 58,
+      "community_name": "WhatsApp con Evolution API en Render",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "4. probar",
+      "source_file": "infra/whatsapp/README.md",
+      "source_location": "L51"
+    },
+    {
+      "id": "infra_whatsapp_readme_notas",
+      "label": "Notas",
+      "_origin": "ast",
+      "community": 58,
+      "community_name": "WhatsApp con Evolution API en Render",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "notas",
+      "source_file": "infra/whatsapp/README.md",
+      "source_location": "L57"
+    },
+    {
+      "id": "infra_whatsapp_readme_whatsapp_con_evolution_api_en_render",
+      "label": "WhatsApp con Evolution API en Render",
+      "_origin": "ast",
+      "community": 58,
+      "community_name": "WhatsApp con Evolution API en Render",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "whatsapp con evolution api en render",
+      "source_file": "infra/whatsapp/README.md",
+      "source_location": "L1"
+    },
+    {
       "id": "frontend_pages_login",
       "label": "login.vue",
       "_origin": "ast",
@@ -9953,6 +10403,21 @@
       "weight": 1.0
     },
     {
+      "source": "backend_controllers_whatsappcontroller_lenguajesformalesapi_controllers_whatsappcontroller_send",
+      "target": "backend_controllers_whatsappcontroller_cs_httppost",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "attribute",
+      "metadata": {
+        "ref_token": "HttpPost"
+      },
+      "source_file": "backend/Controllers/WhatsAppController.cs",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
       "source": "backend_controllers_authcontroller_lenguajesformalesapi_controllers_authcontroller_actualizarperfil",
       "target": "httpput",
       "relation": "references",
@@ -10072,7 +10537,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L60",
+      "source_location": "L63",
       "weight": 1.0
     },
     {
@@ -10084,7 +10549,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L70",
+      "source_location": "L73",
       "weight": 1.0
     },
     {
@@ -10096,7 +10561,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L106",
+      "source_location": "L109",
       "weight": 1.0
     },
     {
@@ -10108,7 +10573,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L114",
+      "source_location": "L117",
       "weight": 1.0
     },
     {
@@ -10120,7 +10585,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L87",
+      "source_location": "L90",
       "weight": 1.0
     },
     {
@@ -10132,7 +10597,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L94",
+      "source_location": "L97",
       "weight": 1.0
     },
     {
@@ -10144,7 +10609,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L289",
+      "source_location": "L307",
       "weight": 1.0
     },
     {
@@ -10156,7 +10621,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L159",
+      "source_location": "L162",
       "weight": 1.0
     },
     {
@@ -10168,7 +10633,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L189",
+      "source_location": "L192",
       "weight": 1.0
     },
     {
@@ -10180,7 +10645,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L278",
+      "source_location": "L296",
       "weight": 1.0
     },
     {
@@ -10349,6 +10814,18 @@
       "context": "call",
       "source_file": "backend/Services/JwtService.cs",
       "source_location": "L43",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_services_whatsappservice_lenguajesformalesapi_services_whatsappservice_sendtextasync",
+      "target": "backend_services_whatsappservice_lenguajesformalesapi_services_whatsappservice_normalizarnumero",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "backend/Services/WhatsAppService.cs",
+      "source_location": "L37",
       "weight": 1.0
     },
     {
@@ -10844,6 +11321,21 @@
       "weight": 1.0
     },
     {
+      "source": "backend_services_whatsappservice_lenguajesformalesapi_services_whatsappservice",
+      "target": "httpclient",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "field",
+      "metadata": {
+        "ref_token": "HttpClient"
+      },
+      "source_file": "backend/Services/WhatsAppService.cs",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
       "source": "backend_controllers_analisiscontroller_lenguajesformalesapi_controllers_analisiscontroller",
       "target": "backend_services_analisislexicoservice_lenguajesformalesapi_services_ianalisislexicoservice",
       "relation": "references",
@@ -10931,6 +11423,21 @@
       },
       "source_file": "backend/Services/RecaptchaService.cs",
       "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_services_whatsappservice_lenguajesformalesapi_services_whatsappservice",
+      "target": "backend_services_whatsappservice_cs_iconfiguration",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "field",
+      "metadata": {
+        "ref_token": "IConfiguration"
+      },
+      "source_file": "backend/Services/WhatsAppService.cs",
+      "source_location": "L15",
       "weight": 1.0
     },
     {
@@ -11140,7 +11647,7 @@
         "ref_token": "ILogger"
       },
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L27",
+      "source_location": "L28",
       "weight": 1.0
     },
     {
@@ -11174,6 +11681,21 @@
       "weight": 1.0
     },
     {
+      "source": "backend_services_whatsappservice_lenguajesformalesapi_services_whatsappservice",
+      "target": "backend_services_whatsappservice_cs_ilogger",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "field",
+      "metadata": {
+        "ref_token": "ILogger"
+      },
+      "source_file": "backend/Services/WhatsAppService.cs",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
       "source": "backend_controllers_authcontroller_lenguajesformalesapi_controllers_authcontroller",
       "target": "backend_services_recaptchaservice_lenguajesformalesapi_services_irecaptchaservice",
       "relation": "references",
@@ -11186,6 +11708,36 @@
       },
       "source_file": "backend/Controllers/AuthController.cs",
       "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_controllers_whatsappcontroller_lenguajesformalesapi_controllers_whatsappcontroller",
+      "target": "backend_interfaces_iwhatsappservice_lenguajesformalesapi_interfaces_iwhatsappservice",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "field",
+      "metadata": {
+        "ref_token": "IWhatsAppService"
+      },
+      "source_file": "backend/Controllers/WhatsAppController.cs",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_services_authservice_lenguajesformalesapi_services_authservice",
+      "target": "backend_interfaces_iwhatsappservice_lenguajesformalesapi_interfaces_iwhatsappservice",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "field",
+      "metadata": {
+        "ref_token": "IWhatsAppService"
+      },
+      "source_file": "backend/Services/AuthService.cs",
+      "source_location": "L27",
       "weight": 1.0
     },
     {
@@ -12293,6 +12845,30 @@
       "weight": 1.0
     },
     {
+      "source": "backend_dtos_sendwhatsappdto_lenguajesformalesapi_dtos_sendwhatsappdto",
+      "target": "backend_dtos_sendwhatsappdto_lenguajesformalesapi_dtos_sendwhatsappdto_message",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "field",
+      "source_file": "backend/DTOs/SendWhatsAppDto.cs",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_dtos_sendwhatsappdto_lenguajesformalesapi_dtos_sendwhatsappdto",
+      "target": "backend_dtos_sendwhatsappdto_lenguajesformalesapi_dtos_sendwhatsappdto_to",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "field",
+      "source_file": "backend/DTOs/SendWhatsAppDto.cs",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
       "source": "backend_models_bitacoralogin_lenguajesformalesapi_models_bitacoralogin",
       "target": "backend_models_bitacoralogin_lenguajesformalesapi_models_bitacoralogin_usuarioid",
       "relation": "defines",
@@ -12811,7 +13387,7 @@
         "ref_token": "AuthResponseDTO"
       },
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L43",
+      "source_location": "L46",
       "weight": 1.0
     },
     {
@@ -12826,7 +13402,7 @@
         "ref_token": "AuthResponseDTO"
       },
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L97",
+      "source_location": "L100",
       "weight": 1.0
     },
     {
@@ -12841,7 +13417,7 @@
         "ref_token": "AuthResponseDTO"
       },
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L73",
+      "source_location": "L76",
       "weight": 1.0
     },
     {
@@ -12856,7 +13432,7 @@
         "ref_token": "AuthResponseDTO"
       },
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L117",
+      "source_location": "L120",
       "weight": 1.0
     },
     {
@@ -13310,6 +13886,21 @@
       "weight": 1.0
     },
     {
+      "source": "backend_controllers_whatsappcontroller_lenguajesformalesapi_controllers_whatsappcontroller_send",
+      "target": "backend_controllers_whatsappcontroller_cs_iactionresult",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "generic_arg",
+      "metadata": {
+        "ref_token": "IActionResult"
+      },
+      "source_file": "backend/Controllers/WhatsAppController.cs",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
       "source": "backend_services_facialservice_lenguajesformalesapi_services_facialservice_buscarcoincidenciaasync",
       "target": "backend_services_facialservice_cs_list",
       "relation": "references",
@@ -13573,6 +14164,23 @@
       "weight": 1.0
     },
     {
+      "source": "backend_controllers_whatsappcontroller",
+      "target": "csharp_namespace:736a531a44819911",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "metadata": {
+        "using_kind": "namespace",
+        "target_fqn": "LenguajesFormalesAPI.DTOs",
+        "scope_kind": "file"
+      },
+      "source_file": "backend/Controllers/WhatsAppController.cs",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
       "source": "backend_services_analisislexicoservice",
       "target": "csharp_namespace:736a531a44819911",
       "relation": "imports",
@@ -13709,6 +14317,23 @@
       "weight": 1.0
     },
     {
+      "source": "backend_controllers_whatsappcontroller",
+      "target": "csharp_namespace:d621ce856ed51ccb",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "metadata": {
+        "using_kind": "namespace",
+        "target_fqn": "LenguajesFormalesAPI.Interfaces",
+        "scope_kind": "file"
+      },
+      "source_file": "backend/Controllers/WhatsAppController.cs",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
       "source": "backend_program",
       "target": "csharp_namespace:d621ce856ed51ccb",
       "relation": "imports",
@@ -13757,6 +14382,23 @@
       },
       "source_file": "backend/Services/EmailService.cs",
       "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_services_whatsappservice",
+      "target": "csharp_namespace:d621ce856ed51ccb",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "metadata": {
+        "using_kind": "namespace",
+        "target_fqn": "LenguajesFormalesAPI.Interfaces",
+        "scope_kind": "file"
+      },
+      "source_file": "backend/Services/WhatsAppService.cs",
+      "source_location": "L3",
       "weight": 1.0
     },
     {
@@ -14165,7 +14807,7 @@
         "ref_token": "ActualizarPerfilDTO"
       },
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L303",
+      "source_location": "L321",
       "weight": 1.0
     },
     {
@@ -14390,7 +15032,7 @@
         "ref_token": "LoginDTO"
       },
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L43",
+      "source_location": "L46",
       "weight": 1.0
     },
     {
@@ -14435,7 +15077,7 @@
         "ref_token": "LoginFacialDTO"
       },
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L97",
+      "source_location": "L100",
       "weight": 1.0
     },
     {
@@ -14480,7 +15122,7 @@
         "ref_token": "LoginQrDTO"
       },
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L73",
+      "source_location": "L76",
       "weight": 1.0
     },
     {
@@ -14540,7 +15182,7 @@
         "ref_token": "RegisterDTO"
       },
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L117",
+      "source_location": "L120",
       "weight": 1.0
     },
     {
@@ -14574,6 +15216,21 @@
       "weight": 1.0
     },
     {
+      "source": "backend_controllers_whatsappcontroller_lenguajesformalesapi_controllers_whatsappcontroller_send",
+      "target": "backend_dtos_sendwhatsappdto_lenguajesformalesapi_dtos_sendwhatsappdto",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "parameter_type",
+      "metadata": {
+        "ref_token": "SendWhatsAppDto"
+      },
+      "source_file": "backend/Controllers/WhatsAppController.cs",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
       "source": "backend_services_authservice_lenguajesformalesapi_services_authservice_crearrespuestasesion",
       "target": "backend_models_bitacoralogin_lenguajesformalesapi_models_bitacoralogin_usuario",
       "relation": "references",
@@ -14585,7 +15242,7 @@
         "ref_token": "Usuario"
       },
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L358",
+      "source_location": "L376",
       "weight": 1.0
     },
     {
@@ -14720,7 +15377,7 @@
         "ref_token": "AuthResponseDTO"
       },
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L358",
+      "source_location": "L376",
       "weight": 1.0
     },
     {
@@ -15099,6 +15756,21 @@
       "weight": 1.0
     },
     {
+      "source": "backend_controllers_whatsappcontroller_lenguajesformalesapi_controllers_whatsappcontroller_send",
+      "target": "backend_controllers_whatsappcontroller_cs_task",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "return_type",
+      "metadata": {
+        "ref_token": "Task"
+      },
+      "source_file": "backend/Controllers/WhatsAppController.cs",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
       "source": "backend_interfaces_iemailservice_lenguajesformalesapi_interfaces_iemailservice_sendemailasync",
       "target": "backend_interfaces_iemailservice_cs_task",
       "relation": "references",
@@ -15111,6 +15783,21 @@
       },
       "source_file": "backend/Interfaces/IEmailService.cs",
       "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_interfaces_iwhatsappservice_lenguajesformalesapi_interfaces_iwhatsappservice_sendtextasync",
+      "target": "backend_interfaces_iwhatsappservice_cs_task",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "return_type",
+      "metadata": {
+        "ref_token": "Task"
+      },
+      "source_file": "backend/Interfaces/IWhatsAppService.cs",
+      "source_location": "L9",
       "weight": 1.0
     },
     {
@@ -15140,7 +15827,7 @@
         "ref_token": "Task"
       },
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L303",
+      "source_location": "L321",
       "weight": 1.0
     },
     {
@@ -15155,7 +15842,7 @@
         "ref_token": "Task"
       },
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L43",
+      "source_location": "L46",
       "weight": 1.0
     },
     {
@@ -15170,7 +15857,7 @@
         "ref_token": "Task"
       },
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L97",
+      "source_location": "L100",
       "weight": 1.0
     },
     {
@@ -15185,7 +15872,7 @@
         "ref_token": "Task"
       },
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L73",
+      "source_location": "L76",
       "weight": 1.0
     },
     {
@@ -15200,7 +15887,7 @@
         "ref_token": "Task"
       },
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L284",
+      "source_location": "L302",
       "weight": 1.0
     },
     {
@@ -15215,7 +15902,7 @@
         "ref_token": "Task"
       },
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L117",
+      "source_location": "L120",
       "weight": 1.0
     },
     {
@@ -15444,6 +16131,21 @@
       "weight": 1.0
     },
     {
+      "source": "backend_services_whatsappservice_lenguajesformalesapi_services_whatsappservice_sendtextasync",
+      "target": "backend_services_whatsappservice_cs_task",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "return_type",
+      "metadata": {
+        "ref_token": "Task"
+      },
+      "source_file": "backend/Services/WhatsAppService.cs",
+      "source_location": "L25",
+      "weight": 1.0
+    },
+    {
       "source": "backend_controllers_analisiscontroller_lenguajesformalesapi_controllers_analisiscontroller",
       "target": "controllerbase",
       "relation": "inherits",
@@ -15511,6 +16213,20 @@
       },
       "source_file": "backend/Controllers/FacialController.cs",
       "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_controllers_whatsappcontroller_lenguajesformalesapi_controllers_whatsappcontroller",
+      "target": "controllerbase",
+      "relation": "inherits",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metadata": {
+        "ref_token": "ControllerBase"
+      },
+      "source_file": "backend/Controllers/WhatsAppController.cs",
+      "source_location": "L8",
       "weight": 1.0
     },
     {
@@ -15623,6 +16339,20 @@
       },
       "source_file": "backend/Services/RecaptchaService.cs",
       "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_services_whatsappservice_lenguajesformalesapi_services_whatsappservice",
+      "target": "backend_interfaces_iwhatsappservice_lenguajesformalesapi_interfaces_iwhatsappservice",
+      "relation": "implements",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "metadata": {
+        "ref_token": "IWhatsAppService"
+      },
+      "source_file": "backend/Services/WhatsAppService.cs",
+      "source_location": "L12",
       "weight": 1.0
     },
     {
@@ -15744,6 +16474,28 @@
       "confidence_score": 1.0,
       "source_file": "backend/Controllers/FacialController.cs",
       "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_controllers_whatsappcontroller",
+      "target": "csharp_namespace:d6708e63c4014c53",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/Controllers/WhatsAppController.cs",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_controllers_whatsappcontroller",
+      "target": "backend_controllers_whatsappcontroller_lenguajesformalesapi_controllers_whatsappcontroller",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/Controllers/WhatsAppController.cs",
+      "source_location": "L8",
       "weight": 1.0
     },
     {
@@ -15967,6 +16719,28 @@
       "weight": 1.0
     },
     {
+      "source": "backend_dtos_sendwhatsappdto",
+      "target": "csharp_namespace:736a531a44819911",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/DTOs/SendWhatsAppDto.cs",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_dtos_sendwhatsappdto",
+      "target": "backend_dtos_sendwhatsappdto_lenguajesformalesapi_dtos_sendwhatsappdto",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/DTOs/SendWhatsAppDto.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
       "source": "backend_interfaces_iemailservice",
       "target": "csharp_namespace:d621ce856ed51ccb",
       "relation": "contains",
@@ -15985,6 +16759,28 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/Interfaces/IEmailService.cs",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_interfaces_iwhatsappservice",
+      "target": "csharp_namespace:d621ce856ed51ccb",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/Interfaces/IWhatsAppService.cs",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_interfaces_iwhatsappservice",
+      "target": "backend_interfaces_iwhatsappservice_lenguajesformalesapi_interfaces_iwhatsappservice",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/Interfaces/IWhatsAppService.cs",
       "source_location": "L3",
       "weight": 1.0
     },
@@ -16645,6 +17441,28 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/Services/RecaptchaService.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_services_whatsappservice",
+      "target": "backend_services_whatsappservice_lenguajesformalesapi_services_whatsappservice",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/Services/WhatsAppService.cs",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_services_whatsappservice",
+      "target": "csharp_namespace:fdf39ac8ea2de2d5",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/Services/WhatsAppService.cs",
       "source_location": "L5",
       "weight": 1.0
     },
@@ -19036,6 +19854,72 @@
       "weight": 1.0
     },
     {
+      "source": "infra_whatsapp_readme",
+      "target": "infra_whatsapp_readme_whatsapp_con_evolution_api_en_render",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "infra/whatsapp/README.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "infra_whatsapp_readme_whatsapp_con_evolution_api_en_render",
+      "target": "infra_whatsapp_readme_2_crear_la_instancia_y_vincular_el_n\u00famero",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "infra/whatsapp/README.md",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "infra_whatsapp_readme_whatsapp_con_evolution_api_en_render",
+      "target": "infra_whatsapp_readme_3_pegar_las_claves_en_el_backend",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "infra/whatsapp/README.md",
+      "source_location": "L37",
+      "weight": 1.0
+    },
+    {
+      "source": "infra_whatsapp_readme_whatsapp_con_evolution_api_en_render",
+      "target": "infra_whatsapp_readme_4_probar",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "infra/whatsapp/README.md",
+      "source_location": "L51",
+      "weight": 1.0
+    },
+    {
+      "source": "infra_whatsapp_readme_whatsapp_con_evolution_api_en_render",
+      "target": "infra_whatsapp_readme_notas",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "infra/whatsapp/README.md",
+      "source_location": "L57",
+      "weight": 1.0
+    },
+    {
+      "source": "infra_whatsapp_readme_whatsapp_con_evolution_api_en_render",
+      "target": "infra_whatsapp_readme_1_desplegar_en_render_10_min",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "infra/whatsapp/README.md",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
       "source": "backend_lenguajesformalesapi",
       "target": "nuget_bcrypt_net_next",
       "relation": "imports",
@@ -19367,6 +20251,17 @@
       "weight": 1.0
     },
     {
+      "source": "backend_controllers_whatsappcontroller_lenguajesformalesapi_controllers_whatsappcontroller",
+      "target": "backend_controllers_whatsappcontroller_lenguajesformalesapi_controllers_whatsappcontroller_send",
+      "relation": "method",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/Controllers/WhatsAppController.cs",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
       "source": "backend_data_appdbcontext_lenguajesformalesapi_data_appdbcontext",
       "target": "backend_data_appdbcontext_lenguajesformalesapi_data_appdbcontext_onmodelcreating",
       "relation": "method",
@@ -19386,6 +20281,17 @@
       "confidence_score": 1.0,
       "source_file": "backend/Interfaces/IEmailService.cs",
       "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_interfaces_iwhatsappservice_lenguajesformalesapi_interfaces_iwhatsappservice",
+      "target": "backend_interfaces_iwhatsappservice_lenguajesformalesapi_interfaces_iwhatsappservice_sendtextasync",
+      "relation": "method",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/Interfaces/IWhatsAppService.cs",
+      "source_location": "L9",
       "weight": 1.0
     },
     {
@@ -19423,13 +20329,24 @@
     },
     {
       "source": "backend_services_authservice_lenguajesformalesapi_services_authservice",
+      "target": "backend_services_authservice_lenguajesformalesapi_services_authservice_loginfacialasync",
+      "relation": "method",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/Services/AuthService.cs",
+      "source_location": "L100",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_services_authservice_lenguajesformalesapi_services_authservice",
       "target": "backend_services_authservice_lenguajesformalesapi_services_authservice_registrarasync",
       "relation": "method",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L117",
+      "source_location": "L120",
       "weight": 1.0
     },
     {
@@ -19440,7 +20357,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L284",
+      "source_location": "L302",
       "weight": 1.0
     },
     {
@@ -19451,7 +20368,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L303",
+      "source_location": "L321",
       "weight": 1.0
     },
     {
@@ -19462,7 +20379,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L349",
+      "source_location": "L367",
       "weight": 1.0
     },
     {
@@ -19473,7 +20390,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L355",
+      "source_location": "L373",
       "weight": 1.0
     },
     {
@@ -19484,7 +20401,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L358",
+      "source_location": "L376",
       "weight": 1.0
     },
     {
@@ -19495,7 +20412,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L43",
+      "source_location": "L46",
       "weight": 1.0
     },
     {
@@ -19506,18 +20423,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L73",
-      "weight": 1.0
-    },
-    {
-      "source": "backend_services_authservice_lenguajesformalesapi_services_authservice",
-      "target": "backend_services_authservice_lenguajesformalesapi_services_authservice_loginfacialasync",
-      "relation": "method",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L97",
+      "source_location": "L76",
       "weight": 1.0
     },
     {
@@ -19873,6 +20779,28 @@
       "weight": 1.0
     },
     {
+      "source": "backend_services_whatsappservice_lenguajesformalesapi_services_whatsappservice",
+      "target": "backend_services_whatsappservice_lenguajesformalesapi_services_whatsappservice_sendtextasync",
+      "relation": "method",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/Services/WhatsAppService.cs",
+      "source_location": "L25",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_services_whatsappservice_lenguajesformalesapi_services_whatsappservice",
+      "target": "backend_services_whatsappservice_lenguajesformalesapi_services_whatsappservice_normalizarnumero",
+      "relation": "method",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/Services/WhatsAppService.cs",
+      "source_location": "L70",
+      "weight": 1.0
+    },
+    {
       "source": "backend_lenguajesformalesapi",
       "target": "framework_net8_0",
       "relation": "references",
@@ -20097,6 +21025,18 @@
       "weight": 1.0
     },
     {
+      "source": "backend_controllers_whatsappcontroller_lenguajesformalesapi_controllers_whatsappcontroller_send",
+      "target": "backend_interfaces_iwhatsappservice_lenguajesformalesapi_interfaces_iwhatsappservice_sendtextasync",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "context": "call",
+      "source_file": "backend/Controllers/WhatsAppController.cs",
+      "source_location": "L24",
+      "weight": 1.0
+    },
+    {
       "source": "backend_services_authservice_lenguajesformalesapi_services_authservice_crearrespuestasesion",
       "target": "backend_services_jwtservice_lenguajesformalesapi_services_ijwtservice_generartoken",
       "relation": "calls",
@@ -20105,7 +21045,7 @@
       "confidence_score": 0.8,
       "context": "call",
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L360",
+      "source_location": "L378",
       "weight": 1.0
     },
     {
@@ -20117,7 +21057,7 @@
       "confidence_score": 0.8,
       "context": "call",
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L99",
+      "source_location": "L102",
       "weight": 1.0
     },
     {
@@ -20129,7 +21069,7 @@
       "confidence_score": 0.8,
       "context": "call",
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L75",
+      "source_location": "L78",
       "weight": 1.0
     },
     {
@@ -20141,7 +21081,19 @@
       "confidence_score": 0.8,
       "context": "call",
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L257",
+      "source_location": "L260",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_services_authservice_lenguajesformalesapi_services_authservice_registrarasync",
+      "target": "backend_interfaces_iwhatsappservice_lenguajesformalesapi_interfaces_iwhatsappservice_sendtextasync",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "context": "call",
+      "source_file": "backend/Services/AuthService.cs",
+      "source_location": "L293",
       "weight": 1.0
     },
     {
@@ -20153,7 +21105,7 @@
       "confidence_score": 0.8,
       "context": "call",
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L279",
+      "source_location": "L297",
       "weight": 1.0
     },
     {
@@ -20237,7 +21189,7 @@
       "confidence_score": 0.85,
       "context": "call",
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L57",
+      "source_location": "L60",
       "weight": 1.0
     },
     {
@@ -20249,7 +21201,7 @@
       "confidence_score": 0.85,
       "context": "call",
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L103",
+      "source_location": "L106",
       "weight": 1.0
     },
     {
@@ -20261,7 +21213,7 @@
       "confidence_score": 0.85,
       "context": "call",
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L84",
+      "source_location": "L87",
       "weight": 1.0
     },
     {
@@ -20273,7 +21225,7 @@
       "confidence_score": 0.85,
       "context": "call",
       "source_file": "backend/Services/AuthService.cs",
-      "source_location": "L184",
+      "source_location": "L187",
       "weight": 1.0
     },
     {
@@ -20382,6 +21334,18 @@
       "context": "call",
       "source_file": "backend/Services/EmailService.cs",
       "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_interfaces_iwhatsappservice_lenguajesformalesapi_interfaces_iwhatsappservice_sendtextasync",
+      "target": "backend_services_whatsappservice_lenguajesformalesapi_services_whatsappservice_sendtextasync",
+      "relation": "dispatches_to",
+      "_origin": "ast",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "context": "call",
+      "source_file": "backend/Services/WhatsAppService.cs",
+      "source_location": "L12",
       "weight": 1.0
     },
     {
@@ -20803,5 +21767,5 @@
       "source_file": "CLAUDE.md"
     }
   ],
-  "built_at_commit": "7eb1677924a234aa67e2aed175e5fae1b66f8194"
+  "built_at_commit": "9a89ab52372f159d65a79e5e6fe617165a276835"
 }

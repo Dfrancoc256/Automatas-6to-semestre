@@ -24,6 +24,7 @@ public class AuthService : IAuthService
     private readonly IJwtService  _jwt;
     private readonly IFacialService _facial;
     private readonly IEmailService _emailService;
+    private readonly IWhatsAppService _whatsApp;
     private readonly ILogger<AuthService> _logger;
 
     public AuthService(
@@ -31,12 +32,14 @@ public class AuthService : IAuthService
         IJwtService jwt,
         IFacialService facial,
         IEmailService emailService,
+        IWhatsAppService whatsApp,
         ILogger<AuthService> logger)
     {
         _db           = db;
         _jwt          = jwt;
         _facial       = facial;
         _emailService = emailService;
+        _whatsApp     = whatsApp;
         _logger       = logger;
     }
 
@@ -273,6 +276,21 @@ if (usuario.MetodoNotificacion == "email" ||
             "No se pudo enviar el correo de registro a {Correo}",
             usuario.Correo);
     }
+}
+
+// ── Notificación por WhatsApp ─────────────────────────────────────────────
+if (usuario.MetodoNotificacion == "whatsapp" ||
+    usuario.MetodoNotificacion == "ambos")
+{
+    var telefono = usuario.Telefono;
+    var mensaje =
+        $"¡Bienvenido a Lenguajes Formales, {usuario.Nickname}! " +
+        "Tu cuenta fue creada correctamente. " +
+        "Este es un mensaje automático: no compartas tu contraseña con nadie.";
+
+    // En segundo plano: Render (plan gratis) puede tardar hasta ~1 min en despertar
+    // y no debe retrasar ni cancelar el registro. SendTextAsync nunca lanza excepciones.
+    _ = Task.Run(() => _whatsApp.SendTextAsync(telefono, mensaje));
 }
 
 var respuesta = CrearRespuestaSesion(usuario);
