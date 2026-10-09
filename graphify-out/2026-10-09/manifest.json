@@ -42,9 +42,9 @@
     "semantic_hash": ""
   },
   "backend/Data/AppDbContext.cs": {
-    "mtime": 1791583847.7759607,
-    "seen": 1791584706.112095,
-    "ast_hash": "8ab4373b1be44075968653fd7ca5c4ae",
+    "mtime": 1790016626.2369568,
+    "seen": 1790017844.3941631,
+    "ast_hash": "11f4ca33742ed5c97dc7ccda8d16e862",
     "semantic_hash": ""
   },
   "backend/LenguajesFormalesAPI.csproj": {
@@ -78,9 +78,9 @@
     "semantic_hash": ""
   },
   "backend/Program.cs": {
-    "mtime": 1791584231.357675,
-    "seen": 1791584706.1131034,
-    "ast_hash": "92213c7480c909b9cb2700b3cff0f85a",
+    "mtime": 1790017536.9491436,
+    "seen": 1790017844.3941631,
+    "ast_hash": "6bb1c7273d7331579e83dd599f472ec8",
     "semantic_hash": ""
   },
   "backend/Properties/launchSettings.json": {
@@ -96,9 +96,9 @@
     "semantic_hash": "c24616802e1fcbbafe5187c10cbca57e"
   },
   "backend/Services/AuthService.cs": {
-    "mtime": 1791584208.7587216,
-    "seen": 1791584706.1131034,
-    "ast_hash": "e11f7f68c4cbdae081d77eb8b23f6bc5",
+    "mtime": 1790017568.14137,
+    "seen": 1790017844.3941631,
+    "ast_hash": "fb3028828492188e68ea685e68ae1d77",
     "semantic_hash": ""
   },
   "backend/Services/CredentialService.cs": {
@@ -120,9 +120,9 @@
     "semantic_hash": ""
   },
   "backend/appsettings.json": {
-    "mtime": 1791583847.7795298,
-    "seen": 1791584706.1141102,
-    "ast_hash": "93fa35e8dbac32b195c116d1e9bce560",
+    "mtime": 1790017029.0462315,
+    "seen": 1790017844.3956788,
+    "ast_hash": "bcd3bb7c540657f74bdedb782a130227",
     "semantic_hash": ""
   },
   "frontend/app.vue": {
@@ -138,8 +138,8 @@
     "semantic_hash": ""
   },
   "frontend/layouts/dashboard.vue": {
-    "mtime": 1791584308.207606,
-    "seen": 1791584706.11511,
+    "mtime": 1790017603.6341217,
+    "seen": 1790017844.3956788,
     "ast_hash": "faee568b490de76ee732c558a8c5f18c",
     "semantic_hash": ""
   },
@@ -192,8 +192,8 @@
     "semantic_hash": ""
   },
   "frontend/pages/dashboard/perfil.vue": {
-    "mtime": 1791584304.2505746,
-    "seen": 1791584706.1161103,
+    "mtime": 1790019322.7155666,
+    "seen": 1790020061.500023,
     "ast_hash": "57a6d7946351627a6d89bf72da49ddf7",
     "semantic_hash": ""
   },
@@ -282,9 +282,9 @@
     "semantic_hash": ""
   },
   ".claude/settings.local.json": {
-    "mtime": 1790020786.0042663,
-    "seen": 1791584706.110066,
-    "ast_hash": "f2a5a6b548fd38559ea8d0c5b0107b28",
+    "mtime": 1790019504.6826012,
+    "seen": 1790020061.494615,
+    "ast_hash": "692f79400dfd458759d4da52d48daca3",
     "semantic_hash": ""
   },
   "backend/Controllers/FacialController.cs": {
@@ -354,9 +354,9 @@
     "semantic_hash": ""
   },
   "frontend/components/auth/RegistrationForm.vue": {
-    "mtime": 1791584267.8466973,
-    "seen": 1791584706.1141102,
-    "ast_hash": "a91d0b5b39ff55d7c31df5e79c43ac7b",
+    "mtime": 1790019322.7155666,
+    "seen": 1790020061.4990144,
+    "ast_hash": "b2bcc9a2d83fb6bac69475c352cd06bb",
     "semantic_hash": ""
   },
   "frontend/composables/useMediaUrl.ts": {
@@ -372,69 +372,15 @@
     "semantic_hash": ""
   },
   "frontend/pages/login.vue": {
-    "mtime": 1791584334.3021104,
-    "seen": 1791584706.1161103,
-    "ast_hash": "3f98d9a3d634c014617f7938bfe39c72",
+    "mtime": 1790019285.518542,
+    "seen": 1790020061.5010376,
+    "ast_hash": "e26421829677ee458a488f3731d9ab4e",
     "semantic_hash": ""
   },
   "frontend/components/FaceScanner.vue": {
     "mtime": 1790019504.864715,
     "seen": 1790020061.49792,
     "ast_hash": "6364cfdaa3c66f1d69bdb936a29b13c1",
-    "semantic_hash": ""
-  },
-  "backend/Models/FotografiaUsuario.cs": {
-    "mtime": 1791583847.7759607,
-    "seen": 1791584706.1131034,
-    "ast_hash": "bcc6d29bdad3b5db8f1ee1ff0fb61996",
-    "semantic_hash": ""
-  },
-  "frontend/components/photo/FilterSelector.vue": {
-    "mtime": 1791583847.7805314,
-    "seen": 1791584706.1141102,
-    "ast_hash": "097feb1c39ddf8fabdb3196367a372b6",
-    "semantic_hash": ""
-  },
-  "frontend/components/photo/StickerSelector.vue": {
-    "mtime": 1791583847.782342,
-    "seen": 1791584706.1141102,
-    "ast_hash": "612b7e0f2f699f7f17f77fd73c6e2f19",
-    "semantic_hash": ""
-  },
-  "frontend/pages/register/photo.vue": {
-    "mtime": 1791583847.7873468,
-    "seen": 1791584706.1161103,
-    "ast_hash": "94967e95939b2216f85cbbd7ab13502c",
-    "semantic_hash": ""
-  },
-  "frontend/public/stickers/corazon.png": {
-    "mtime": 1791583847.7926123,
-    "seen": 1791584706.1176157,
-    "ast_hash": "42343af32844a543958244e7784db941",
-    "semantic_hash": ""
-  },
-  "frontend/public/stickers/corona.png": {
-    "mtime": 1791583847.7999058,
-    "seen": 1791584706.1176157,
-    "ast_hash": "c4ea7a241759b65ab4c5310a7cc68ccd",
-    "semantic_hash": ""
-  },
-  "frontend/public/stickers/estrella.png": {
-    "mtime": 1791583847.8044078,
-    "seen": 1791584706.1176157,
-    "ast_hash": "f70e3f56b4f1013e900100864512c294",
-    "semantic_hash": ""
-  },
-  "frontend/public/stickers/graduacion.png": {
-    "mtime": 1791583847.809455,
-    "seen": 1791584706.1176157,
-    "ast_hash": "3c43441126bdb03f8ccadd1da050c151",
-    "semantic_hash": ""
-  },
-  "frontend/public/stickers/lentes.png": {
-    "mtime": 1791583847.8132422,
-    "seen": 1791584706.1176157,
-    "ast_hash": "b4085829befb366b0165e21b621875ba",
     "semantic_hash": ""
   }
 }
