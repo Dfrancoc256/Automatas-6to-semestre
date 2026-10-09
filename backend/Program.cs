@@ -116,6 +116,7 @@ builder.Services.AddScoped<ICredentialService,      CredentialService>();
 builder.Services.AddScoped<IFacialService,          FacialService>();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<IEmailService,           EmailService>();
+builder.Services.AddHttpClient<IWhatsAppService, WhatsAppService>();
 
 // ── Controllers + Swagger ─────────────────────────────────────────────────
 builder.Services.AddControllers();

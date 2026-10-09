@@ -78,9 +78,9 @@
     "semantic_hash": ""
   },
   "backend/Program.cs": {
-    "mtime": 1791584231.357675,
-    "seen": 1791584706.1131034,
-    "ast_hash": "92213c7480c909b9cb2700b3cff0f85a",
+    "mtime": 1791584866.5317607,
+    "seen": 1791585200.7085521,
+    "ast_hash": "8312057411514b243fe9b546450ae39e",
     "semantic_hash": ""
   },
   "backend/Properties/launchSettings.json": {
@@ -96,9 +96,9 @@
     "semantic_hash": "c24616802e1fcbbafe5187c10cbca57e"
   },
   "backend/Services/AuthService.cs": {
-    "mtime": 1791584208.7587216,
-    "seen": 1791584706.1131034,
-    "ast_hash": "e11f7f68c4cbdae081d77eb8b23f6bc5",
+    "mtime": 1791584873.1695833,
+    "seen": 1791585200.7085521,
+    "ast_hash": "e80adc10e758a2e2aa6f710ee576b044",
     "semantic_hash": ""
   },
   "backend/Services/CredentialService.cs": {
@@ -120,9 +120,9 @@
     "semantic_hash": ""
   },
   "backend/appsettings.json": {
-    "mtime": 1791583847.7795298,
-    "seen": 1791584706.1141102,
-    "ast_hash": "93fa35e8dbac32b195c116d1e9bce560",
+    "mtime": 1791584866.5317607,
+    "seen": 1791585200.7095535,
+    "ast_hash": "f05c343adbbc95450fdd4ee9b58a5521",
     "semantic_hash": ""
   },
   "frontend/app.vue": {
@@ -282,9 +282,9 @@
     "semantic_hash": ""
   },
   ".claude/settings.local.json": {
-    "mtime": 1790020786.0042663,
-    "seen": 1791584706.110066,
-    "ast_hash": "f2a5a6b548fd38559ea8d0c5b0107b28",
+    "mtime": 1791585198.0662708,
+    "seen": 1791585200.70501,
+    "ast_hash": "0da1803f31a63e57299bd5f45cd9f35d",
     "semantic_hash": ""
   },
   "backend/Controllers/FacialController.cs": {
@@ -435,6 +435,42 @@
     "mtime": 1791583847.8132422,
     "seen": 1791584706.1176157,
     "ast_hash": "b4085829befb366b0165e21b621875ba",
+    "semantic_hash": ""
+  },
+  "backend/Controllers/WhatsAppController.cs": {
+    "mtime": 1791584866.472722,
+    "seen": 1791585200.7060091,
+    "ast_hash": "fde14ac08fcce323411126bb6bdfd588",
+    "semantic_hash": ""
+  },
+  "backend/DTOs/SendWhatsAppDto.cs": {
+    "mtime": 1791584866.4050272,
+    "seen": 1791585200.7060091,
+    "ast_hash": "030eca602163204c69469c6264a264ca",
+    "semantic_hash": ""
+  },
+  "backend/Interfaces/IWhatsAppService.cs": {
+    "mtime": 1791584866.3701248,
+    "seen": 1791585200.7075305,
+    "ast_hash": "874c2be222f2256bef88ee18bacaba89",
+    "semantic_hash": ""
+  },
+  "backend/Services/WhatsAppService.cs": {
+    "mtime": 1791584866.4376864,
+    "seen": 1791585200.7095535,
+    "ast_hash": "37ebffa15e44c7a862b21a8720ecc7e3",
+    "semantic_hash": ""
+  },
+  "infra/whatsapp/README.md": {
+    "mtime": 1791584945.1858368,
+    "seen": 1791585200.7140927,
+    "ast_hash": "c24d861fea59a157525e8f8e932ad0eb",
+    "semantic_hash": ""
+  },
+  "infra/whatsapp/render.yaml": {
+    "mtime": 1791584945.149809,
+    "seen": 1791585200.7140927,
+    "ast_hash": "659cb1fcd3eaab8257a2fab9954c7e2f",
     "semantic_hash": ""
   }
 }

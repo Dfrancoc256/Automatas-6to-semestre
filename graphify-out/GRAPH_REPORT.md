@@ -1,16 +1,16 @@
 # Graph Report - Automatas-6to-semestre  (2026-10-09)
 
 ## Corpus Check
-- 64 files · ~361,978 words
+- 69 files · ~363,332 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 655 nodes · 914 edges · 57 communities (45 shown, 5 thin omitted)
-- Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 63 edges (avg confidence: 0.84)
+- 684 nodes · 954 edges · 59 communities (47 shown, 5 thin omitted)
+- Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 66 edges (avg confidence: 0.84)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `7eb16779`
+- Built from commit: `9a89ab52`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -65,17 +65,19 @@
 - LenguajesFormalesAPI.Models
 - FilterSelector.vue
 - StickerSelector.vue
+- AuditMiddleware
+- WhatsApp con Evolution API en Render
 
 ## God Nodes (most connected - your core abstractions)
 1. `AnalisisResultadoDTO` - 30 edges
 2. `Usuario` - 21 edges
 3. `AuthResponseDTO` - 17 edges
-4. `AuthController` - 16 edges
-5. `RegisterDTO` - 16 edges
-6. `AppDbContext` - 16 edges
-7. `BitacoraLogin` - 16 edges
-8. `ResultadoAnalisis` - 16 edges
-9. `AuthService` - 16 edges
+4. `AuthService` - 17 edges
+5. `AuthController` - 16 edges
+6. `RegisterDTO` - 16 edges
+7. `AppDbContext` - 16 edges
+8. `BitacoraLogin` - 16 edges
+9. `ResultadoAnalisis` - 16 edges
 10. `Usuario` - 15 edges
 
 ## Surprising Connections (you probably didn't know these)
@@ -96,7 +98,7 @@
 ## Hyperedges (group relationships)
 - **Codebase Question Resolution Priority Flow** — claude_graphify_query, claude_graphify_path, claude_graphify_explain, claude_wiki_index_md, claude_graph_report_md [EXTRACTED 1.00]
 
-## Communities (57 total, 5 thin omitted)
+## Communities (59 total, 5 thin omitted)
 
 ### Community 0 - "AuthController"
 Cohesion: 0.15
@@ -143,8 +145,8 @@ Cohesion: 0.11
 Nodes (18): DateTime, Usuario, Activo, BitacoraLogins, Correo, EncodingFacial, FechaNacimiento, FechaRegistro (+10 more)
 
 ### Community 12 - "LenguajesFormalesAPI.Services"
-Cohesion: 0.07
-Nodes (25): HttpPost, IActionResult, Task, EmailController, SendEmailDto, Body, Subject, To (+17 more)
+Cohesion: 0.06
+Nodes (33): HttpPost, IActionResult, Task, EmailController, HttpPost, IActionResult, Task, WhatsAppController (+25 more)
 
 ### Community 13 - "LenguajesFormalesAPI.csproj"
 Cohesion: 0.15
@@ -278,22 +280,30 @@ Nodes (4): emit, props, seleccionar(), stickers
 Cohesion: 0.67
 Nodes (3): emit, seleccionar(), stickers
 
+### Community 57 - "AuditMiddleware"
+Cohesion: 0.25
+Nodes (6): ILogger, Task, AuditMiddleware, LenguajesFormalesAPI.Middleware, HttpContext, RequestDelegate
+
+### Community 58 - "WhatsApp con Evolution API en Render"
+Cohesion: 0.29
+Nodes (6): 1. Desplegar en Render (≈ 10 min), 2. Crear la instancia y vincular el número, 3. Pegar las claves en el backend, 4. Probar, Notas, WhatsApp con Evolution API en Render
+
 ## Knowledge Gaps
-- **325 isolated node(s):** `Idioma`, `Contenido`, `NombreArchivo`, `Token`, `Frecuencia` (+320 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 402 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **332 isolated node(s):** `Idioma`, `Contenido`, `NombreArchivo`, `Token`, `Frecuencia` (+327 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 418 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **5 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `AppDbContext` connect `AppDbContext` to `Usuario`, `DashboardController`, `FotografiaUsuario`, `ResultadoAnalisis`, `AnalisisController`, `AuthService`, `BitacoraLogin`, `FacialService`, `LenguajesFormalesAPI.Models`?**
-  _High betweenness centrality (0.046) - this node is a cross-community bridge._
+  _High betweenness centrality (0.045) - this node is a cross-community bridge._
 - **Why does `LenguajesFormalesAPI.DTOs` connect `LenguajesFormalesAPI.Services` to `AnalisisLexicoService`, `AnalisisDTOs.cs`, `AuthDTOs.cs`?**
-  _High betweenness centrality (0.039) - this node is a cross-community bridge._
+  _High betweenness centrality (0.043) - this node is a cross-community bridge._
 - **Why does `AnalisisResultadoDTO` connect `AnalisisResultadoDTO` to `AnalisisLexicoService`, `AnalisisDTOs.cs`, `HistorialAnalisisDTO`, `AnalisisController`?**
   _High betweenness centrality (0.038) - this node is a cross-community bridge._
 - **What connects `Idioma`, `Contenido`, `NombreArchivo` to the rest of the system?**
-  _325 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _332 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `AuthController` be split into smaller, more focused modules?**
   _Cohesion score 0.14623655913978495 - nodes in this community are weakly interconnected._
 - **Should `package.json` be split into smaller, more focused modules?**

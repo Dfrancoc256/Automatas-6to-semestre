@@ -6,6 +6,11 @@
     "SecretKey": "GENERAR_UNA_CLAVE_ALEATORIA_DE_AL_MENOS_32_CARACTERES",
     "QrExpirationDays": 365
   },
+  "WhatsApp": {
+    "BaseUrl": "https://TU-EVOLUTION-API.onrender.com",
+    "ApiKey": "CLAVE_DE_EVOLUTION_API",
+    "InstanceName": "umg-lenguajes"
+  },
   "Recaptcha": {
     "BypassInDevelopment": true
   }
