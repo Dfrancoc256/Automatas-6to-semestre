@@ -1,11 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using LenguajesFormalesAPI.Models;
 
+
 namespace LenguajesFormalesAPI.Data;
 
 public class AppDbContext : DbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+
+    public DbSet<FotografiaUsuario> FotografiasUsuario { get; set; }
 
     public DbSet<Usuario> Usuarios { get; set; }
     public DbSet<BitacoraLogin> BitacoraLogins { get; set; }
@@ -14,6 +17,14 @@ public class AppDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<FotografiaUsuario>(entity =>
+            {
+                entity.HasOne(f => f.Usuario)
+                    .WithMany()
+                    .HasForeignKey(f => f.UsuarioId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
 
         modelBuilder.Entity<Usuario>(entity =>
         {

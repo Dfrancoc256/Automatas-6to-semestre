@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using LenguajesFormalesAPI.Data;
 using LenguajesFormalesAPI.DTOs;
 using LenguajesFormalesAPI.Models;
+using LenguajesFormalesAPI.Interfaces;
+using System.Security.Cryptography;
 
 namespace LenguajesFormalesAPI.Services;
 
@@ -21,14 +23,21 @@ public class AuthService : IAuthService
     private readonly AppDbContext _db;
     private readonly IJwtService  _jwt;
     private readonly IFacialService _facial;
+    private readonly IEmailService _emailService;
     private readonly ILogger<AuthService> _logger;
 
-    public AuthService(AppDbContext db, IJwtService jwt, IFacialService facial, ILogger<AuthService> logger)
+    public AuthService(
+        AppDbContext db,
+        IJwtService jwt,
+        IFacialService facial,
+        IEmailService emailService,
+        ILogger<AuthService> logger)
     {
-        _db     = db;
-        _jwt    = jwt;
-        _facial = facial;
-        _logger = logger;
+        _db           = db;
+        _jwt          = jwt;
+        _facial       = facial;
+        _emailService = emailService;
+        _logger       = logger;
     }
 
     public async Task<AuthResponseDTO?> LoginAsync(LoginDTO dto, string ip, string userAgent)
@@ -109,6 +118,7 @@ public class AuthService : IAuthService
     {
         var correo = dto.Correo.Trim().ToLowerInvariant();
         var nickname = dto.Nickname.Trim();
+        
 
         // Verificar unicidad
         if (await _db.Usuarios.AnyAsync(u => u.Correo == correo))
@@ -118,17 +128,21 @@ public class AuthService : IAuthService
             throw new InvalidOperationException("El nickname ya está en uso.");
 
         // Persistir foto en uploads/
-        string? rutaFotoOriginal   = null;
+       string? rutaFotoOriginal = null;
         string? rutaFotoModificada = null;
+
+        byte[]? bytesOriginales = null;
+        byte[]? bytesModificados = null;
 
         if (!string.IsNullOrEmpty(dto.FotoBase64))
         {
             var carpeta = Path.Combine("uploads", "fotos");
             Directory.CreateDirectory(carpeta);
+
+            // Rutas relativas servidas bajo /uploads (ver Program.cs): siempre con "/", nunca la del SO.
             var nombreOriginal = $"{Guid.NewGuid()}.jpg";
-            // Rutas relativas servidas bajo /uploads (ver Program.cs) — siempre con "/", nunca la del SO
-            rutaFotoOriginal = $"fotos/{nombreOriginal}";
-            var bytesOriginales = Convert.FromBase64String(
+            rutaFotoOriginal = $"uploads/fotos/{nombreOriginal}";
+            bytesOriginales = Convert.FromBase64String(
                 dto.FotoBase64.Contains(',') ? dto.FotoBase64.Split(',')[1] : dto.FotoBase64);
             await File.WriteAllBytesAsync(Path.Combine(carpeta, nombreOriginal), bytesOriginales);
 
@@ -136,8 +150,8 @@ public class AuthService : IAuthService
                 ? dto.FotoBase64
                 : dto.FotoModificadaBase64;
             var nombreModificado = $"mod_{Guid.NewGuid()}.jpg";
-            rutaFotoModificada = $"fotos/{nombreModificado}";
-            var bytesModificados = Convert.FromBase64String(
+            rutaFotoModificada = $"uploads/fotos/{nombreModificado}";
+            bytesModificados = Convert.FromBase64String(
                 fotoModificada.Contains(',') ? fotoModificada.Split(',')[1] : fotoModificada);
             await File.WriteAllBytesAsync(Path.Combine(carpeta, nombreModificado), bytesModificados);
         }
@@ -161,11 +175,110 @@ public class AuthService : IAuthService
         _db.Usuarios.Add(usuario);
         await _db.SaveChangesAsync();
 
-        _logger.LogInformation("Nuevo usuario registrado: {Nickname} ({Correo})", usuario.Nickname, usuario.Correo);
+        // ── Registrar fotografías en base de datos ───────────────────────────────
+if (bytesOriginales != null &&
+    bytesModificados != null &&
+    rutaFotoOriginal != null &&
+    rutaFotoModificada != null)
+{
+    var fotografiaOriginal = new FotografiaUsuario
+    {
+        UsuarioId = usuario.Id,
+        Tipo = "original",
+        UbicacionAlmacen = rutaFotoOriginal.Replace("\\", "/"),
+        HashContenido = CalcularHash(bytesOriginales),
+        Estado = "activa",
+        FechaRegistro = DateTime.UtcNow,
+        ReemplazadaEn = null
+    };
 
-        var respuesta = CrearRespuestaSesion(usuario);
-        respuesta.CodigoQr = _jwt.GenerarTokenQr(usuario);
-        return respuesta;
+    var fotografiaModificada = new FotografiaUsuario
+    {
+        UsuarioId = usuario.Id,
+        Tipo = "modificada",
+        UbicacionAlmacen = rutaFotoModificada.Replace("\\", "/"),
+        HashContenido = CalcularHash(bytesModificados),
+        Estado = "activa",
+        FechaRegistro = DateTime.UtcNow,
+        ReemplazadaEn = null
+    };
+
+    _db.FotografiasUsuario.Add(fotografiaOriginal);
+    _db.FotografiasUsuario.Add(fotografiaModificada);
+
+    await _db.SaveChangesAsync();
+}
+
+_logger.LogInformation(
+    "Nuevo usuario registrado: {Nickname} ({Correo})",
+    usuario.Nickname,
+    usuario.Correo);
+
+// ── Notificación por correo ───────────────────────────────────────────────
+if (usuario.MetodoNotificacion == "email" ||
+    usuario.MetodoNotificacion == "ambos")
+{
+    try
+    {
+        var asunto = "Registro exitoso - Lenguajes Formales";
+
+        var cuerpo = $"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
+                
+                <h2 style="color: #051B2E;">
+                    ¡Bienvenido, {usuario.Nickname}!
+                </h2>
+
+                <p>
+                    Tu cuenta ha sido creada correctamente en la plataforma
+                    de Lenguajes Formales y Autómatas.
+                </p>
+
+                <p>
+                    Tu nombre de usuario es:
+                    <strong>{usuario.Nickname}</strong>
+                </p>
+
+                <p>
+                    Tu correo registrado es:
+                    <strong>{usuario.Correo}</strong>
+                </p>
+
+                <hr>
+
+                <p style="font-size: 12px; color: #666;">
+                    Este es un mensaje automático. No compartas tu contraseña
+                    ni tus datos de acceso con otras personas.
+                </p>
+
+            </div>
+            """;
+
+        await _emailService.SendEmailAsync(
+            usuario.Correo,
+            asunto,
+            cuerpo
+        );
+
+        _logger.LogInformation(
+            "Correo de registro enviado a {Correo}",
+            usuario.Correo);
+    }
+    catch (Exception ex)
+    {
+        // El usuario YA fue registrado.
+        // Un fallo del correo no debe cancelar la creación de la cuenta.
+        _logger.LogError(
+            ex,
+            "No se pudo enviar el correo de registro a {Correo}",
+            usuario.Correo);
+    }
+}
+
+var respuesta = CrearRespuestaSesion(usuario);
+respuesta.CodigoQr = _jwt.GenerarTokenQr(usuario);
+
+return respuesta;
     }
 
     public async Task<UsuarioPerfilDTO?> ObtenerPerfilAsync(int usuarioId)
@@ -213,7 +326,7 @@ public class AuthService : IAuthService
             var bytes = Convert.FromBase64String(
                 dto.FotoBase64.Contains(',') ? dto.FotoBase64.Split(',')[1] : dto.FotoBase64);
             await File.WriteAllBytesAsync(Path.Combine(carpeta, nombreArchivo), bytes);
-            usuario.FotoOriginal = $"fotos/{nombreArchivo}";
+            usuario.FotoOriginal = $"uploads/fotos/{nombreArchivo}";
         }
 
         if (!string.IsNullOrEmpty(dto.FotoModificadaBase64))
@@ -226,12 +339,18 @@ public class AuthService : IAuthService
                     ? dto.FotoModificadaBase64.Split(',')[1]
                     : dto.FotoModificadaBase64);
             await File.WriteAllBytesAsync(Path.Combine(carpeta, nombreArchivo), bytes);
-            usuario.FotoModificada = $"fotos/{nombreArchivo}";
+            usuario.FotoModificada = $"uploads/fotos/{nombreArchivo}";
         }
 
         await _db.SaveChangesAsync();
         return true;
     }
+
+    private static string CalcularHash(byte[] contenido)
+{
+    var hash = SHA256.HashData(contenido);
+    return Convert.ToHexString(hash);
+}
 
     private static string Limitar(string valor, int longitudMaxima) =>
         valor.Length <= longitudMaxima ? valor : valor[..longitudMaxima];

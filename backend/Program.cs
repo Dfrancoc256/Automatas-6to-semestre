@@ -12,6 +12,7 @@ using LenguajesFormalesAPI.Middleware;
 using LenguajesFormalesAPI.Services;
 using LenguajesFormalesAPI.Interfaces;
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString =
