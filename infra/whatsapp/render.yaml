@@ -4,6 +4,7 @@
 services:
   - type: web
     name: evolution-api-umg
+    region: oregon           # los 3 recursos DEBEN estar en la misma región para hablarse por red interna
     runtime: image
     image:
       url: docker.io/evoapicloud/evolution-api:v2.3.7
@@ -69,9 +70,11 @@ services:
 
   - type: keyvalue
     name: evolution-redis
+    region: oregon
     plan: free
     ipAllowList: []          # solo accesible desde la red interna de Render
 
 databases:
   - name: evolution-db
+    region: oregon
     plan: basic-256mb        # el plan free de Postgres en Render expira a los 30 días

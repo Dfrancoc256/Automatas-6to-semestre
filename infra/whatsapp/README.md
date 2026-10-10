@@ -62,3 +62,11 @@ Si despliegas el backend, define las mismas variables de entorno:
 - Ahorro: en vez de `evolution-db` puedes usar un Postgres propio (crea una base `evolution`, quita el bloque
   `databases` del Blueprint y define `DATABASE_CONNECTION_URI` a mano).
 - Revisa precios actuales en https://render.com/pricing (web *starter* + Postgres *basic* son de pago).
+
+## Problemas frecuentes
+
+- **`ERROR [Redis] redis disconnected` en bucle:** el Redis (Key Value) está en otra región que la API.
+  Los tres recursos deben estar en la misma (`oregon` en el Blueprint). Se arregla borrando `evolution-redis`,
+  creando otro Key Value en la región de la API y pegando su *Internal URL* en `CACHE_REDIS_URI`.
+  Alternativa sin Redis: `CACHE_REDIS_ENABLED=false` y `CACHE_LOCAL_ENABLED=true`.
+- Tras cambiar variables, Render redepliega solo; confirma en *Events* que el deploy nuevo terminó y mira solo los logs posteriores.
