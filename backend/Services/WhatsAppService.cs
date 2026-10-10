@@ -22,7 +22,21 @@ namespace LenguajesFormalesAPI.Services
             _logger = logger;
         }
 
-        public async Task<bool> SendTextAsync(string telefono, string mensaje)
+        public Task<bool> SendTextAsync(string telefono, string mensaje) =>
+            EnviarAsync("sendText", telefono, numero => new { number = numero, text = mensaje });
+
+        public Task<bool> SendPdfAsync(string telefono, byte[] pdf, string nombreArchivo, string? leyenda = null) =>
+            EnviarAsync("sendMedia", telefono, numero => new
+            {
+                number    = numero,
+                mediatype = "document",
+                mimetype  = "application/pdf",
+                caption   = leyenda ?? string.Empty,
+                fileName  = nombreArchivo,
+                media     = Convert.ToBase64String(pdf)
+            });
+
+        private async Task<bool> EnviarAsync(string accion, string telefono, Func<string, object> cuerpo)
         {
             var baseUrl  = _config["WhatsApp:BaseUrl"]?.TrimEnd('/');
             var apiKey   = _config["WhatsApp:ApiKey"];
@@ -41,9 +55,9 @@ namespace LenguajesFormalesAPI.Services
                 return false;
             }
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl}/message/sendText/{Uri.EscapeDataString(instance)}")
+            using var request = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl}/message/{accion}/{Uri.EscapeDataString(instance)}")
             {
-                Content = JsonContent.Create(new { number = numero, text = mensaje })
+                Content = JsonContent.Create(cuerpo(numero))
             };
             request.Headers.Add("apikey", apiKey);
 
