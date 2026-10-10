@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using LenguajesFormalesAPI.DTOs;
+using LenguajesFormalesAPI.Interfaces;
 using LenguajesFormalesAPI.Services;
 using System.Security.Claims;
 
@@ -16,12 +17,17 @@ public class AuthController : ControllerBase
     private readonly IRecaptchaService _recaptcha;
     private readonly ICredentialService _credential;
     private readonly IJwtService _jwt;
+    private readonly IEmailService _email;
+    private readonly IWhatsAppService _whatsApp;
     private readonly ILogger<AuthController> _logger;
 
     public AuthController(IAuthService auth, IRecaptchaService recaptcha,
         ICredentialService credential, IJwtService jwt,
+        IEmailService email, IWhatsAppService whatsApp,
         ILogger<AuthController> logger)
     {
+        _email     = email;
+        _whatsApp  = whatsApp;
         _auth      = auth;
         _recaptcha = recaptcha;
         _credential = credential;
@@ -172,13 +178,77 @@ public class AuthController : ControllerBase
     [Authorize]
     public async Task<IActionResult> DescargarCredencial()
     {
+        var credencial = await GenerarCredencialAsync();
+        if (credencial == null)
+            return Unauthorized();
+
+        return File(credencial.Value.Pdf, "application/pdf", credencial.Value.NombreArchivo);
+    }
+
+    /// <summary>Enviar la credencial PDF al correo o al WhatsApp registrados del usuario autenticado</summary>
+    [HttpPost("credencial/enviar")]
+    [Authorize]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> EnviarCredencial([FromBody] EnviarCredencialDTO dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(new { mensaje = "Canal inválido. Usa \"email\" o \"whatsapp\"." });
+
+        var credencial = await GenerarCredencialAsync();
+        if (credencial == null)
+            return Unauthorized();
+
+        var (pdf, nombreArchivo, perfil) = credencial.Value;
+
+        // Siempre al correo/teléfono registrados: nunca a un destino indicado por el cliente.
+        try
+        {
+            if (dto.Canal == "email")
+            {
+                await _email.SendEmailAsync(
+                    perfil.Correo,
+                    "Tu credencial - Lenguajes Formales",
+                    $"""
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
+                        <h2 style="color: #051B2E;">Hola, {System.Net.WebUtility.HtmlEncode(perfil.Nickname)}</h2>
+                        <p>Adjuntamos tu credencial de la plataforma de Lenguajes Formales y Autómatas.</p>
+                        <p style="font-size: 12px; color: #666;">
+                            El código QR permite iniciar sesión: no compartas este archivo con otras personas.
+                        </p>
+                    </div>
+                    """,
+                    pdf,
+                    nombreArchivo);
+
+                return Ok(new { mensaje = $"Credencial enviada a {OcultarCorreo(perfil.Correo)}." });
+            }
+
+            var enviado = await _whatsApp.SendPdfAsync(
+                perfil.Telefono,
+                pdf,
+                nombreArchivo,
+                $"Hola {perfil.Nickname}, esta es tu credencial. No la compartas con otras personas.");
+
+            return enviado
+                ? Ok(new { mensaje = "Credencial enviada por WhatsApp." })
+                : StatusCode(502, new { mensaje = "No se pudo enviar por WhatsApp en este momento. Inténtalo de nuevo o usa el correo." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "No se pudo enviar la credencial por {Canal}", dto.Canal);
+            return StatusCode(502, new { mensaje = "No se pudo enviar la credencial en este momento." });
+        }
+    }
+
+    private async Task<(byte[] Pdf, string NombreArchivo, UsuarioPerfilDTO Perfil)?> GenerarCredencialAsync()
+    {
         var idStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!int.TryParse(idStr, out var id))
-            return Unauthorized();
+            return null;
 
         var perfil = await _auth.ObtenerPerfilAsync(id);
         if (perfil == null)
-            return NotFound();
+            return null;
 
         var usuario = new LenguajesFormalesAPI.Models.Usuario
         {
@@ -192,7 +262,13 @@ public class AuthController : ControllerBase
         };
         var codigoQr = _jwt.GenerarTokenQr(usuario);
         var pdf = _credential.GenerarPdf(usuario, codigoQr);
-        return File(pdf, "application/pdf", $"credencial-{usuario.Nickname}.pdf");
+        return (pdf, $"credencial-{usuario.Nickname}.pdf", perfil);
+    }
+
+    private static string OcultarCorreo(string correo)
+    {
+        var arroba = correo.IndexOf('@');
+        return arroba <= 1 ? correo : $"{correo[0]}***{correo[arroba..]}";
     }
 
     /// <summary>Actualizar perfil</summary>
