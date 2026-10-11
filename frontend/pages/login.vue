@@ -107,6 +107,16 @@
           ¿Olvidaste tu contraseña?
         </v-btn>
         <p class="login-register-link">¿Aún no tienes cuenta? <button type="button" @click="cambiarModo('registro')">Regístrate aquí</button></p>
+        <v-btn
+          variant="text"
+          color="primary"
+          size="small"
+          prepend-icon="mdi-arrow-left"
+          class="mt-1"
+          @click="navigateTo('/')"
+        >
+          Regresar al inicio
+        </v-btn>
       </div>
       </div>
 
