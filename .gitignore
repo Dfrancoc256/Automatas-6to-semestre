@@ -6,3 +6,5 @@ frontend/.output/
 frontend/node_modules/
 backend/appsettings.Development.json
 backend/uploads/
+graphify-out/
+.claude/
