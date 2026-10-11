@@ -1,5 +1,8 @@
+<script setup lang="ts">
+// Ruta heredada: la fotografía se completa dentro del registro unificado.
+await navigateTo({ path: '/login', query: { modo: 'registro' } }, { replace: true })
+</script>
+
 <template>
-  <div>
-    <!-- Página de fotografía pendiente de implementar -->
-  </div>
+  <span />
 </template>

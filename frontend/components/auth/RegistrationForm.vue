@@ -1,11 +1,10 @@
 <template>
-  <v-card class="auth-card registro-card pa-8" elevation="0">
-      <div class="auth-access-tabs" aria-label="Acceso y registro">
-        <button type="button" @click="emit('cambiarModo', 'login')">Ingresar</button>
-        <button type="button" class="is-active" @click="emit('cambiarModo', 'registro')">Crear cuenta</button>
-      </div>
+  <div :class="['registro-content', {
+    'registro-content--captura': paso === 2,
+    'registro-content--edicion': paso === 1 && formularioEnEdicion,
+  }]">
       <div class="text-center mb-6">
-        <img class="auth-logo mx-auto mb-3" src="/images/logo-umg-oficial.png"
+        <img class="auth-logo login-logo mx-auto mb-3" src="/images/logo-umg-oficial.png"
              alt="Universidad Mariano Gálvez de Guatemala" />
         <h1 class="text-h5 font-weight-bold" style="color:#051B2E">Crear cuenta</h1>
         <p class="text-body-2 text-medium-emphasis mt-1">Completa el formulario para registrarte</p>
@@ -23,7 +22,7 @@
         <v-stepper-window>
           <!-- Paso 1: datos básicos -->
           <v-stepper-window-item :value="1">
-            <v-form @submit.prevent="siguientePaso" ref="formPaso1">
+            <v-form ref="formPaso1" @focusin="activarEdicion" @submit.prevent="siguientePaso">
               <v-text-field v-model="form.correo" label="Correo electrónico"
                             prepend-inner-icon="mdi-email" type="email"
                             :rules="[v => !!v || 'Requerido', v => /.+@.+\..+/.test(v) || 'Correo inválido']"
@@ -159,13 +158,12 @@
 
       <div class="text-center mt-4">
         <span class="text-body-2 text-medium-emphasis">¿Ya tienes cuenta? </span>
-        <NuxtLink to="/login" class="font-weight-bold" style="color:#B48B21">Inicia sesión</NuxtLink>
+        <button type="button" class="auth-inline-link" @click="emit('cambiarModo', 'login')">Inicia sesión</button>
       </div>
-  </v-card>
+  </div>
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'default' })
 const emit = defineEmits<{ cambiarModo: [modo: 'login' | 'registro'] }>()
 
 const auth    = useAuthStore()
@@ -179,11 +177,16 @@ const cargando    = ref(false)
 const error       = ref('')
 const descargando = ref(false)
 const formPaso1   = ref<any>(null)
+const formularioEnEdicion = ref(false)
 
 const form = reactive({
   correo: '', telefono: '', fechaNacimiento: '',
   nickname: '', password: '', metodoNotificacion: 'email'
 })
+
+function activarEdicion() {
+  formularioEnEdicion.value = true
+}
 const recaptchaToken = ref('')
 const recaptchaSiteKey = computed(() => config.public.recaptchaSiteKey.trim())
 const requiereRecaptcha = computed(() => recaptchaSiteKey.value.length > 0)
@@ -300,27 +303,42 @@ async function descargarCredencial() {
 
 <style scoped>
 .auth-logo {
-  width: 154px; height: 154px;
+  width: 140px; height: 140px;
   object-fit: contain;
   background: transparent;
   border: 0;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 0 18px 8px rgba(180,139,33,.38), 0 14px 28px rgba(5,27,46,.22);
+  outline: none;
+  box-shadow:
+    0 0 18px 8px rgba(180,139,33,.38),
+    0 14px 28px rgba(5,27,46,.22);
 }
 .gap-2 { gap: 8px; }
-.registro-card { position: relative; z-index: 2; width: min(100%, 650px); max-width: 650px; height: calc(100dvh - 48px); padding: 20px 26px !important; overflow: hidden; display: flex; flex-direction: column; border: 1px solid rgba(180,139,33,.42) !important; box-shadow: 0 24px 70px rgba(5,27,46,.42) !important; }
-.registro-card .auth-logo { width: 98px; height: 98px; box-shadow: 0 0 14px 6px rgba(180,139,33,.3), 0 10px 22px rgba(5,27,46,.18); }
-.registro-card .text-center.mb-6 { margin-bottom: 12px !important; }.registro-card .text-h5 { font-size: 23px !important; line-height: 1.15; }.registro-card .text-body-2 { font-size: 13px !important; }
-.registro-card :deep(.v-stepper) { display: flex; flex: 1; min-height: 0; flex-direction: column; }
-.registro-card :deep(.v-stepper-header) { min-height: 74px; }.registro-card :deep(.v-stepper-item) { padding: 8px 4px; }.registro-card :deep(.v-stepper-item__title) { font-size: 13px; }.registro-card :deep(.v-stepper-item__avatar) { width: 26px; height: 26px; font-size: 12px; }
-.registro-card :deep(.v-stepper-window) { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: 6px; }
-.registro-card :deep(.v-stepper-window::-webkit-scrollbar) { width: 5px; }
-.registro-card :deep(.v-stepper-window::-webkit-scrollbar-thumb) { background: #B48B21; border-radius: 99px; }
-.auth-access-tabs { display: inline-flex; gap: 4px; padding: 4px; margin: 0 auto 14px; background: #F5F6F7; border: 1px solid #E2E4E8; border-radius: 999px; }
-.auth-access-tabs button { padding: 8px 17px; color: #6B7280; border-radius: 999px; font-size: 12px; font-weight: 700; text-decoration: none; }
-.auth-access-tabs button.is-active { color: #051B2E; background: #fff; box-shadow: 0 2px 7px rgba(5,27,46,.12); }
-@media (max-width: 700px) { .registro-card { height: calc(100dvh - 32px); } }
-.auth-access-tabs button { border: 0; background: transparent; cursor: pointer; }
+.registro-content > .text-center.mb-6 { margin-bottom: 12px !important; }.registro-content .text-h5 { font-size: 23px !important; line-height: 1.15; }.registro-content .text-body-2 { font-size: 13px !important; }
+.registro-content > .text-center.mb-6 {
+  max-height: 240px;
+  overflow: hidden;
+  opacity: 1;
+  transform: translateY(0);
+  transition: max-height .24s ease, opacity .16s ease, margin .24s ease, transform .24s ease;
+}
+/* Al llenar datos, el encabezado se repliega para priorizar los campos. */
+.registro-content--edicion > .text-center.mb-6 {
+  max-height: 0;
+  margin: 0 !important;
+  opacity: 0;
+  transform: translateY(-12px);
+  pointer-events: none;
+}
+.registro-content :deep(.v-stepper) { display: flex; flex: 1; min-height: 0; flex-direction: column; }
+.registro-content :deep(.v-stepper-header) { min-height: 74px; }.registro-content :deep(.v-stepper-item) { padding: 8px 4px; }.registro-content :deep(.v-stepper-item__title) { font-size: 13px; }.registro-content :deep(.v-stepper-item__avatar) { width: 26px; height: 26px; font-size: 12px; }
+.registro-content :deep(.v-stepper-window) { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: 6px; }
+.registro-content :deep(.v-stepper-window::-webkit-scrollbar) { width: 5px; }
+.registro-content :deep(.v-stepper-window::-webkit-scrollbar-thumb) { background: #B48B21; border-radius: 99px; }
+.registro-content--captura > .text-center.mb-6 { margin-bottom: 4px !important; }
+.registro-content--captura .auth-logo { width: 116px; height: 116px; }
+.registro-content--captura :deep(.v-stepper-header) { min-height: 60px; }
+.registro-content--captura :deep(.face-scanner) { max-width: 300px; }
 .auth-inline-link { border: 0; background: transparent; color: #7A5E12; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
 </style>

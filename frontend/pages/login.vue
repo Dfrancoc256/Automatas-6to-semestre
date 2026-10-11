@@ -7,11 +7,20 @@
       <span class="auth-background__slide auth-background__slide--four" />
     </div>
 
-    <v-card v-if="!modoRegistro" :class="['auth-card', 'login-card', 'pa-8', { 'login-card--success': accesoExitoso }]" elevation="0">
-      <div class="auth-access-tabs" aria-label="Acceso y registro">
-        <button type="button" class="is-active" @click="cambiarModo('login')">Ingresar</button>
-        <button type="button" @click="cambiarModo('registro')">Crear cuenta</button>
+    <v-card
+      :class="['auth-card', 'auth-card--shell', 'login-card', 'pa-8', { 'login-card--success': accesoExitoso }]"
+      elevation="0"
+    >
+      <div
+        :class="['auth-access-tabs', modoRegistro ? 'auth-access-tabs--registro' : 'auth-access-tabs--login']"
+        aria-label="Acceso y registro"
+      >
+        <button type="button" :class="{ 'is-active': !modoRegistro }" :aria-pressed="!modoRegistro" @click="cambiarModo('login')">Ingresar</button>
+        <button type="button" :class="{ 'is-active': modoRegistro }" :aria-pressed="modoRegistro" @click="cambiarModo('registro')">Crear cuenta</button>
       </div>
+
+      <Transition name="auth-flip" mode="out-in">
+      <div v-if="!modoRegistro" key="login" class="auth-form-content">
       <!-- Logo -->
       <div class="text-center mb-6">
         <img class="auth-logo login-logo mx-auto mb-3" src="/images/logo-umg-oficial.png"
@@ -99,9 +108,11 @@
         </v-btn>
         <p class="login-register-link">¿Aún no tienes cuenta? <button type="button" @click="cambiarModo('registro')">Regístrate aquí</button></p>
       </div>
-    </v-card>
+      </div>
 
-    <AuthRegistrationForm v-else @cambiar-modo="cambiarModo" />
+      <AuthRegistrationForm v-else key="registro" class="auth-form-content" @cambiar-modo="cambiarModo" />
+      </Transition>
+    </v-card>
 
     <v-dialog v-model="mostrarFacial" max-width="440">
       <v-card class="pa-6">
@@ -169,10 +180,33 @@ const recaptchaSiteKey = computed(() => config.public.recaptchaSiteKey.trim())
 const requiereRecaptcha = computed(() => recaptchaSiteKey.value.length > 0)
 const bypassDesarrollo = computed(() => import.meta.dev && !requiereRecaptcha.value)
 const puedeEnviar = computed(() => bypassDesarrollo.value || recaptchaToken.value.length > 0)
-const modoRegistro = computed(() => route.query.modo === 'registro')
+// El cambio entre acceso y registro ocurre dentro de la misma vista. No usamos
+// navegación para evitar remontar la tarjeta ni recuperar un formulario anterior.
+const modoRegistro = ref(route.query.modo === 'registro')
+
+// Si se llega desde un enlace externo (por ejemplo, la barra de navegación),
+// Nuxt reutiliza esta misma página al pasar de /login?modo=registro a /login.
+// Sin esta sincronización quedaba visible el formulario de registro anterior.
+watch(
+  () => route.query.modo,
+  (modo) => {
+    modoRegistro.value = modo === 'registro'
+  },
+)
 
 function cambiarModo(modo: 'login' | 'registro') {
-  navigateTo({ path: '/login', query: modo === 'registro' ? { modo: 'registro' } : {} })
+  const mostrarRegistro = modo === 'registro'
+  if (modoRegistro.value === mostrarRegistro) return
+
+  modoRegistro.value = mostrarRegistro
+
+  // Actualiza la URL sin añadir una entrada al historial ni recargar componentes.
+  if (import.meta.client) {
+    const url = new URL(window.location.href)
+    if (mostrarRegistro) url.searchParams.set('modo', 'registro')
+    else url.searchParams.delete('modo')
+    window.history.replaceState(window.history.state, '', url)
+  }
 }
 
 onMounted(() => {
@@ -250,8 +284,31 @@ function identificadorValido(valor: string) {
 </script>
 
 <style scoped>
+/* Una única tarjeta: al cambiar de modo gira sobre el eje vertical. */
+.auth-flip-enter-active,
+.auth-flip-leave-active {
+  transform-style: preserve-3d;
+  transition: opacity .12s ease, transform .2s cubic-bezier(.22, 1, .36, 1);
+}
+
+.auth-flip-enter-from {
+  opacity: 0;
+  transform: perspective(1200px) rotateY(-76deg) scale(.98);
+}
+
+.auth-flip-leave-to {
+  opacity: 0;
+  transform: perspective(1200px) rotateY(76deg) scale(.98);
+}
+
+.auth-flip-enter-to,
+.auth-flip-leave-from {
+  opacity: 1;
+  transform: perspective(1200px) rotateY(0) scale(1);
+}
+
 .auth-logo {
-  width: 154px; height: 154px;
+  width: 140px; height: 140px;
   object-fit: contain;
   background: transparent;
   border: 0;
@@ -262,6 +319,17 @@ function identificadorValido(valor: string) {
     0 0 18px 8px rgba(180,139,33,.38),
     0 14px 28px rgba(5,27,46,.22);
 }
+
+.auth-card--shell {
+  display: flex;
+  flex-direction: column;
+  /* La tarjeta no cambia de tamaño: solo se intercambia su contenido. */
+  height: min(760px, calc(100dvh - 48px));
+  overflow: hidden;
+}
+.auth-access-tabs { align-self: flex-end; margin: 4px -28px 10px auto; }
+.auth-card--shell :deep(.auth-form-content) { display: flex; flex: 1; min-height: 0; flex-direction: column; }
+@media (max-width: 700px) { .auth-card--shell { height: calc(100dvh - 32px); } }
 
 .login-field-label {
   display: block;
@@ -293,8 +361,17 @@ function identificadorValido(valor: string) {
 
 .login-register-link { margin: 8px 0 0; color: #6B7280; font-size: 12px; }
 .login-register-link a { color: #7A5E12; font-weight: 700; }
-.auth-access-tabs { display: inline-flex; align-self: center; gap: 4px; padding: 4px; margin-bottom: 26px; background: #F5F6F7; border: 1px solid #E2E4E8; border-radius: 999px; }
-.auth-access-tabs button { padding: 8px 17px; border: 0; background: transparent; color: #6B7280; border-radius: 999px; font-size: 12px; font-weight: 700; cursor: pointer; }
-.auth-access-tabs button.is-active { color: #051B2E; background: #fff; box-shadow: 0 2px 7px rgba(5,27,46,.12); }
+.auth-access-tabs { position: relative; display: inline-grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; background: #F5F6F7; border: 1px solid #E2E4E8; border-radius: 999px; isolation: isolate; }
+.auth-access-tabs::before { content: ''; position: absolute; z-index: -1; inset: 4px auto 4px 4px; width: calc(50% - 6px); background: #fff; border-radius: 999px; box-shadow: 0 2px 7px rgba(5,27,46,.12); transition: transform .28s cubic-bezier(.22, 1, .36, 1), box-shadow .28s ease; }
+.auth-access-tabs button { padding: 6px 13px; border: 0; background: transparent; color: #6B7280; border-radius: 999px; font-size: 11px; font-weight: 700; cursor: pointer; transition: color .2s ease, transform .2s ease; }
+.auth-access-tabs button.is-active { color: #051B2E; }
+.auth-access-tabs button:hover, .auth-access-tabs button:focus-visible { color: #051B2E; transform: translateY(-1px); outline: none; }
+.auth-access-tabs--registro::before { transform: translateX(calc(100% + 4px)); }
+.auth-access-tabs--login:has(button:nth-child(2):hover)::before, .auth-access-tabs--login:has(button:nth-child(2):focus-visible)::before { transform: translateX(calc(100% + 4px)); box-shadow: 0 5px 12px rgba(5,27,46,.16); }
+.auth-access-tabs--registro:has(button:first-child:hover)::before, .auth-access-tabs--registro:has(button:first-child:focus-visible)::before { transform: translateX(0); box-shadow: 0 5px 12px rgba(5,27,46,.16); }
+@media (prefers-reduced-motion: reduce) {
+  .auth-access-tabs::before, .auth-access-tabs button { transition: none; }
+  .auth-flip-enter-active, .auth-flip-leave-active { transition: none; }
+}
 .login-register-link button { border: 0; background: transparent; color: #7A5E12; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
 </style>

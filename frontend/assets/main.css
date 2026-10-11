@@ -128,7 +128,8 @@ img, video, canvas { max-width: 100%; }
 
 .login-card {
   min-height: 570px;
-  padding: 72px 68px !important;
+  /* El mismo margen superior se aplica al acceso y al registro. */
+  padding: 14px 68px 72px !important;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -136,7 +137,7 @@ img, video, canvas { max-width: 100%; }
 }
 
 .login-form {
-  margin-top: 58px;
+  margin-top: 16px;
 }
 
 .login-card--success {
@@ -548,8 +549,8 @@ img, video, canvas { max-width: 100%; }
 @media (max-width: 768px) {
   .auth-page { padding: 20px; align-items: flex-start; overflow-y: auto; }
   .auth-card { margin: 24px auto; }
-  .login-card { min-height: auto; padding: 48px 36px !important; }
-  .login-form { margin-top: 38px; }
+  .login-card { min-height: auto; padding: 30px 36px 48px !important; }
+  .login-form { margin-top: 24px; }
   .auth-logo { max-width: 132px; max-height: 132px; }
   .v-btn.login-access-button { width: 88% !important; }
 
@@ -572,9 +573,9 @@ img, video, canvas { max-width: 100%; }
 @media (max-width: 480px) {
   .auth-page { padding: 12px; }
   .auth-card { margin: 12px auto; border-radius: 12px !important; }
-  .login-card { padding: 38px 24px !important; }
+  .login-card { padding: 24px 24px 38px !important; }
   .auth-logo { max-width: 112px; max-height: 112px; }
-  .login-form { margin-top: 30px; }
+  .login-form { margin-top: 20px; }
   .v-btn.login-access-button { width: 100% !important; }
   .dashboard-topbar { margin-bottom: 20px !important; }
   .dashboard-title { font-size: 24px; }
