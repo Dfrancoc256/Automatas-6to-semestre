@@ -25,6 +25,16 @@ const emit = defineEmits<{ 'update:token': [token: string] }>()
 const contenedor = ref<HTMLElement | null>(null)
 const mensaje = ref('')
 let widgetId: number | null = null
+let activo = true
+
+const esperar = (milisegundos: number) => new Promise<void>((resolve) => {
+  window.setTimeout(resolve, milisegundos)
+})
+
+function reiniciarCarga() {
+  document.querySelector('script[data-umg-recaptcha="true"]')?.remove()
+  window.__umgRecaptchaLoader = undefined
+}
 
 function cargarApi(): Promise<void> {
   if (window.grecaptcha?.render) return Promise.resolve()
@@ -56,17 +66,44 @@ function cargarApi(): Promise<void> {
 
   // Permite reintentar si la red bloqueó la primera carga.
   window.__umgRecaptchaLoader.catch(() => {
-    document.querySelector('script[data-umg-recaptcha="true"]')?.remove()
-    window.__umgRecaptchaLoader = undefined
+    reiniciarCarga()
   })
 
   return window.__umgRecaptchaLoader
 }
 
+/**
+ * Google puede responder antes de exponer `grecaptcha` en la primera carga.
+ * Esperamos la API y reintentamos dos veces para no exigir al usuario cambiar
+ * de formulario, especialmente en redes móviles lentas.
+ */
+async function cargarApiConReintentos() {
+  let ultimoError: unknown
+
+  for (let intento = 1; intento <= 3; intento += 1) {
+    try {
+      await cargarApi()
+
+      for (let espera = 0; espera < 10; espera += 1) {
+        if (window.grecaptcha?.render) return
+        await esperar(100)
+      }
+
+      throw new Error('La API de reCAPTCHA no quedó disponible.')
+    } catch (error) {
+      ultimoError = error
+      reiniciarCarga()
+      if (intento < 3) await esperar(500 * intento)
+    }
+  }
+
+  throw ultimoError
+}
+
 onMounted(async () => {
   try {
-    await cargarApi()
-    if (!contenedor.value || !window.grecaptcha) return
+    await cargarApiConReintentos()
+    if (!activo || !contenedor.value || !window.grecaptcha) return
 
     widgetId = window.grecaptcha.render(contenedor.value, {
       sitekey: props.siteKey,
@@ -78,11 +115,12 @@ onMounted(async () => {
       }
     })
   } catch {
-    mensaje.value = 'No fue posible cargar reCAPTCHA. Revisa tu conexión e intenta nuevamente.'
+    if (activo) mensaje.value = 'No fue posible cargar reCAPTCHA. Revisa tu conexión e intenta nuevamente.'
   }
 })
 
 onBeforeUnmount(() => {
+  activo = false
   if (widgetId !== null && window.grecaptcha) window.grecaptcha.reset(widgetId)
 })
 </script>
