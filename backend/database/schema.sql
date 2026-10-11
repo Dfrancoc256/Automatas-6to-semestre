@@ -13,6 +13,9 @@ CREATE TABLE usuarios (
     metodo_notificacion varchar(20) NOT NULL DEFAULT 'email',
     foto_original       text,
     foto_modificada     text,
+    -- Descriptor facial (128 valores de face-api.js) serializado como JSON. Para bases ya creadas:
+    -- ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS encoding_facial text;
+    encoding_facial     text,
     rol                 varchar(20) NOT NULL DEFAULT 'ANALISTA',
     activo              boolean NOT NULL DEFAULT true,
     fecha_registro      timestamptz NOT NULL DEFAULT now(),

@@ -79,6 +79,20 @@
         </v-btn>
       </v-form>
 
+      <div class="text-center mt-4">
+        <v-divider class="mb-4" />
+        <v-btn
+          variant="outlined"
+          color="primary"
+          block
+          prepend-icon="mdi-face-recognition"
+          :disabled="!puedeEnviar"
+          @click="abrirLoginFacial"
+        >
+          Ingresar con reconocimiento facial
+        </v-btn>
+      </div>
+
       <div class="text-center mt-5">
         <v-btn variant="text" color="primary" size="small" @click="mostrarReset = true">
           ¿Olvidaste tu contraseña?
@@ -88,6 +102,31 @@
     </v-card>
 
     <AuthRegistrationForm v-else @cambiar-modo="cambiarModo" />
+
+    <v-dialog v-model="mostrarFacial" max-width="440">
+      <v-card class="pa-6">
+        <v-card-title class="px-0 text-h6">Reconocimiento facial</v-card-title>
+        <v-card-text class="px-0 text-center">
+          <FaceScanner
+            v-if="mostrarFacial"
+            ref="escanerLogin"
+            :ocupado="verificandoFacial"
+            @capturado="verificarRostro"
+            @error="errorFacial = $event"
+          />
+          <p class="text-body-2 text-medium-emphasis my-3">
+            Coloca tu rostro dentro del marco. El escaneo comienza solo.
+          </p>
+
+          <v-alert v-if="errorFacial" type="error" variant="tonal" density="compact" class="mb-2">
+            {{ errorFacial }}
+          </v-alert>
+        </v-card-text>
+        <v-card-actions class="px-0 justify-end">
+          <v-btn variant="outlined" @click="mostrarFacial = false">Cancelar</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <v-dialog v-model="mostrarReset" max-width="420">
       <v-card class="pa-6">
@@ -111,11 +150,18 @@ const auth     = useAuthStore()
 const route = useRoute()
 const { api }  = useApi()
 const config = useRuntimeConfig()
+const { calentar } = useFacialRecognition()
 const mostrarPass  = ref(false)
 const cargando     = ref(false)
 const error        = ref('')
 const mostrarReset = ref(false)
 const accesoExitoso = ref(false)
+
+// Login facial
+const mostrarFacial     = ref(false)
+const verificandoFacial = ref(false)
+const errorFacial       = ref('')
+const escanerLogin      = ref<{ reiniciar: () => void } | null>(null)
 
 const form = reactive({ identificador: '', password: '' })
 const recaptchaToken = ref('')
@@ -130,6 +176,7 @@ function cambiarModo(modo: 'login' | 'registro') {
 }
 
 onMounted(() => {
+  calentar()
   auth.restore()
   if (auth.isAuthenticated) navigateTo('/dashboard')
 })
@@ -164,6 +211,34 @@ async function loginPassword() {
     error.value = e.response?.data?.mensaje || 'No fue posible iniciar sesión.'
   } finally {
     cargando.value = false
+  }
+}
+
+function abrirLoginFacial() {
+  errorFacial.value = ''
+  mostrarFacial.value = true
+}
+
+async function verificarRostro(captura: { descriptor: number[] | null }) {
+  if (!captura.descriptor || verificandoFacial.value) return
+  errorFacial.value = ''
+  verificandoFacial.value = true
+
+  try {
+    const { data } = await api.post('/auth/login-facial', {
+      descriptor: captura.descriptor,
+      recaptchaToken: bypassDesarrollo.value ? 'dev-bypass' : recaptchaToken.value
+    })
+
+    auth.login(data)
+    mostrarFacial.value = false
+    await navigateTo('/dashboard')
+  } catch (e: any) {
+    errorFacial.value = e.response?.data?.mensaje || 'Rostro no reconocido.'
+    // Pausa breve para no saturar al servidor y luego vuelve a escanear.
+    setTimeout(() => { errorFacial.value = ''; escanerLogin.value?.reiniciar() }, 1800)
+  } finally {
+    verificandoFacial.value = false
   }
 }
 

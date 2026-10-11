@@ -37,6 +37,9 @@ public class RegisterDTO
     [MaxLength(7_000_000, ErrorMessage = "La fotografía personalizada excede el tamaño permitido")]
     public string? FotoModificadaBase64 { get; set; }
 
+    // Descriptor facial (128 valores) calculado en el navegador con face-api.js al tomar la foto
+    public List<double>? Descriptor { get; set; }
+
     // Token de reCAPTCHA
     [Required(ErrorMessage = "Verificación reCAPTCHA requerida")]
     public string RecaptchaToken { get; set; } = string.Empty;
@@ -61,12 +64,20 @@ public class LoginDTO
 
 public class LoginFacialDTO
 {
-    // Foto en base64 capturada en el login
-    [Required]
-    public string FotoBase64 { get; set; } = string.Empty;
+    // Descriptor facial (128 valores) calculado en el navegador con face-api.js
+    [Required(ErrorMessage = "No se detectó un rostro en la cámara.")]
+    [MinLength(1)]
+    public List<double> Descriptor { get; set; } = new();
 
     [Required]
     public string RecaptchaToken { get; set; } = string.Empty;
+}
+
+public class EnrolarFacialDTO
+{
+    [Required(ErrorMessage = "No se detectó un rostro en la cámara.")]
+    [MinLength(1)]
+    public List<double> Descriptor { get; set; } = new();
 }
 
 public class LoginQrDTO
@@ -113,6 +124,15 @@ public class UsuarioPerfilDTO
     public string? FotoModificada { get; set; }
     public string Rol { get; set; } = string.Empty;
     public DateTime FechaRegistro { get; set; }
+    public bool TieneRostroEnrolado { get; set; }
+}
+
+public class EnviarCredencialDTO
+{
+    /// <summary>"email" o "whatsapp"</summary>
+    [Required(ErrorMessage = "Indica el canal de envío")]
+    [RegularExpression("^(email|whatsapp)$", ErrorMessage = "Canal inválido")]
+    public string Canal { get; set; } = string.Empty;
 }
 
 public class ActualizarPerfilDTO

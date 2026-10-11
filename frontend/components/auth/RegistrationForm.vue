@@ -13,16 +13,16 @@
 
       <v-stepper v-model="paso" alt-labels flat>
         <v-stepper-header>
-          <v-stepper-item title="Datos" value="1" :complete="paso > 1" />
+          <v-stepper-item title="Datos" :value="1" :complete="paso > 1" />
           <v-divider />
-          <v-stepper-item title="Foto" value="2" :complete="paso > 2" />
+          <v-stepper-item title="Foto" :value="2" :complete="paso > 2" />
           <v-divider />
-          <v-stepper-item title="Listo" value="3" />
+          <v-stepper-item title="Listo" :value="3" />
         </v-stepper-header>
 
         <v-stepper-window>
           <!-- Paso 1: datos básicos -->
-          <v-stepper-window-item value="1">
+          <v-stepper-window-item :value="1">
             <v-form @submit.prevent="siguientePaso" ref="formPaso1">
               <v-text-field v-model="form.correo" label="Correo electrónico"
                             prepend-inner-icon="mdi-email" type="email"
@@ -71,24 +71,29 @@
           </v-stepper-window-item>
 
           <!-- Paso 2: foto -->
-          <v-stepper-window-item value="2">
+          <v-stepper-window-item :value="2">
             <div class="text-center mb-4">
               <p class="text-body-2 mb-4">Toma una foto para tu credencial</p>
 
-              <!-- Preview de cámara -->
-              <div class="webcam-container mb-4">
-                <video ref="videoEl" autoplay playsinline
-                       style="width:100%;height:100%;object-fit:cover" />
-                <div class="webcam-overlay">
-                  <div class="face-guide" />
-                </div>
-              </div>
+              <!-- Cámara con marco guía y animación de escaneo -->
+              <FaceScanner
+                v-if="!fotoCapturada"
+                ref="escaner"
+                :auto="false"
+                con-foto
+                class="mb-4"
+                @error="error = $event"
+              />
 
               <!-- Foto capturada -->
               <div v-if="fotoCapturada" class="mb-4">
                 <img :src="fotoCapturada" :style="{ filter: filtroActual.css }"
                      style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid #B48B21" />
-                <p class="text-caption mt-1 text-success">✓ Foto capturada</p>
+                <p v-if="procesandoRostro" class="text-caption mt-1">Analizando rostro...</p>
+                <p v-else-if="descriptorFacial" class="text-caption mt-1 text-success">✓ Foto capturada · rostro detectado</p>
+                <p v-else class="text-caption mt-1 text-warning">
+                  ✓ Foto capturada · no se detectó un rostro claro (podrás enrolarlo después desde tu perfil)
+                </p>
               </div>
 
               <div v-if="fotoCapturada" class="mb-4">
@@ -103,15 +108,9 @@
                 </div>
               </div>
 
-              <canvas ref="canvasEl" style="display:none" width="640" height="480" />
-
-              <div class="d-flex gap-2 justify-center mb-4">
-                <v-btn v-if="!streamActivo" color="accent" variant="outlined"
-                       prepend-icon="mdi-camera" @click="iniciarCamara">
-                  Activar cámara
-                </v-btn>
-                <v-btn v-if="streamActivo" color="accent" class="umg-gold-button"
-                       prepend-icon="mdi-camera-iris" @click="capturarFoto">
+                            <div class="d-flex gap-2 justify-center mb-4">
+                <v-btn v-if="!fotoCapturada" color="accent" class="umg-gold-button"
+                       prepend-icon="mdi-camera-iris" :loading="procesandoRostro" @click="capturarFoto">
                   Capturar foto
                 </v-btn>
                 <v-btn v-if="fotoCapturada" color="secondary" variant="outlined"
@@ -137,7 +136,7 @@
           </v-stepper-window-item>
 
           <!-- Paso 3: éxito -->
-          <v-stepper-window-item value="3">
+          <v-stepper-window-item :value="3">
             <div class="text-center py-6">
               <v-icon size="80" color="success" class="mb-4">mdi-check-circle</v-icon>
               <h2 class="text-h5 font-weight-bold mb-2">¡Registro exitoso!</h2>
@@ -172,6 +171,7 @@ const emit = defineEmits<{ cambiarModo: [modo: 'login' | 'registro'] }>()
 const auth    = useAuthStore()
 const { api } = useApi()
 const config = useRuntimeConfig()
+const { calentar } = useFacialRecognition()
 
 const paso        = ref(1)
 const mostrarPass = ref(false)
@@ -190,12 +190,11 @@ const requiereRecaptcha = computed(() => recaptchaSiteKey.value.length > 0)
 const bypassDesarrollo = computed(() => import.meta.dev && !requiereRecaptcha.value)
 const puedeEnviar = computed(() => bypassDesarrollo.value || recaptchaToken.value.length > 0)
 
-// Webcam
-const videoEl       = ref<HTMLVideoElement | null>(null)
-const canvasEl      = ref<HTMLCanvasElement | null>(null)
-const streamActivo  = ref(false)
+// Webcam (la cámara la administra <FaceScanner>)
+const escaner       = ref<{ capturar: () => Promise<{ descriptor: number[] | null, foto: string | null } | null> } | null>(null)
 const fotoCapturada = ref<string | null>(null)
-let   mediaStream: MediaStream | null = null
+const descriptorFacial  = ref<number[] | null>(null)
+const procesandoRostro  = ref(false)
 
 const filtros = [
   { id: 'normal', nombre: 'Natural', css: 'none', canvas: 'none' },
@@ -214,28 +213,25 @@ async function siguientePaso() {
   const { valid } = await formPaso1.value?.validate()
   if (!valid) return
   paso.value = 2
-  await nextTick()
-  await iniciarCamara()
+  calentar()
 }
 
-async function iniciarCamara() {
+async function capturarFoto() {
+  error.value = ''
+  procesandoRostro.value = true
   try {
-    mediaStream = await navigator.mediaDevices.getUserMedia({ video: true })
-    if (videoEl.value) {
-      videoEl.value.srcObject = mediaStream
-      streamActivo.value = true
+    const captura = await escaner.value?.capturar()
+    if (!captura?.foto) {
+      error.value = 'No se pudo tomar la foto. Verifica que la cámara esté activa.'
+      return
     }
+    descriptorFacial.value = captura.descriptor
+    fotoCapturada.value = captura.foto
   } catch {
-    error.value = 'No se pudo acceder a la cámara. Puedes continuar sin foto.'
+    error.value = 'No se pudo tomar la foto.'
+  } finally {
+    procesandoRostro.value = false
   }
-}
-
-function capturarFoto() {
-  if (!videoEl.value || !canvasEl.value) return
-  const ctx = canvasEl.value.getContext('2d')!
-  ctx.drawImage(videoEl.value, 0, 0, 640, 480)
-  fotoCapturada.value = canvasEl.value.toDataURL('image/jpeg', 0.8)
-  detenerCamara()
 }
 
 async function crearFotoPersonalizada() {
@@ -254,12 +250,7 @@ async function crearFotoPersonalizada() {
 
 function retomar() {
   fotoCapturada.value = null
-  iniciarCamara()
-}
-
-function detenerCamara() {
-  mediaStream?.getTracks().forEach(t => t.stop())
-  streamActivo.value = false
+  descriptorFacial.value = null
 }
 
 async function registrar() {
@@ -275,6 +266,7 @@ async function registrar() {
       metodoNotificacion: form.metodoNotificacion,
       fotoBase64:         fotoCapturada.value,
       fotoModificadaBase64: await crearFotoPersonalizada(),
+      descriptor:         descriptorFacial.value,
       recaptchaToken:     bypassDesarrollo.value ? 'dev-bypass' : recaptchaToken.value
     }
     const { data } = await api.post('/auth/registro', payload)
@@ -304,7 +296,6 @@ async function descargarCredencial() {
   }
 }
 
-onUnmounted(() => detenerCamara())
 </script>
 
 <style scoped>

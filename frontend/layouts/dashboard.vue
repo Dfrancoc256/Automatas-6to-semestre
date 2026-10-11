@@ -18,7 +18,7 @@
       <!-- Avatar de usuario -->
       <div class="sidebar-user px-4 py-3 flex items-center gap-3">
         <v-avatar size="36" color="accent">
-          <v-img v-if="auth.user?.fotoModificada" :src="auth.user.fotoModificada" />
+          <v-img v-if="fotoSidebarUrl" :src="fotoSidebarUrl" />
           <span v-else class="text-white text-sm font-bold">
             {{ auth.user?.nickname?.charAt(0).toUpperCase() }}
           </span>
@@ -115,6 +115,8 @@
 <script setup lang="ts">
 const auth  = useAuthStore()
 const route = useRoute()
+const { fotoUrl } = useMediaUrl()
+const fotoSidebarUrl = computed(() => fotoUrl(auth.user?.fotoModificada))
 
 const sidebarOpen = ref(false)
 const sidebarCollapsed = ref(false)

@@ -1,12 +1,17 @@
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=lenguajes_formales;Username=postgres;Password=CAMBIAR;SSL Mode=Prefer"
+    "DefaultConnection": "Host=SERVIDOR_POSTGRES;Port=5432;Database=automatasAnalizadorLexico;Username=USUARIO_APLICACION;Password=CAMBIAR_EN_SECRETO;SSL Mode=Require"
   },
   "Jwt": {
     "SecretKey": "GENERAR_UNA_CLAVE_ALEATORIA_DE_AL_MENOS_32_CARACTERES",
     "QrExpirationDays": 365
   },
+  "WhatsApp": {
+    "BaseUrl": "https://TU-EVOLUTION-API.onrender.com",
+    "ApiKey": "CLAVE_DE_EVOLUTION_API",
+    "InstanceName": "umg-lenguajes"
+  },
   "Recaptcha": {
-    "BypassInDevelopment": true
+    "BypassInDevelopment": false
   }
 }
