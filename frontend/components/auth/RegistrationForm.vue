@@ -159,18 +159,6 @@
       <div class="text-center mt-4">
         <span class="text-body-2 text-medium-emphasis">¿Ya tienes cuenta? </span>
         <button type="button" class="auth-inline-link" @click="emit('cambiarModo', 'login')">Inicia sesión</button>
-        <div>
-          <v-btn
-            variant="text"
-            color="primary"
-            size="small"
-            prepend-icon="mdi-arrow-left"
-            class="mt-1"
-            @click="navigateTo('/')"
-          >
-            Regresar al inicio
-          </v-btn>
-        </div>
       </div>
   </div>
 </template>
