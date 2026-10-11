@@ -11,6 +11,17 @@
       :class="['auth-card', 'auth-card--shell', 'login-card', 'pa-8', { 'login-card--success': accesoExitoso }]"
       elevation="0"
     >
+      <v-btn
+        variant="text"
+        color="primary"
+        size="small"
+        prepend-icon="mdi-arrow-left"
+        class="auth-back-home"
+        @click="navigateTo('/')"
+      >
+        Regresar al inicio
+      </v-btn>
+
       <div
         :class="['auth-access-tabs', modoRegistro ? 'auth-access-tabs--registro' : 'auth-access-tabs--login']"
         aria-label="Acceso y registro"
@@ -107,16 +118,6 @@
           ¿Olvidaste tu contraseña?
         </v-btn>
         <p class="login-register-link">¿Aún no tienes cuenta? <button type="button" @click="cambiarModo('registro')">Regístrate aquí</button></p>
-        <v-btn
-          variant="text"
-          color="primary"
-          size="small"
-          prepend-icon="mdi-arrow-left"
-          class="mt-1"
-          @click="navigateTo('/')"
-        >
-          Regresar al inicio
-        </v-btn>
       </div>
       </div>
 
@@ -331,6 +332,7 @@ function identificadorValido(valor: string) {
 }
 
 .auth-card--shell {
+  position: relative;
   display: flex;
   flex-direction: column;
   /* La tarjeta no cambia de tamaño: solo se intercambia su contenido. */
@@ -338,8 +340,17 @@ function identificadorValido(valor: string) {
   overflow: hidden;
 }
 .auth-access-tabs { align-self: flex-end; margin: 4px -28px 10px auto; }
+.auth-back-home {
+  position: absolute;
+  z-index: 2;
+  top: 14px;
+  left: 18px;
+}
 .auth-card--shell :deep(.auth-form-content) { display: flex; flex: 1; min-height: 0; flex-direction: column; }
-@media (max-width: 700px) { .auth-card--shell { height: calc(100dvh - 32px); } }
+@media (max-width: 700px) {
+  .auth-card--shell { height: calc(100dvh - 32px); }
+  .auth-back-home { top: 10px; left: 8px; }
+}
 
 .login-field-label {
   display: block;
@@ -384,7 +395,7 @@ function identificadorValido(valor: string) {
   .auth-access-tabs {
     align-self: center;
     width: min(100%, 264px);
-    margin: 0 auto 12px;
+    margin: 42px auto 12px;
   }
 
   .auth-access-tabs button {
