@@ -19,17 +19,19 @@ public class AnalisisController : ControllerBase
     private readonly IAnalisisLexicoService _analizador;
     private readonly AppDbContext           _db;
     private readonly ILogger<AnalisisController> _logger;
+    private readonly bool _sinBaseDeDatos;
 
     private static readonly HashSet<string> IdiomasPermitidos =
         new(StringComparer.OrdinalIgnoreCase)
         { "español", "inglés", "ruso", "chino", "árabe" };
 
     public AnalisisController(IAnalisisLexicoService analizador, AppDbContext db,
-        ILogger<AnalisisController> logger)
+        ILogger<AnalisisController> logger, IConfiguration configuration)
     {
         _analizador = analizador;
         _db         = db;
         _logger     = logger;
+        _sinBaseDeDatos = configuration.GetValue<bool>("Demo:SinBaseDeDatos");
     }
 
     /// <summary>Procesar análisis léxico de un archivo de texto</summary>
@@ -54,6 +56,15 @@ public class AnalisisController : ControllerBase
         try
         {
             var resultado = _analizador.Analizar(dto.Contenido, dto.Idioma, dto.NombreArchivo);
+
+            // El modo local permite probar el autómata sin conexión a PostgreSQL.
+            // El resultado se devuelve al navegador, pero no se agrega al historial.
+            if (_sinBaseDeDatos)
+            {
+                resultado.AnalisisId = 0;
+                _logger.LogInformation("Análisis local procesado: {Archivo}", dto.NombreArchivo);
+                return Ok(resultado);
+            }
 
             // Persistir resultado
             var registro = new ResultadoAnalisis
