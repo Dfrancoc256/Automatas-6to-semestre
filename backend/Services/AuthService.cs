@@ -1,7 +1,9 @@
 using System.Text.Json;
+using System.Net;
 using Microsoft.EntityFrameworkCore;
 using LenguajesFormalesAPI.Data;
 using LenguajesFormalesAPI.DTOs;
+using LenguajesFormalesAPI.Interfaces;
 using LenguajesFormalesAPI.Models;
 
 namespace LenguajesFormalesAPI.Services;
@@ -21,15 +23,20 @@ public class AuthService : IAuthService
     private readonly AppDbContext _db;
     private readonly IJwtService  _jwt;
     private readonly IFacialService _facial;
+    private readonly IEmailService _emailService;
+    private readonly IWhatsAppService _whatsApp;
     private readonly ILogger<AuthService> _logger;
     private readonly bool _sinBaseDeDatos;
 
     public AuthService(AppDbContext db, IJwtService jwt, IFacialService facial,
+        IEmailService emailService, IWhatsAppService whatsApp,
         ILogger<AuthService> logger, IConfiguration configuration)
     {
         _db     = db;
         _jwt    = jwt;
         _facial = facial;
+        _emailService = emailService;
+        _whatsApp = whatsApp;
         _logger = logger;
         _sinBaseDeDatos = configuration.GetValue<bool>("Demo:SinBaseDeDatos");
     }
@@ -190,10 +197,47 @@ public class AuthService : IAuthService
         await _db.SaveChangesAsync();
 
         _logger.LogInformation("Nuevo usuario registrado: {Nickname} ({Correo})", usuario.Nickname, usuario.Correo);
+        await NotificarRegistroAsync(usuario);
 
         var respuesta = CrearRespuestaSesion(usuario);
         respuesta.CodigoQr = _jwt.GenerarTokenQr(usuario);
         return respuesta;
+    }
+
+    /// <summary>
+    /// Envía las notificaciones elegidas sin revertir un registro que ya fue persistido.
+    /// Nunca se incluye la contraseña ni información biométrica en los mensajes.
+    /// </summary>
+    private async Task NotificarRegistroAsync(Usuario usuario)
+    {
+        var nombre = WebUtility.HtmlEncode(usuario.Nickname);
+
+        if (usuario.MetodoNotificacion is "email" or "ambos")
+        {
+            try
+            {
+                await _emailService.SendEmailAsync(
+                    usuario.Correo,
+                    "Registro exitoso - Lenguajes Formales",
+                    $"<p>¡Bienvenido, <strong>{nombre}</strong>!</p>" +
+                    "<p>Tu cuenta fue creada correctamente.</p>" +
+                    "<p>Por seguridad, nunca compartas tu contraseña.</p>");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "No se pudo enviar el correo de registro a {Correo}", usuario.Correo);
+            }
+        }
+
+        if (usuario.MetodoNotificacion is "whatsapp" or "ambos")
+        {
+            var enviado = await _whatsApp.SendTextAsync(
+                usuario.Telefono,
+                $"¡Bienvenido a Lenguajes Formales, {usuario.Nickname}! Tu cuenta fue creada correctamente. No compartas tu contraseña.");
+
+            if (!enviado)
+                _logger.LogWarning("No se pudo enviar WhatsApp de registro al usuario {UsuarioId}", usuario.Id);
+        }
     }
 
     public async Task<UsuarioPerfilDTO?> ObtenerPerfilAsync(int usuarioId)

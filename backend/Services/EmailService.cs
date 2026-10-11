@@ -17,7 +17,9 @@ namespace LenguajesFormalesAPI.Services
         public async Task SendEmailAsync(
             string to,
             string subject,
-            string body)
+            string body,
+            byte[]? adjunto = null,
+            string? nombreAdjunto = null)
         {
             var host = _configuration["EmailSettings:Host"];
             var portText = _configuration["EmailSettings:Port"];
@@ -49,10 +51,18 @@ namespace LenguajesFormalesAPI.Services
             email.To.Add(MailboxAddress.Parse(to));
             email.Subject = subject;
 
-            email.Body = new TextPart("html")
+            var cuerpo = new BodyBuilder { HtmlBody = body };
+
+            if (adjunto is { Length: > 0 })
             {
-                Text = body
-            };
+                cuerpo.Attachments.Add(
+                    nombreAdjunto ?? "adjunto.pdf",
+                    adjunto,
+                    ContentType.Parse("application/pdf")
+                );
+            }
+
+            email.Body = cuerpo.ToMessageBody();
 
             using var smtp = new SmtpClient();
 
