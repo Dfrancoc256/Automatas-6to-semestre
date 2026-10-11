@@ -12,7 +12,11 @@ interface GrecaptchaApi {
 }
 
 declare global {
-  interface Window { grecaptcha?: GrecaptchaApi }
+  interface Window {
+    grecaptcha?: GrecaptchaApi
+    /** Promesa compartida para no insertar el script de Google más de una vez. */
+    __umgRecaptchaLoader?: Promise<void>
+  }
 }
 
 const props = defineProps<{ siteKey: string }>()
@@ -21,23 +25,42 @@ const emit = defineEmits<{ 'update:token': [token: string] }>()
 const contenedor = ref<HTMLElement | null>(null)
 const mensaje = ref('')
 let widgetId: number | null = null
-let cargador: Promise<void> | null = null
 
-function cargarApi() {
-  if (window.grecaptcha) return Promise.resolve()
-  if (cargador) return cargador
+function cargarApi(): Promise<void> {
+  if (window.grecaptcha?.render) return Promise.resolve()
+  if (window.__umgRecaptchaLoader) return window.__umgRecaptchaLoader
 
-  cargador = new Promise((resolve, reject) => {
+  window.__umgRecaptchaLoader = new Promise((resolve, reject) => {
+    const scriptExistente = document.querySelector<HTMLScriptElement>(
+      'script[data-umg-recaptcha="true"]'
+    )
+
+    const resolver = () => resolve()
+    const rechazar = () => reject(new Error('No se pudo cargar reCAPTCHA.'))
+
+    if (scriptExistente) {
+      scriptExistente.addEventListener('load', resolver, { once: true })
+      scriptExistente.addEventListener('error', rechazar, { once: true })
+      return
+    }
+
     const script = document.createElement('script')
     script.src = 'https://www.google.com/recaptcha/api.js?render=explicit&hl=es'
     script.async = true
     script.defer = true
-    script.onload = () => resolve()
-    script.onerror = () => reject(new Error('No se pudo cargar reCAPTCHA.'))
+    script.dataset.umgRecaptcha = 'true'
+    script.addEventListener('load', resolver, { once: true })
+    script.addEventListener('error', rechazar, { once: true })
     document.head.appendChild(script)
   })
 
-  return cargador
+  // Permite reintentar si la red bloqueó la primera carga.
+  window.__umgRecaptchaLoader.catch(() => {
+    document.querySelector('script[data-umg-recaptcha="true"]')?.remove()
+    window.__umgRecaptchaLoader = undefined
+  })
+
+  return window.__umgRecaptchaLoader
 }
 
 onMounted(async () => {
