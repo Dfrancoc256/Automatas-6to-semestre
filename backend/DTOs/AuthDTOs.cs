@@ -4,6 +4,16 @@ namespace LenguajesFormalesAPI.DTOs;
 
 public class RegisterDTO
 {
+    [Required(ErrorMessage = "El nombre es obligatorio")]
+    [StringLength(80, MinimumLength = 2, ErrorMessage = "El nombre debe contener entre 2 y 80 caracteres")]
+    [RegularExpression(@"^[\p{L}][\p{L}\s'-]*$", ErrorMessage = "El nombre solo puede contener letras, espacios, apóstrofes o guiones")]
+    public string Nombre { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "El apellido es obligatorio")]
+    [StringLength(80, MinimumLength = 2, ErrorMessage = "El apellido debe contener entre 2 y 80 caracteres")]
+    [RegularExpression(@"^[\p{L}][\p{L}\s'-]*$", ErrorMessage = "El apellido solo puede contener letras, espacios, apóstrofes o guiones")]
+    public string Apellido { get; set; } = string.Empty;
+
     [Required(ErrorMessage = "El correo es obligatorio")]
     [EmailAddress(ErrorMessage = "Correo inválido")]
     public string Correo { get; set; } = string.Empty;
@@ -20,9 +30,13 @@ public class RegisterDTO
     public string Nickname { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "La contraseña es obligatoria")]
-    [MinLength(8, ErrorMessage = "La contraseña debe tener al menos 8 caracteres")]
-    [MaxLength(128)]
+    [RegularExpression(@"^(?=.{8,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).*$",
+        ErrorMessage = "La contraseña debe tener entre 8 y 128 caracteres, mayúscula, minúscula, número y carácter especial")]
     public string Password { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Confirma la contraseña")]
+    [Compare(nameof(Password), ErrorMessage = "La confirmación de contraseña no coincide")]
+    public string ConfirmarPassword { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "El método de notificación es obligatorio")]
     [RegularExpression("^(email|whatsapp|ambos)$", ErrorMessage = "Método de notificación inválido")]
@@ -118,6 +132,7 @@ public class UsuarioPerfilDTO
 {
     public int Id { get; set; }
     public string Correo { get; set; } = string.Empty;
+    public string NombreCompleto { get; set; } = string.Empty;
     public string Telefono { get; set; } = string.Empty;
     public string Nickname { get; set; } = string.Empty;
     public string MetodoNotificacion { get; set; } = string.Empty;

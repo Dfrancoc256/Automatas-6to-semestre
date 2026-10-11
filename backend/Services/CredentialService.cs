@@ -32,6 +32,7 @@ public sealed class CredentialService : ICredentialService
                 {
                     row.RelativeItem().Column(datos =>
                     {
+                        AgregarDato(datos, "Nombre", usuario.NombreCompleto);
                         AgregarDato(datos, "Usuario", usuario.Nickname);
                         AgregarDato(datos, "Correo", usuario.Correo);
                         AgregarDato(datos, "Rol", usuario.Rol);

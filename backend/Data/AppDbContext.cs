@@ -22,6 +22,7 @@ public class AppDbContext : DbContext
             entity.ToTable(table =>
             {
                 table.HasCheckConstraint("CK_usuarios_correo", "length(trim(correo)) > 3");
+                table.HasCheckConstraint("CK_usuarios_nombre_completo", "length(trim(nombre_completo)) BETWEEN 3 AND 161");
                 table.HasCheckConstraint("CK_usuarios_telefono", "length(trim(telefono)) BETWEEN 8 AND 20");
                 table.HasCheckConstraint("CK_usuarios_nickname", "length(trim(nickname)) BETWEEN 3 AND 50");
                 table.HasCheckConstraint("CK_usuarios_notificacion", "metodo_notificacion IN ('email', 'whatsapp', 'ambos')");
