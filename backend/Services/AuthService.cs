@@ -142,6 +142,9 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponseDTO> RegistrarAsync(RegisterDTO dto)
     {
+        if (_sinBaseDeDatos)
+            return RegistrarLocal(dto);
+
         var correo = dto.Correo.Trim().ToLowerInvariant();
         var nickname = dto.Nickname.Trim();
 
@@ -238,6 +241,28 @@ public class AuthService : IAuthService
             if (!enviado)
                 _logger.LogWarning("No se pudo enviar WhatsApp de registro al usuario {UsuarioId}", usuario.Id);
         }
+    }
+
+    // Registro demostrativo para desarrollo local. No persiste correo, foto,
+    // descriptor facial ni contraseña mientras PostgreSQL no esté disponible.
+    private AuthResponseDTO RegistrarLocal(RegisterDTO dto)
+    {
+        var usuario = new Usuario
+        {
+            Id = 1,
+            Correo = dto.Correo.Trim().ToLowerInvariant(),
+            Telefono = dto.Telefono.Trim(),
+            FechaNacimiento = DateTime.SpecifyKind(dto.FechaNacimiento, DateTimeKind.Utc),
+            Nickname = dto.Nickname.Trim(),
+            Rol = "ANALISTA",
+            Activo = true,
+            FechaRegistro = DateTime.UtcNow
+        };
+
+        _logger.LogWarning("Registro local sin base de datos para {Usuario}; los datos no se conservarán", usuario.Nickname);
+        var respuesta = CrearRespuestaSesion(usuario);
+        respuesta.CodigoQr = _jwt.GenerarTokenQr(usuario);
+        return respuesta;
     }
 
     public async Task<UsuarioPerfilDTO?> ObtenerPerfilAsync(int usuarioId)
