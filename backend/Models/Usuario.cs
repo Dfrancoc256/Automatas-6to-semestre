@@ -40,6 +40,10 @@ public class Usuario
     [Column("foto_modificada")]
     public string? FotoModificada { get; set; }
 
+    // Descriptor facial (128 valores, face-api.js) serializado como JSON
+    [Column("encoding_facial")]
+    public string? EncodingFacial { get; set; }
+
     // "ADMIN", "SUPERVISOR", "ANALISTA"
     [Required, MaxLength(20)]
     [Column("rol")]

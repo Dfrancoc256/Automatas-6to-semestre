@@ -13,6 +13,7 @@
     "@mdi/font": "^7.4.47",
     "@pinia/nuxt": "^0.5.5",
     "axios": "^1.7.7",
+    "face-api.js": "^0.22.2",
     "nuxt": "^3.13.2",
     "pinia": "^2.2.4",
     "vite-plugin-vuetify": "^2.0.4",
