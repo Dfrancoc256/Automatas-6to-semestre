@@ -127,6 +127,14 @@ public class UsuarioPerfilDTO
     public bool TieneRostroEnrolado { get; set; }
 }
 
+public class EnviarCredencialDTO
+{
+    /// <summary>"email" o "whatsapp"</summary>
+    [Required(ErrorMessage = "Indica el canal de envío")]
+    [RegularExpression("^(email|whatsapp)$", ErrorMessage = "Canal inválido")]
+    public string Canal { get; set; } = string.Empty;
+}
+
 public class ActualizarPerfilDTO
 {
     [RegularExpression(@"^\+?[0-9\s-]{8,20}$", ErrorMessage = "Teléfono inválido")]
