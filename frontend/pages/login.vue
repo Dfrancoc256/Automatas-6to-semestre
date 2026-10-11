@@ -369,6 +369,20 @@ function identificadorValido(valor: string) {
 .auth-access-tabs--registro::before { transform: translateX(calc(100% + 4px)); }
 .auth-access-tabs--login:has(button:nth-child(2):hover)::before, .auth-access-tabs--login:has(button:nth-child(2):focus-visible)::before { transform: translateX(calc(100% + 4px)); box-shadow: 0 5px 12px rgba(5,27,46,.16); }
 .auth-access-tabs--registro:has(button:first-child:hover)::before, .auth-access-tabs--registro:has(button:first-child:focus-visible)::before { transform: translateX(0); box-shadow: 0 5px 12px rgba(5,27,46,.16); }
+/* En móvil se prioriza el área táctil y se evita que el selector quede fuera de la tarjeta. */
+@media (max-width: 700px) {
+  .auth-access-tabs {
+    align-self: center;
+    width: min(100%, 264px);
+    margin: 0 auto 12px;
+  }
+
+  .auth-access-tabs button {
+    min-height: 40px;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .auth-access-tabs::before, .auth-access-tabs button { transition: none; }
   .auth-flip-enter-active, .auth-flip-leave-active { transition: none; }
