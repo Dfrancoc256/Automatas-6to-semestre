@@ -23,6 +23,20 @@
           <!-- Paso 1: datos básicos -->
           <v-stepper-window-item :value="1">
             <v-form ref="formPaso1" @focusin="activarEdicion" @submit.prevent="siguientePaso">
+              <v-row dense>
+                <v-col cols="12" sm="6">
+                  <v-text-field v-model.trim="form.nombre" label="Nombres"
+                                prepend-inner-icon="mdi-account"
+                                autocomplete="given-name"
+                                :rules="[validarNombre]" class="mb-1" />
+                </v-col>
+                <v-col cols="12" sm="6">
+                  <v-text-field v-model.trim="form.apellido" label="Apellidos"
+                                prepend-inner-icon="mdi-account-outline"
+                                autocomplete="family-name"
+                                :rules="[validarApellido]" class="mb-1" />
+                </v-col>
+              </v-row>
               <v-text-field v-model="form.correo" label="Correo electrónico"
                             prepend-inner-icon="mdi-email" type="email"
                             :rules="[v => !!v || 'Requerido', v => /.+@.+\..+/.test(v) || 'Correo inválido']"
@@ -42,7 +56,16 @@
                             :type="mostrarPass ? 'text' : 'password'"
                             :append-inner-icon="mostrarPass ? 'mdi-eye-off' : 'mdi-eye'"
                             @click:append-inner="mostrarPass = !mostrarPass"
-                            :rules="[v => !!v || 'Requerido', v => v.length >= 8 || 'Mínimo 8 caracteres']"
+                            autocomplete="new-password"
+                            hint="Mínimo 8 caracteres: mayúscula, minúscula, número y símbolo"
+                            persistent-hint
+                            :rules="[validarPassword]"
+                            class="mb-3" />
+              <v-text-field v-model="form.confirmarPassword" label="Confirmar contraseña"
+                            prepend-inner-icon="mdi-lock-check"
+                            :type="mostrarPass ? 'text' : 'password'"
+                            autocomplete="new-password"
+                            :rules="[validarConfirmacionPassword]"
                             class="mb-3" />
               <v-select v-model="form.metodoNotificacion"
                         label="Método de notificación"
@@ -84,6 +107,15 @@
                 @error="error = $event"
               />
 
+              <input
+                ref="selectorFoto"
+                class="selector-foto-oculto"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                capture="user"
+                @change="seleccionarFoto"
+              />
+
               <!-- Foto capturada -->
               <div v-if="fotoCapturada" class="mb-4">
                 <img :src="fotoCapturada" :style="{ filter: filtroActual.css }"
@@ -107,10 +139,14 @@
                 </div>
               </div>
 
-                            <div class="d-flex gap-2 justify-center mb-4">
+              <div class="d-flex flex-wrap gap-2 justify-center mb-4">
                 <v-btn v-if="!fotoCapturada" color="accent" class="umg-gold-button"
                        prepend-icon="mdi-camera-iris" :loading="procesandoRostro" @click="capturarFoto">
                   Capturar foto
+                </v-btn>
+                <v-btn v-if="!fotoCapturada" color="primary" variant="outlined"
+                       prepend-icon="mdi-image-plus" @click="selectorFoto?.click()">
+                  Tomar o subir foto
                 </v-btn>
                 <v-btn v-if="fotoCapturada" color="secondary" variant="outlined"
                        prepend-icon="mdi-refresh" @click="retomar">
@@ -180,9 +216,20 @@ const formPaso1   = ref<any>(null)
 const formularioEnEdicion = ref(false)
 
 const form = reactive({
-  correo: '', telefono: '', fechaNacimiento: '',
-  nickname: '', password: '', metodoNotificacion: 'email'
+  nombre: '', apellido: '', correo: '', telefono: '', fechaNacimiento: '',
+  nickname: '', password: '', confirmarPassword: '', metodoNotificacion: 'email'
 })
+
+const patronNombre = /^[\p{L}][\p{L}\s'-]{1,79}$/u
+const validarNombre = (valor: string) =>
+  patronNombre.test(valor.trim()) || 'Ingresa nombres válidos (solo letras, espacios, apóstrofes o guiones).'
+const validarApellido = (valor: string) =>
+  patronNombre.test(valor.trim()) || 'Ingresa apellidos válidos (solo letras, espacios, apóstrofes o guiones).'
+const validarPassword = (valor: string) =>
+  /^(?=.{8,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).*$/.test(valor)
+    || 'Usa 8 caracteres o más, mayúscula, minúscula, número y símbolo.'
+const validarConfirmacionPassword = (valor: string) =>
+  valor === form.password || 'La confirmación no coincide con la contraseña.'
 
 function activarEdicion() {
   formularioEnEdicion.value = true
@@ -195,6 +242,7 @@ const puedeEnviar = computed(() => bypassDesarrollo.value || recaptchaToken.valu
 
 // Webcam (la cámara la administra <FaceScanner>)
 const escaner       = ref<{ capturar: () => Promise<{ descriptor: number[] | null, foto: string | null } | null> } | null>(null)
+const selectorFoto  = ref<HTMLInputElement | null>(null)
 const fotoCapturada = ref<string | null>(null)
 const descriptorFacial  = ref<number[] | null>(null)
 const procesandoRostro  = ref(false)
@@ -237,6 +285,37 @@ async function capturarFoto() {
   }
 }
 
+/** Alternativa para móvil: abre la cámara nativa o la galería cuando el navegador lo requiera. */
+async function seleccionarFoto(evento: Event) {
+  error.value = ''
+  const input = evento.target as HTMLInputElement
+  const archivo = input.files?.[0]
+  input.value = ''
+
+  if (!archivo) return
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(archivo.type)) {
+    error.value = 'Selecciona una fotografía JPG, PNG o WEBP.'
+    return
+  }
+  if (archivo.size > 5 * 1024 * 1024) {
+    error.value = 'La fotografía no puede superar 5 MB.'
+    return
+  }
+
+  try {
+    fotoCapturada.value = await new Promise<string>((resolver, rechazar) => {
+      const lector = new FileReader()
+      lector.onload = () => typeof lector.result === 'string' ? resolver(lector.result) : rechazar()
+      lector.onerror = () => rechazar(lector.error)
+      lector.readAsDataURL(archivo)
+    })
+    // Una foto elegida desde el teléfono no garantiza descriptor facial; se podrá enrolar después.
+    descriptorFacial.value = null
+  } catch {
+    error.value = 'No se pudo leer la fotografía seleccionada.'
+  }
+}
+
 async function crearFotoPersonalizada() {
   if (!fotoCapturada.value) return null
   const imagen = new Image()
@@ -262,10 +341,13 @@ async function registrar() {
   try {
     const payload = {
       correo:             form.correo,
+      nombre:             form.nombre,
+      apellido:           form.apellido,
       telefono:           form.telefono,
       fechaNacimiento:    form.fechaNacimiento,
       nickname:           form.nickname,
       password:           form.password,
+      confirmarPassword:  form.confirmarPassword,
       metodoNotificacion: form.metodoNotificacion,
       fotoBase64:         fotoCapturada.value,
       fotoModificadaBase64: await crearFotoPersonalizada(),
@@ -276,7 +358,10 @@ async function registrar() {
     auth.login(data)
     paso.value = 3
   } catch (e: any) {
-    error.value = e.response?.data?.mensaje || 'Error al registrarse.'
+    const respuesta = e.response?.data
+    error.value = Array.isArray(respuesta?.errores)
+      ? respuesta.errores.join(' ')
+      : respuesta?.mensaje || 'Error al registrarse.'
   } finally {
     cargando.value = false
   }
@@ -340,5 +425,13 @@ async function descargarCredencial() {
 .registro-content--captura .auth-logo { width: 116px; height: 116px; }
 .registro-content--captura :deep(.v-stepper-header) { min-height: 60px; }
 .registro-content--captura :deep(.face-scanner) { max-width: 300px; }
+.selector-foto-oculto { display: none; }
 .auth-inline-link { border: 0; background: transparent; color: #7A5E12; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+@media (max-width: 700px) {
+  .registro-content :deep(.v-stepper-window) { padding-right: 2px; }
+  .registro-content :deep(.v-stepper-header) { min-height: 64px; }
+  .registro-content :deep(.v-stepper-item__title) { font-size: 11px; }
+  .registro-content--captura .auth-logo { width: 96px; height: 96px; }
+  .registro-content--captura :deep(.face-scanner) { max-width: 100%; }
+}
 </style>

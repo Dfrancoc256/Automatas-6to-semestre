@@ -89,6 +89,7 @@ public class AuthService : IAuthService
         {
             Id = 1,
             Correo = "admin@umg.edu.gt",
+            NombreCompleto = "Administrador UMG",
             Nickname = "admin_umg",
             Rol = "ADMIN",
             Activo = true,
@@ -147,6 +148,7 @@ public class AuthService : IAuthService
 
         var correo = dto.Correo.Trim().ToLowerInvariant();
         var nickname = dto.Nickname.Trim();
+        var nombreCompleto = NormalizarNombreCompleto(dto.Nombre, dto.Apellido);
 
         // Verificar unicidad
         if (await _db.Usuarios.AnyAsync(u => u.Correo == correo))
@@ -163,26 +165,25 @@ public class AuthService : IAuthService
         {
             var carpeta = Path.Combine("uploads", "fotos");
             Directory.CreateDirectory(carpeta);
-            var nombreOriginal = $"{Guid.NewGuid()}.jpg";
+            var imagenOriginal = DecodificarFotoBase64(dto.FotoBase64);
+            var nombreOriginal = $"{Guid.NewGuid()}{imagenOriginal.Extension}";
             // Rutas relativas servidas bajo /uploads (ver Program.cs) — siempre con "/", nunca la del SO
             rutaFotoOriginal = $"fotos/{nombreOriginal}";
-            var bytesOriginales = Convert.FromBase64String(
-                dto.FotoBase64.Contains(',') ? dto.FotoBase64.Split(',')[1] : dto.FotoBase64);
-            await File.WriteAllBytesAsync(Path.Combine(carpeta, nombreOriginal), bytesOriginales);
+            await File.WriteAllBytesAsync(Path.Combine(carpeta, nombreOriginal), imagenOriginal.Bytes);
 
             var fotoModificada = string.IsNullOrWhiteSpace(dto.FotoModificadaBase64)
                 ? dto.FotoBase64
                 : dto.FotoModificadaBase64;
-            var nombreModificado = $"mod_{Guid.NewGuid()}.jpg";
+            var imagenModificada = DecodificarFotoBase64(fotoModificada);
+            var nombreModificado = $"mod_{Guid.NewGuid()}{imagenModificada.Extension}";
             rutaFotoModificada = $"fotos/{nombreModificado}";
-            var bytesModificados = Convert.FromBase64String(
-                fotoModificada.Contains(',') ? fotoModificada.Split(',')[1] : fotoModificada);
-            await File.WriteAllBytesAsync(Path.Combine(carpeta, nombreModificado), bytesModificados);
+            await File.WriteAllBytesAsync(Path.Combine(carpeta, nombreModificado), imagenModificada.Bytes);
         }
 
         var usuario = new Usuario
         {
             Correo              = correo,
+            NombreCompleto      = nombreCompleto,
             Telefono            = dto.Telefono.Trim(),
             FechaNacimiento     = DateTime.SpecifyKind(dto.FechaNacimiento, DateTimeKind.Utc),
             Nickname            = nickname,
@@ -199,7 +200,7 @@ public class AuthService : IAuthService
         _db.Usuarios.Add(usuario);
         await _db.SaveChangesAsync();
 
-        _logger.LogInformation("Nuevo usuario registrado: {Nickname} ({Correo})", usuario.Nickname, usuario.Correo);
+        _logger.LogInformation("Nuevo usuario registrado: {UsuarioId} ({Correo})", usuario.Id, usuario.Correo);
         await NotificarRegistroAsync(usuario);
 
         var respuesta = CrearRespuestaSesion(usuario);
@@ -213,7 +214,7 @@ public class AuthService : IAuthService
     /// </summary>
     private async Task NotificarRegistroAsync(Usuario usuario)
     {
-        var nombre = WebUtility.HtmlEncode(usuario.Nickname);
+        var nombre = WebUtility.HtmlEncode(usuario.NombreCompleto);
 
         if (usuario.MetodoNotificacion is "email" or "ambos")
         {
@@ -236,7 +237,7 @@ public class AuthService : IAuthService
         {
             var enviado = await _whatsApp.SendTextAsync(
                 usuario.Telefono,
-                $"¡Bienvenido a Lenguajes Formales, {usuario.Nickname}! Tu cuenta fue creada correctamente. No compartas tu contraseña.");
+                $"¡Bienvenido a Lenguajes Formales, {usuario.NombreCompleto}! Tu cuenta fue creada correctamente. No compartas tu contraseña.");
 
             if (!enviado)
                 _logger.LogWarning("No se pudo enviar WhatsApp de registro al usuario {UsuarioId}", usuario.Id);
@@ -251,6 +252,7 @@ public class AuthService : IAuthService
         {
             Id = 1,
             Correo = dto.Correo.Trim().ToLowerInvariant(),
+            NombreCompleto = NormalizarNombreCompleto(dto.Nombre, dto.Apellido),
             Telefono = dto.Telefono.Trim(),
             FechaNacimiento = DateTime.SpecifyKind(dto.FechaNacimiento, DateTimeKind.Utc),
             Nickname = dto.Nickname.Trim(),
@@ -274,6 +276,7 @@ public class AuthService : IAuthService
         {
             Id                 = u.Id,
             Correo             = u.Correo,
+            NombreCompleto     = u.NombreCompleto,
             Telefono           = u.Telefono,
             Nickname           = u.Nickname,
             MetodoNotificacion = u.MetodoNotificacion,
@@ -282,6 +285,39 @@ public class AuthService : IAuthService
             FechaRegistro      = u.FechaRegistro,
             TieneRostroEnrolado = !string.IsNullOrWhiteSpace(u.EncodingFacial)
         };
+    }
+
+    /// <summary>Une nombre y apellido, eliminando espacios repetidos antes de persistirlos.</summary>
+    private static string NormalizarNombreCompleto(string nombre, string apellido) =>
+        string.Join(" ", $"{nombre} {apellido}".Split(' ', StringSplitOptions.RemoveEmptyEntries));
+
+    /// <summary>Valida la imagen recibida desde cámara o galería antes de escribirla en disco.</summary>
+    private static (byte[] Bytes, string Extension) DecodificarFotoBase64(string fotoBase64)
+    {
+        const int tamanoMaximoBytes = 5 * 1024 * 1024;
+        var separador = fotoBase64.IndexOf(',');
+        var encabezado = separador >= 0 ? fotoBase64[..separador] : string.Empty;
+        var contenido = separador >= 0 ? fotoBase64[(separador + 1)..] : fotoBase64;
+        var extension = encabezado.ToLowerInvariant() switch
+        {
+            "data:image/jpeg;base64" or "data:image/jpg;base64" => ".jpg",
+            "data:image/png;base64" => ".png",
+            "data:image/webp;base64" => ".webp",
+            _ when string.IsNullOrEmpty(encabezado) => ".jpg",
+            _ => throw new InvalidOperationException("El formato de la fotografía no está permitido.")
+        };
+
+        try
+        {
+            var bytes = Convert.FromBase64String(contenido);
+            if (bytes.Length == 0 || bytes.Length > tamanoMaximoBytes)
+                throw new InvalidOperationException("La fotografía debe tener un tamaño entre 1 byte y 5 MB.");
+            return (bytes, extension);
+        }
+        catch (FormatException)
+        {
+            throw new InvalidOperationException("La fotografía no tiene un formato válido.");
+        }
     }
 
     public async Task<bool> ActualizarPerfilAsync(int usuarioId, ActualizarPerfilDTO dto)

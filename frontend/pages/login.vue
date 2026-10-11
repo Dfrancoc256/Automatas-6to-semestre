@@ -166,7 +166,17 @@
 
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
-useHead({ title: 'Acceso | Analizador Léxico' })
+// Prepara las conexiones externas antes de montar el widget. Así el captcha
+// aparece más rápido, sin cargarlo en páginas que no son de acceso.
+useHead({
+  title: 'Acceso | Analizador Léxico',
+  link: [
+    { rel: 'preconnect', href: 'https://www.google.com' },
+    { rel: 'preconnect', href: 'https://www.gstatic.com', crossorigin: 'anonymous' },
+    { rel: 'dns-prefetch', href: '//www.google.com' },
+    { rel: 'dns-prefetch', href: '//www.gstatic.com' }
+  ]
+})
 
 const auth     = useAuthStore()
 const route = useRoute()

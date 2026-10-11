@@ -14,6 +14,10 @@ public class Usuario
     [Column("correo")]
     public string Correo { get; set; } = string.Empty;
 
+    [Required, MaxLength(161)]
+    [Column("nombre_completo")]
+    public string NombreCompleto { get; set; } = string.Empty;
+
     [Required, MaxLength(20)]
     [Column("telefono")]
     public string Telefono { get; set; } = string.Empty;
