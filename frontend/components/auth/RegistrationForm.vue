@@ -180,9 +180,9 @@
               <p class="text-body-2 text-medium-emphasis mb-6">
                 Tu cuenta ha sido creada. Serás redirigido al dashboard.
               </p>
-              <v-btn color="accent" class="umg-gold-button" prepend-icon="mdi-arrow-right"
+              <v-btn color="accent" class="umg-gold-button" prepend-icon="mdi-login"
                      @click="navigateTo('/dashboard')">
-                Ir al Dashboard
+                Ingresar
               </v-btn>
               <v-btn class="mt-3" variant="outlined" color="secondary"
                      prepend-icon="mdi-file-pdf-box" :loading="descargando"
