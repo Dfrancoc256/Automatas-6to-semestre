@@ -7,11 +7,33 @@
       </NuxtLink>
 
       <nav class="landing-links" aria-label="Navegación principal">
-        <a href="#proceso">Proceso</a><a href="#capacidades">Capacidades</a><a href="#acceso">Acceso</a>
+        <a href="#proceso"><v-icon size="16">mdi-source-branch</v-icon><span>Proceso</span></a>
+        <a href="#capacidades"><v-icon size="16">mdi-chart-box-outline</v-icon><span>Capacidades</span></a>
+        <a href="#acceso"><v-icon size="16">mdi-shield-account-outline</v-icon><span>Acceso</span></a>
       </nav>
       <div class="landing-nav__actions">
         <v-btn to="/registro" class="landing-register" variant="text">Crear cuenta</v-btn>
         <v-btn to="/login" class="landing-login" variant="outlined" prepend-icon="mdi-login">Ingresar</v-btn>
+
+        <v-menu location="bottom end" transition="slide-y-transition">
+          <template #activator="{ props }">
+            <v-btn
+              v-bind="props"
+              class="landing-menu-trigger"
+              icon="mdi-menu"
+              variant="text"
+              aria-label="Abrir menú de navegación"
+            />
+          </template>
+          <v-list class="landing-mobile-menu" density="comfortable" min-width="230" nav>
+            <v-list-item href="#proceso" prepend-icon="mdi-source-branch" title="Proceso" />
+            <v-list-item href="#capacidades" prepend-icon="mdi-chart-box-outline" title="Capacidades" />
+            <v-list-item href="#acceso" prepend-icon="mdi-shield-account-outline" title="Acceso" />
+            <v-divider class="my-1" />
+            <v-list-item to="/registro" prepend-icon="mdi-account-plus-outline" title="Crear cuenta" />
+            <v-list-item to="/login" prepend-icon="mdi-login" title="Ingresar" />
+          </v-list>
+        </v-menu>
       </div>
     </header>
 
