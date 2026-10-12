@@ -26,7 +26,11 @@ export function useApi() {
     (err) => {
       if (err.response?.status === 401) {
         authStore.logout()
-        navigateTo('/')
+        // La verificación de navegación decide el destino y conserva la ruta
+        // solicitada. Evitamos competir con ella cuando consulta /auth/sesion.
+        if (err.config?.url !== '/auth/sesion') {
+          navigateTo('/login')
+        }
       }
       return Promise.reject(err)
     }
