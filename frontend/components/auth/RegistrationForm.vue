@@ -154,12 +154,12 @@
               </div>
             </div>
 
-            <v-alert v-if="error" type="error" variant="tonal" class="mb-4" density="compact" closable @click:close="error = ''">
-              {{ error }}
-              <template #append>
-                <v-btn size="small" variant="text" @click="registrar">Reintentar</v-btn>
-              </template>
+            <v-alert v-if="error" type="error" variant="tonal" class="registro-error mb-3" density="compact" closable @click:close="error = ''">
+              <span class="registro-error__message">{{ error }}</span>
             </v-alert>
+            <v-btn v-if="error && fotoCapturada" class="registro-retry mb-4" size="small" variant="text" prepend-icon="mdi-refresh" @click="registrar">
+              Reintentar registro
+            </v-btn>
 
             <div class="d-flex gap-2">
               <v-btn variant="outlined" @click="paso = 1">
@@ -307,13 +307,23 @@ async function seleccionarFoto(evento: Event) {
   }
 
   try {
-    fotoCapturada.value = await new Promise<string>((resolver, rechazar) => {
+    const fotoLeida = await new Promise<string>((resolver, rechazar) => {
       const lector = new FileReader()
       lector.onload = () => typeof lector.result === 'string' ? resolver(lector.result) : rechazar()
       lector.onerror = () => rechazar(lector.error)
       lector.readAsDataURL(archivo)
     })
-    fotoParaCredencial.value = await crearRecorteDesdeImagen(fotoCapturada.value)
+
+    // La lectura del archivo ya fue exitosa. Nunca descartamos una foto válida
+    // porque la detección facial (que es opcional para el registro) falle.
+    fotoCapturada.value = fotoLeida
+    fotoParaCredencial.value = fotoLeida
+    try {
+      fotoParaCredencial.value = await crearRecorteDesdeImagen(fotoLeida)
+    } catch {
+      // El original se conserva para la credencial; podrá enrolarse después.
+      fotoParaCredencial.value = fotoLeida
+    }
     // Una foto elegida desde el teléfono no garantiza descriptor facial; se podrá enrolar después.
     descriptorFacial.value = null
   } catch {
@@ -321,11 +331,25 @@ async function seleccionarFoto(evento: Event) {
   }
 }
 
+function cargarImagen(origen: string): Promise<HTMLImageElement> {
+  return new Promise((resolver, rechazar) => {
+    const imagen = new Image()
+    imagen.onload = () => resolver(imagen)
+    imagen.onerror = () => rechazar(new Error('No se pudo cargar la imagen.'))
+    imagen.src = origen
+  })
+}
+
 async function crearRecorteDesdeImagen(foto: string): Promise<string> {
-  const imagen = new Image()
-  imagen.src = foto
-  await imagen.decode()
-  const caja = await detectarRostro(imagen)
+  const imagen = await cargarImagen(foto)
+  let caja: Awaited<ReturnType<typeof detectarRostro>> = null
+  try {
+    caja = await detectarRostro(imagen)
+  } catch {
+    // Los modelos se cargan desde red y pueden no estar disponibles en un móvil.
+    // El registro sigue siendo válido sin recorte automático.
+    return foto
+  }
   if (!caja) return foto
 
   const relacion = 3 / 4
@@ -345,17 +369,20 @@ async function crearRecorteDesdeImagen(foto: string): Promise<string> {
 async function crearFotoPersonalizada() {
   const fuente = fotoParaCredencial.value || fotoCapturada.value
   if (!fuente) return null
-  const imagen = new Image()
-  imagen.src = fuente
-  await imagen.decode()
-  const lienzo = document.createElement('canvas')
-  // La foto de credencial es vertical (3:4); no se deforma como una webcam 4:3.
-  lienzo.width = 360
-  lienzo.height = 480
-  const contexto = lienzo.getContext('2d')!
-  contexto.filter = filtroActual.value.canvas
-  contexto.drawImage(imagen, 0, 0, lienzo.width, lienzo.height)
-  return lienzo.toDataURL('image/jpeg', 0.85)
+  try {
+    const imagen = await cargarImagen(fuente)
+    const lienzo = document.createElement('canvas')
+    // La foto de credencial es vertical (3:4); no se deforma como una webcam 4:3.
+    lienzo.width = 360
+    lienzo.height = 480
+    const contexto = lienzo.getContext('2d')!
+    contexto.filter = filtroActual.value.canvas
+    contexto.drawImage(imagen, 0, 0, lienzo.width, lienzo.height)
+    return lienzo.toDataURL('image/jpeg', 0.85)
+  } catch {
+    // No bloqueamos la creación de la cuenta si el lienzo no es compatible.
+    return fuente
+  }
 }
 
 function retomar() {
@@ -468,10 +495,15 @@ async function descargarCredencial() {
 .registro-content--captura :deep(.face-scanner) { max-width: 420px; }
 .selector-foto-oculto { display: none; }
 .auth-inline-link { border: 0; background: transparent; color: #7A5E12; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+.registro-error { min-width: 0; }
+.registro-error__message { display: block; min-width: 0; overflow-wrap: anywhere; white-space: normal; }
+.registro-retry { color: #7A5E12 !important; font-weight: 700 !important; }
 @media (max-width: 700px) {
   .registro-content :deep(.v-stepper-window) { padding-right: 2px; }
   .registro-content :deep(.v-stepper-header) { min-height: 64px; }
   .registro-content :deep(.v-stepper-item__title) { font-size: 11px; }
   .registro-content--captura :deep(.face-scanner) { max-width: 100%; }
+  .registro-error :deep(.v-alert__content) { min-width: 0; width: 100%; }
+  .registro-error :deep(.v-alert__close) { align-self: flex-start; }
 }
 </style>
