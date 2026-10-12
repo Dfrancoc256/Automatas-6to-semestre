@@ -1,5 +1,7 @@
 using System.Text.Json;
 using System.Net;
+using System.Globalization;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using LenguajesFormalesAPI.Data;
 using LenguajesFormalesAPI.DTOs;
@@ -89,7 +91,8 @@ public class AuthService : IAuthService
         {
             Id = 1,
             Correo = "admin@umg.edu.gt",
-            NombreCompleto = "Administrador UMG",
+            Nombre = "Administrador",
+            Apellido = "UMG",
             Nickname = "admin_umg",
             Rol = "ADMIN",
             Activo = true,
@@ -147,15 +150,14 @@ public class AuthService : IAuthService
             return RegistrarLocal(dto);
 
         var correo = dto.Correo.Trim().ToLowerInvariant();
-        var nickname = dto.Nickname.Trim();
-        var nombreCompleto = NormalizarNombreCompleto(dto.Nombre, dto.Apellido);
+        var nombre = NormalizarNombre(dto.Nombre);
+        var apellido = NormalizarNombre(dto.Apellido);
 
         // Verificar unicidad
         if (await _db.Usuarios.AnyAsync(u => u.Correo == correo))
             throw new InvalidOperationException("El correo ya está registrado.");
 
-        if (await _db.Usuarios.AnyAsync(u => u.Nickname == nickname))
-            throw new InvalidOperationException("El nickname ya está en uso.");
+        var nickname = await GenerarNicknameDisponibleAsync(nombre, apellido);
 
         // Persistir foto en uploads/
         string? rutaFotoOriginal   = null;
@@ -183,7 +185,8 @@ public class AuthService : IAuthService
         var usuario = new Usuario
         {
             Correo              = correo,
-            NombreCompleto      = nombreCompleto,
+            Nombre              = nombre,
+            Apellido            = apellido,
             Telefono            = dto.Telefono.Trim(),
             FechaNacimiento     = DateTime.SpecifyKind(dto.FechaNacimiento, DateTimeKind.Utc),
             Nickname            = nickname,
@@ -252,10 +255,11 @@ public class AuthService : IAuthService
         {
             Id = 1,
             Correo = dto.Correo.Trim().ToLowerInvariant(),
-            NombreCompleto = NormalizarNombreCompleto(dto.Nombre, dto.Apellido),
+            Nombre = NormalizarNombre(dto.Nombre),
+            Apellido = NormalizarNombre(dto.Apellido),
             Telefono = dto.Telefono.Trim(),
             FechaNacimiento = DateTime.SpecifyKind(dto.FechaNacimiento, DateTimeKind.Utc),
-            Nickname = dto.Nickname.Trim(),
+            Nickname = GenerarBaseNickname(NormalizarNombre(dto.Nombre), NormalizarNombre(dto.Apellido)),
             Rol = "ANALISTA",
             Activo = true,
             FechaRegistro = DateTime.UtcNow
@@ -287,9 +291,42 @@ public class AuthService : IAuthService
         };
     }
 
-    /// <summary>Une nombre y apellido, eliminando espacios repetidos antes de persistirlos.</summary>
-    private static string NormalizarNombreCompleto(string nombre, string apellido) =>
-        string.Join(" ", $"{nombre} {apellido}".Split(' ', StringSplitOptions.RemoveEmptyEntries));
+    /// <summary>Normaliza nombres sin alterar letras acentuadas o apellidos compuestos.</summary>
+    private static string NormalizarNombre(string valor) =>
+        string.Join(" ", valor.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries));
+
+    private async Task<string> GenerarNicknameDisponibleAsync(string nombre, string apellido)
+    {
+        var baseNickname = GenerarBaseNickname(nombre, apellido);
+        var candidato = baseNickname;
+        var numero = 2;
+
+        // La base protege nickname sin distinción de mayúsculas/minúsculas.
+        while (await _db.Usuarios.AnyAsync(u => u.Nickname.ToLower() == candidato))
+        {
+            var sufijo = numero++.ToString(CultureInfo.InvariantCulture);
+            candidato = $"{baseNickname[..Math.Min(baseNickname.Length, 50 - sufijo.Length)]}{sufijo}";
+        }
+
+        return candidato;
+    }
+
+    private static string GenerarBaseNickname(string nombre, string apellido)
+    {
+        var origen = $"{nombre}.{apellido}".Normalize(NormalizationForm.FormD);
+        var limpio = new StringBuilder(origen.Length);
+
+        foreach (var caracter in origen)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(caracter) == UnicodeCategory.NonSpacingMark)
+                continue;
+            if (char.IsLetterOrDigit(caracter)) limpio.Append(char.ToLowerInvariant(caracter));
+            else if (caracter is '.' or '-' or '_') limpio.Append(caracter);
+        }
+
+        var resultado = limpio.ToString().Trim('.', '-', '_');
+        return resultado.Length >= 3 ? resultado[..Math.Min(resultado.Length, 50)] : "usuario";
+    }
 
     /// <summary>Valida la imagen recibida desde cámara o galería antes de escribirla en disco.</summary>
     private static (byte[] Bytes, string Extension) DecodificarFotoBase64(string fotoBase64)

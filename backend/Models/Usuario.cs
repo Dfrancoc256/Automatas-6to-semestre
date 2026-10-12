@@ -14,9 +14,17 @@ public class Usuario
     [Column("correo")]
     public string Correo { get; set; } = string.Empty;
 
-    [Required, MaxLength(161)]
-    [Column("nombre_completo")]
-    public string NombreCompleto { get; set; } = string.Empty;
+    [Required, MaxLength(80)]
+    [Column("nombre")]
+    public string Nombre { get; set; } = string.Empty;
+
+    [Required, MaxLength(80)]
+    [Column("apellido")]
+    public string Apellido { get; set; } = string.Empty;
+
+    /// <summary>Nombre para mostrar; se obtiene siempre de nombre y apellido.</summary>
+    [NotMapped]
+    public string NombreCompleto => $"{Nombre} {Apellido}".Trim();
 
     [Required, MaxLength(20)]
     [Column("telefono")]
