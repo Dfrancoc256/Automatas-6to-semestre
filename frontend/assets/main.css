@@ -129,7 +129,7 @@ img, video, canvas { max-width: 100%; }
 .login-card {
   min-height: 570px;
   /* El mismo margen superior se aplica al acceso y al registro. */
-  padding: 14px 68px 72px !important;
+  padding: 14px 68px 30px !important;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -137,7 +137,7 @@ img, video, canvas { max-width: 100%; }
 }
 
 .login-form {
-  margin-top: 16px;
+  margin-top: 12px;
 }
 
 .login-card--success {
@@ -170,6 +170,15 @@ img, video, canvas { max-width: 100%; }
   position: relative;
   overflow: hidden;
   isolation: isolate;
+}
+
+/* En pantallas bajas se ahorra espacio vertical sin reducir controles
+   importantes. El formulario mantiene una barra interna como respaldo. */
+@media (max-height: 820px) and (min-width: 701px) {
+  .auth-logo { width: 112px; height: 112px; }
+  .login-card { padding-bottom: 22px !important; }
+  .login-card .text-center.mb-6 { margin-bottom: 16px !important; }
+  .v-btn.login-access-button { margin-top: 24px !important; }
 }
 
 .v-btn.login-access-button::before {

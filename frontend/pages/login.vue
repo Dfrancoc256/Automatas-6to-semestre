@@ -8,7 +8,11 @@
     </div>
 
     <v-card
-      :class="['auth-card', 'auth-card--shell', 'login-card', 'pa-8', { 'login-card--success': accesoExitoso }]"
+      :class="['auth-card', 'auth-card--shell', 'login-card', 'pa-8', {
+        'auth-card--login': !modoRegistro,
+        'auth-card--register': modoRegistro,
+        'login-card--success': accesoExitoso
+      }]"
       elevation="0"
     >
       <v-btn
@@ -345,8 +349,9 @@ function identificadorValido(valor: string) {
   position: relative;
   display: flex;
   flex-direction: column;
-  /* La tarjeta no cambia de tamaño: solo se intercambia su contenido. */
-  height: min(760px, calc(100dvh - 48px));
+  /* Aprovecha la ventana sin rebasarla. Si hace falta, el contenido se
+     desplaza dentro de la tarjeta y nunca queda cortado detrás de ella. */
+  height: min(820px, calc(100dvh - 32px));
   overflow: hidden;
 }
 .auth-access-tabs { align-self: flex-end; margin: 4px -28px 10px auto; }
@@ -356,9 +361,22 @@ function identificadorValido(valor: string) {
   top: 14px;
   left: 18px;
 }
-.auth-card--shell :deep(.auth-form-content) { display: flex; flex: 1; min-height: 0; flex-direction: column; }
+.auth-card--shell :deep(.auth-form-content) {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 5px 10px;
+  scrollbar-width: thin;
+  scrollbar-color: #B48B21 transparent;
+}
+.auth-card--shell :deep(.auth-form-content::-webkit-scrollbar) { width: 5px; }
+.auth-card--shell :deep(.auth-form-content::-webkit-scrollbar-thumb) { background: #B48B21; border-radius: 999px; }
+.auth-card--login :deep(.auth-form-content) { padding-top: 4px; }
 @media (max-width: 700px) {
-  .auth-card--shell { height: calc(100dvh - 32px); }
+  .auth-card--shell { height: calc(100dvh - 24px); }
   .auth-back-home { top: 10px; left: 8px; }
 }
 
