@@ -22,11 +22,12 @@ public class AuthController : ControllerBase
     private readonly IEmailService _email;
     private readonly IWhatsAppService _whatsApp;
     private readonly ILogger<AuthController> _logger;
+    private readonly IWebHostEnvironment _environment;
 
     public AuthController(IAuthService auth, IRecaptchaService recaptcha,
         ICredentialService credential, IJwtService jwt,
         IEmailService email, IWhatsAppService whatsApp,
-        ILogger<AuthController> logger)
+        ILogger<AuthController> logger, IWebHostEnvironment environment)
     {
         _email     = email;
         _whatsApp  = whatsApp;
@@ -35,6 +36,7 @@ public class AuthController : ControllerBase
         _credential = credential;
         _jwt = jwt;
         _logger    = logger;
+        _environment = environment;
     }
 
     /// <summary>Registro de nuevo usuario</summary>
@@ -319,7 +321,9 @@ public class AuthController : ControllerBase
         {
             Path = "/",
             SameSite = SameSiteMode.Lax,
-            Secure = Request.IsHttps
+            Secure = UsarCookieSegura(),
+            HttpOnly = true,
+            IsEssential = true
         });
         return NoContent();
     }
@@ -329,10 +333,15 @@ public class AuthController : ControllerBase
         Response.Cookies.Append("umg_session", token, new CookieOptions
         {
             HttpOnly = true,
-            Secure = Request.IsHttps,
+            Secure = UsarCookieSegura(),
             SameSite = SameSiteMode.Lax,
             Expires = new DateTimeOffset(expiracion),
-            Path = "/"
+            Path = "/",
+            IsEssential = true
         });
     }
+
+    // En producción la sesión nunca debe viajar por HTTP. En desarrollo se
+    // permite localhost sin TLS para no bloquear el entorno local.
+    private bool UsarCookieSegura() => !_environment.IsDevelopment() || Request.IsHttps;
 }

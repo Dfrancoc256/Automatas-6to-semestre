@@ -27,11 +27,14 @@ public class AuthService : IAuthService
     private readonly IFacialService _facial;
     private readonly IEmailService _emailService;
     private readonly IWhatsAppService _whatsApp;
+    private readonly ICredentialService _credential;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<AuthService> _logger;
     private readonly bool _sinBaseDeDatos;
 
     public AuthService(AppDbContext db, IJwtService jwt, IFacialService facial,
         IEmailService emailService, IWhatsAppService whatsApp,
+        ICredentialService credential,
         ILogger<AuthService> logger, IConfiguration configuration)
     {
         _db     = db;
@@ -39,7 +42,9 @@ public class AuthService : IAuthService
         _facial = facial;
         _emailService = emailService;
         _whatsApp = whatsApp;
+        _credential = credential;
         _logger = logger;
+        _configuration = configuration;
         _sinBaseDeDatos = configuration.GetValue<bool>("Demo:SinBaseDeDatos");
     }
 
@@ -204,10 +209,11 @@ public class AuthService : IAuthService
         await _db.SaveChangesAsync();
 
         _logger.LogInformation("Nuevo usuario registrado: {UsuarioId} ({Correo})", usuario.Id, usuario.Correo);
-        await NotificarRegistroAsync(usuario);
+        var codigoQr = _jwt.GenerarTokenQr(usuario);
+        await NotificarRegistroAsync(usuario, codigoQr);
 
         var respuesta = CrearRespuestaSesion(usuario);
-        respuesta.CodigoQr = _jwt.GenerarTokenQr(usuario);
+        respuesta.CodigoQr = codigoQr;
         return respuesta;
     }
 
@@ -215,9 +221,32 @@ public class AuthService : IAuthService
     /// Envía las notificaciones elegidas sin revertir un registro que ya fue persistido.
     /// Nunca se incluye la contraseña ni información biométrica en los mensajes.
     /// </summary>
-    private async Task NotificarRegistroAsync(Usuario usuario)
+    private async Task NotificarRegistroAsync(Usuario usuario, string codigoQr)
     {
         var nombre = WebUtility.HtmlEncode(usuario.NombreCompleto);
+        var correo = WebUtility.HtmlEncode(usuario.Correo);
+        var nickname = WebUtility.HtmlEncode(usuario.Nickname);
+        var urlWeb = (_configuration["App:PublicUrl"] ?? "https://analizador-umg.duckdns.org").TrimEnd('/');
+        var urlHtml = WebUtility.HtmlEncode(urlWeb);
+        var nombreArchivo = $"credencial-{usuario.Nickname}.pdf";
+        byte[]? credencial = null;
+
+        try
+        {
+            credencial = _credential.GenerarPdf(usuario, codigoQr);
+        }
+        catch (Exception ex)
+        {
+            // El alta ya fue guardada: una credencial no debe revertirla.
+            _logger.LogError(ex, "No se pudo generar la credencial inicial del usuario {UsuarioId}", usuario.Id);
+        }
+
+        var mensajeWhatsApp =
+            $"¡Bienvenido/a, {usuario.NombreCompleto}!\n\n" +
+            $"Ingresa en: {urlWeb}\n" +
+            $"Correo: {usuario.Correo}\n" +
+            $"Nickname: {usuario.Nickname}\n\n" +
+            "Tu contraseña es la que creaste durante el registro; por seguridad no se envía por este medio.";
 
         if (usuario.MetodoNotificacion is "email" or "ambos")
         {
@@ -227,8 +256,13 @@ public class AuthService : IAuthService
                     usuario.Correo,
                     "Registro exitoso - Lenguajes Formales",
                     $"<p>¡Bienvenido, <strong>{nombre}</strong>!</p>" +
-                    "<p>Tu cuenta fue creada correctamente.</p>" +
-                    "<p>Por seguridad, nunca compartas tu contraseña.</p>");
+                    "<p>Tu cuenta fue creada correctamente. Estos son tus datos de acceso:</p>" +
+                    $"<ul><li><strong>Enlace:</strong> <a href=\"{urlHtml}\">{urlHtml}</a></li>" +
+                    $"<li><strong>Correo:</strong> {correo}</li>" +
+                    $"<li><strong>Nickname:</strong> {nickname}</li></ul>" +
+                    "<p>Adjuntamos tu credencial PDF con código QR. Tu contraseña es la que creaste durante el registro y nunca se envía por correo.</p>",
+                    credencial,
+                    credencial is null ? null : nombreArchivo);
             }
             catch (Exception ex)
             {
@@ -238,9 +272,9 @@ public class AuthService : IAuthService
 
         if (usuario.MetodoNotificacion is "whatsapp" or "ambos")
         {
-            var enviado = await _whatsApp.SendTextAsync(
-                usuario.Telefono,
-                $"¡Bienvenido a Lenguajes Formales, {usuario.NombreCompleto}! Tu cuenta fue creada correctamente. No compartas tu contraseña.");
+            var enviado = credencial is { Length: > 0 }
+                ? await _whatsApp.SendPdfAsync(usuario.Telefono, credencial, nombreArchivo, mensajeWhatsApp)
+                : await _whatsApp.SendTextAsync(usuario.Telefono, mensajeWhatsApp);
 
             if (!enviado)
                 _logger.LogWarning("No se pudo enviar WhatsApp de registro al usuario {UsuarioId}", usuario.Id);
