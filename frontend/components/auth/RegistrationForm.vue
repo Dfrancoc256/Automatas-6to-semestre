@@ -423,8 +423,9 @@ async function descargarCredencial() {
   transform: translateY(0);
   transition: max-height .24s ease, opacity .16s ease, margin .24s ease, transform .24s ease;
 }
-/* Al llenar datos, el encabezado se repliega para priorizar los campos. */
-.registro-content--edicion > .text-center.mb-6 {
+/* En datos y foto se repliega el encabezado: en foto ese espacio se usa para la cámara. */
+.registro-content--edicion > .text-center.mb-6,
+.registro-content--captura > .text-center.mb-6 {
   max-height: 0;
   margin: 0 !important;
   opacity: 0;
@@ -436,17 +437,14 @@ async function descargarCredencial() {
 .registro-content :deep(.v-stepper-window) { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: 6px; }
 .registro-content :deep(.v-stepper-window::-webkit-scrollbar) { width: 5px; }
 .registro-content :deep(.v-stepper-window::-webkit-scrollbar-thumb) { background: #B48B21; border-radius: 99px; }
-.registro-content--captura > .text-center.mb-6 { margin-bottom: 4px !important; }
-.registro-content--captura .auth-logo { width: 116px; height: 116px; }
 .registro-content--captura :deep(.v-stepper-header) { min-height: 60px; }
-.registro-content--captura :deep(.face-scanner) { max-width: 300px; }
+.registro-content--captura :deep(.face-scanner) { max-width: 420px; }
 .selector-foto-oculto { display: none; }
 .auth-inline-link { border: 0; background: transparent; color: #7A5E12; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
 @media (max-width: 700px) {
   .registro-content :deep(.v-stepper-window) { padding-right: 2px; }
   .registro-content :deep(.v-stepper-header) { min-height: 64px; }
   .registro-content :deep(.v-stepper-item__title) { font-size: 11px; }
-  .registro-content--captura .auth-logo { width: 96px; height: 96px; }
   .registro-content--captura :deep(.face-scanner) { max-width: 100%; }
 }
 </style>
