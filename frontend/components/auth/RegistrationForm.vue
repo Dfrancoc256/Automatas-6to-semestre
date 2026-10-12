@@ -94,7 +94,7 @@
           <!-- Paso 2: foto -->
           <v-stepper-window-item :value="2">
             <div class="text-center mb-4">
-              <p class="text-body-2 mb-4">Toma una foto para tu credencial</p>
+                <p class="text-body-2 mb-4">Toma una foto: la credencial usará un recorte centrado en tu rostro</p>
 
               <!-- Cámara con marco guía y animación de escaneo -->
               <FaceScanner
@@ -117,7 +117,7 @@
 
               <!-- Foto capturada -->
               <div v-if="fotoCapturada" class="mb-4">
-                <img :src="fotoCapturada" :style="{ filter: filtroActual.css }"
+                <img :src="fotoParaCredencial || fotoCapturada" :style="{ filter: filtroActual.css }"
                      style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid #B48B21" />
                 <p v-if="procesandoRostro" class="text-caption mt-1">Analizando rostro...</p>
                 <p v-else-if="descriptorFacial" class="text-caption mt-1 text-success">✓ Foto capturada · rostro detectado</p>
@@ -207,7 +207,7 @@ const emit = defineEmits<{ cambiarModo: [modo: 'login' | 'registro'] }>()
 const auth    = useAuthStore()
 const { api } = useApi()
 const config = useRuntimeConfig()
-const { calentar } = useFacialRecognition()
+const { calentar, detectarRostro } = useFacialRecognition()
 
 const paso        = ref(1)
 const mostrarPass = ref(false)
@@ -243,9 +243,10 @@ const bypassDesarrollo = computed(() => import.meta.dev && !requiereRecaptcha.va
 const puedeEnviar = computed(() => bypassDesarrollo.value || recaptchaToken.value.length > 0)
 
 // Webcam (la cámara la administra <FaceScanner>)
-const escaner       = ref<{ capturar: () => Promise<{ descriptor: number[] | null, foto: string | null } | null> } | null>(null)
+const escaner       = ref<{ capturar: () => Promise<{ descriptor: number[] | null, foto: string | null, fotoRecortada: string | null } | null> } | null>(null)
 const selectorFoto  = ref<HTMLInputElement | null>(null)
 const fotoCapturada = ref<string | null>(null)
+const fotoParaCredencial = ref<string | null>(null)
 const descriptorFacial  = ref<number[] | null>(null)
 const procesandoRostro  = ref(false)
 
@@ -280,6 +281,7 @@ async function capturarFoto() {
     }
     descriptorFacial.value = captura.descriptor
     fotoCapturada.value = captura.foto
+    fotoParaCredencial.value = captura.fotoRecortada || captura.foto
   } catch {
     error.value = 'No se pudo tomar la foto.'
   } finally {
@@ -311,6 +313,7 @@ async function seleccionarFoto(evento: Event) {
       lector.onerror = () => rechazar(lector.error)
       lector.readAsDataURL(archivo)
     })
+    fotoParaCredencial.value = await crearRecorteDesdeImagen(fotoCapturada.value)
     // Una foto elegida desde el teléfono no garantiza descriptor facial; se podrá enrolar después.
     descriptorFacial.value = null
   } catch {
@@ -318,13 +321,36 @@ async function seleccionarFoto(evento: Event) {
   }
 }
 
-async function crearFotoPersonalizada() {
-  if (!fotoCapturada.value) return null
+async function crearRecorteDesdeImagen(foto: string): Promise<string> {
   const imagen = new Image()
-  imagen.src = fotoCapturada.value
+  imagen.src = foto
+  await imagen.decode()
+  const caja = await detectarRostro(imagen)
+  if (!caja) return foto
+
+  const relacion = 3 / 4
+  const altoRecorte = Math.min(imagen.naturalHeight, Math.max(caja.alto * 2.2, caja.ancho / relacion * 1.5))
+  const anchoRecorte = Math.min(imagen.naturalWidth, altoRecorte * relacion)
+  const centroX = caja.x + caja.ancho / 2
+  const centroY = caja.y + caja.alto * 0.95
+  const origenX = Math.max(0, Math.min(imagen.naturalWidth - anchoRecorte, centroX - anchoRecorte / 2))
+  const origenY = Math.max(0, Math.min(imagen.naturalHeight - altoRecorte, centroY - altoRecorte / 2))
+  const lienzo = document.createElement('canvas')
+  lienzo.width = 360
+  lienzo.height = 480
+  lienzo.getContext('2d')!.drawImage(imagen, origenX, origenY, anchoRecorte, altoRecorte, 0, 0, lienzo.width, lienzo.height)
+  return lienzo.toDataURL('image/jpeg', 0.88)
+}
+
+async function crearFotoPersonalizada() {
+  const fuente = fotoParaCredencial.value || fotoCapturada.value
+  if (!fuente) return null
+  const imagen = new Image()
+  imagen.src = fuente
   await imagen.decode()
   const lienzo = document.createElement('canvas')
-  lienzo.width = 640
+  // La foto de credencial es vertical (3:4); no se deforma como una webcam 4:3.
+  lienzo.width = 360
   lienzo.height = 480
   const contexto = lienzo.getContext('2d')!
   contexto.filter = filtroActual.value.canvas
@@ -334,6 +360,7 @@ async function crearFotoPersonalizada() {
 
 function retomar() {
   fotoCapturada.value = null
+  fotoParaCredencial.value = null
   descriptorFacial.value = null
 }
 

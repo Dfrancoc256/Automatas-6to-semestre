@@ -175,7 +175,13 @@ Directory.CreateDirectory(carpetaUploads);
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(carpetaUploads),
-    RequestPath  = "/uploads"
+    RequestPath  = "/uploads",
+    OnPrepareResponse = contexto =>
+    {
+        // Las fotografías son datos personales: nunca se guardan en caches
+        // compartidos ni se reutilizan después de cerrar sesión.
+        contexto.Context.Response.Headers["Cache-Control"] = "private, no-store, max-age=0";
+    }
 });
 
 app.MapControllers();

@@ -14,6 +14,7 @@ services:
       WhatsApp__InstanceName: ${WHATSAPP_INSTANCE_NAME:-umg-lenguajes}
       EmailSettings__Username: ${EMAIL_USERNAME:-}
       EmailSettings__Password: ${EMAIL_PASSWORD:-}
+      App__PublicUrl: ${APP_PUBLIC_URL}
       AllowedOrigins: ${ALLOWED_ORIGINS}
     volumes:
       - backend_uploads:/app/uploads

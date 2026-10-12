@@ -39,7 +39,12 @@ const props = withDefaults(defineProps<{
   ocupado?: boolean   // el padre está procesando el resultado (p. ej. llamando a la API)
 }>(), { auto: true, conFoto: false, ocupado: false })
 
-interface CapturaFacial { descriptor: number[] | null, foto: string | null }
+interface CapturaFacial {
+  descriptor: number[] | null
+  foto: string | null
+  // Versión vertical para la credencial, centrada en el rostro detectado.
+  fotoRecortada: string | null
+}
 
 const emit = defineEmits<{
   capturado: [captura: CapturaFacial]
@@ -105,12 +110,29 @@ function tomarFoto(video: HTMLVideoElement): string | null {
   return lienzo.toDataURL('image/jpeg', 0.8)
 }
 
+/** Genera una fotografía 3:4 centrada en el rostro para la credencial. */
+function recortarRostro(video: HTMLVideoElement, caja: { x: number, y: number, ancho: number, alto: number }): string {
+  const relacion = 3 / 4
+  const altoRecorte = Math.min(video.videoHeight, Math.max(caja.alto * 2.2, caja.ancho / relacion * 1.5))
+  const anchoRecorte = Math.min(video.videoWidth, altoRecorte * relacion)
+  const centroX = caja.x + caja.ancho / 2
+  // Deja un poco más de espacio bajo el rostro para incluir hombros.
+  const centroY = caja.y + caja.alto * 0.95
+  const origenX = Math.max(0, Math.min(video.videoWidth - anchoRecorte, centroX - anchoRecorte / 2))
+  const origenY = Math.max(0, Math.min(video.videoHeight - altoRecorte, centroY - altoRecorte / 2))
+  const lienzo = document.createElement('canvas')
+  lienzo.width = 360
+  lienzo.height = 480
+  lienzo.getContext('2d')!.drawImage(video, origenX, origenY, anchoRecorte, altoRecorte, 0, 0, lienzo.width, lienzo.height)
+  return lienzo.toDataURL('image/jpeg', 0.88)
+}
+
 async function calcularCaptura(): Promise<CapturaFacial | null> {
   const video = videoEl.value
   if (!video || !video.videoWidth) return null
-  const descriptor = await obtenerDescriptor(video)
+  const [descriptor, caja] = await Promise.all([obtenerDescriptor(video), detectarRostro(video)])
   // La foto se toma justo después del cálculo para que coincida con el rostro evaluado.
-  return { descriptor, foto: tomarFoto(video) }
+  return { descriptor, foto: tomarFoto(video), fotoRecortada: caja ? recortarRostro(video, caja) : null }
 }
 
 async function ciclo() {

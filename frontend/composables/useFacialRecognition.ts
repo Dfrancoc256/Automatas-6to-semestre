@@ -1,6 +1,6 @@
 import * as faceapi from 'face-api.js'
 
-type Fuente = HTMLVideoElement | HTMLCanvasElement
+type Fuente = HTMLVideoElement | HTMLCanvasElement | HTMLImageElement
 
 let modelosPromesa: Promise<void> | null = null
 let calentadoPromesa: Promise<void> | null = null
