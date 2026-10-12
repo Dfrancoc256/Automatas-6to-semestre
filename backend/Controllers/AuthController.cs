@@ -5,6 +5,8 @@ using LenguajesFormalesAPI.DTOs;
 using LenguajesFormalesAPI.Interfaces;
 using LenguajesFormalesAPI.Services;
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace LenguajesFormalesAPI.Controllers;
 
@@ -59,10 +61,25 @@ public class AuthController : ControllerBase
         {
             return Conflict(new { mensaje = ex.Message });
         }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException postgres)
+        {
+            // La causa completa queda en el log del VPS; al navegador solo se
+            // le entrega una explicación segura y accionable.
+            _logger.LogError(ex, "No se pudo guardar el registro. PostgreSQL: {SqlState}", postgres.SqlState);
+
+            return postgres.SqlState switch
+            {
+                "23505" => Conflict(new { mensaje = "Ya existe una cuenta con esos datos." }),
+                "42703" or "23502" => StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    new { mensaje = "La base de datos requiere una actualización. Ejecuta la migración pendiente y vuelve a intentarlo." }),
+                _ => StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    new { mensaje = "No fue posible guardar el registro en este momento. Intenta nuevamente en unos minutos." })
+            };
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error en registro");
-            return StatusCode(500, new { mensaje = "Error interno del servidor." });
+            return StatusCode(500, new { mensaje = "No fue posible completar el registro. Si el problema continúa, contacta al administrador." });
         }
     }
 
