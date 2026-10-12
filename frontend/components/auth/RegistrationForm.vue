@@ -47,10 +47,9 @@
               <v-text-field v-model="form.fechaNacimiento" label="Fecha de nacimiento"
                             prepend-inner-icon="mdi-calendar" type="date"
                             :rules="[v => !!v || 'Requerido']" class="mb-3" />
-              <v-text-field v-model="form.nickname" label="Nickname"
-                            prepend-inner-icon="mdi-at"
-                            :rules="[v => !!v || 'Requerido', v => v.length >= 3 || 'Mínimo 3 caracteres']"
-                            class="mb-3" />
+              <v-alert type="info" variant="tonal" density="compact" class="mb-3">
+                Tu nickname se generará automáticamente con tu nombre y apellido. Podrás usarlo o tu correo para ingresar.
+              </v-alert>
               <v-text-field v-model="form.password" label="Contraseña"
                             prepend-inner-icon="mdi-lock"
                             :type="mostrarPass ? 'text' : 'password'"
@@ -217,7 +216,7 @@ const formularioEnEdicion = ref(false)
 
 const form = reactive({
   nombre: '', apellido: '', correo: '', telefono: '', fechaNacimiento: '',
-  nickname: '', password: '', confirmarPassword: '', metodoNotificacion: 'email'
+  password: '', confirmarPassword: '', metodoNotificacion: 'email'
 })
 
 const patronNombre = /^[\p{L}][\p{L}\s'-]{1,79}$/u
@@ -345,7 +344,6 @@ async function registrar() {
       apellido:           form.apellido,
       telefono:           form.telefono,
       fechaNacimiento:    form.fechaNacimiento,
-      nickname:           form.nickname,
       password:           form.password,
       confirmarPassword:  form.confirmarPassword,
       metodoNotificacion: form.metodoNotificacion,

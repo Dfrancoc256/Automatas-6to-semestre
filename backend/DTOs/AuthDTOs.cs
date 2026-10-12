@@ -25,10 +25,6 @@ public class RegisterDTO
     [Required(ErrorMessage = "La fecha de nacimiento es obligatoria")]
     public DateTime FechaNacimiento { get; set; }
 
-    [Required(ErrorMessage = "El nickname es obligatorio")]
-    [MinLength(3), MaxLength(50)]
-    public string Nickname { get; set; } = string.Empty;
-
     [Required(ErrorMessage = "La contraseña es obligatoria")]
     [RegularExpression(@"^(?=.{8,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).*$",
         ErrorMessage = "La contraseña debe tener entre 8 y 128 caracteres, mayúscula, minúscula, número y carácter especial")]
