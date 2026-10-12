@@ -237,7 +237,16 @@ function cambiarModo(modo: 'login' | 'registro') {
 onMounted(() => {
   calentar()
   auth.restore()
-  if (auth.isAuthenticated) navigateTo('/dashboard')
+  if (auth.isAuthenticated) navigateTo(rutaDestino.value)
+})
+
+// Solo se permite regresar a una ruta interna del área protegida. Así se evita
+// que un parámetro ?redirect= envíe al usuario a un sitio externo.
+const rutaDestino = computed(() => {
+  const destino = route.query.redirect
+  return typeof destino === 'string' && destino.startsWith('/dashboard')
+    ? destino
+    : '/dashboard'
 })
 
 async function loginPassword() {
@@ -265,7 +274,7 @@ async function loginPassword() {
     accesoExitoso.value = true
     auth.login(data)
     await new Promise(resolve => setTimeout(resolve, 650))
-    await navigateTo('/dashboard')
+    await navigateTo(rutaDestino.value)
   } catch (e: any) {
     error.value = e.response?.data?.mensaje || 'No fue posible iniciar sesión.'
   } finally {
@@ -291,7 +300,7 @@ async function verificarRostro(captura: { descriptor: number[] | null }) {
 
     auth.login(data)
     mostrarFacial.value = false
-    await navigateTo('/dashboard')
+    await navigateTo(rutaDestino.value)
   } catch (e: any) {
     errorFacial.value = e.response?.data?.mensaje || 'Rostro no reconocido.'
     // Pausa breve para no saturar al servidor y luego vuelve a escanear.

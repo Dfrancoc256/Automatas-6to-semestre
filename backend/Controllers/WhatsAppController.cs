@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using LenguajesFormalesAPI.DTOs;
 using LenguajesFormalesAPI.Interfaces;
 
@@ -19,6 +20,7 @@ namespace LenguajesFormalesAPI.Controllers
 
         /// <summary>Envía un WhatsApp de prueba. Solo ADMIN, para no exponer un relé abierto.</summary>
         [HttpPost("send")]
+        [EnableRateLimiting("auth")]
         public async Task<IActionResult> Send([FromBody] SendWhatsAppDto request)
         {
             var ok = await _whatsApp.SendTextAsync(request.To, request.Message);

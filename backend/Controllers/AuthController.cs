@@ -192,6 +192,25 @@ public class AuthController : ControllerBase
         return perfil == null ? NotFound() : Ok(perfil);
     }
 
+    /// <summary>Valida la cookie de sesión sin exponer el JWT al navegador.</summary>
+    [HttpGet("sesion")]
+    [Authorize]
+    public IActionResult SesionActual()
+    {
+        var exp = User.FindFirst("exp")?.Value;
+        var expiracion = long.TryParse(exp, out var segundos)
+            ? DateTimeOffset.FromUnixTimeSeconds(segundos).UtcDateTime
+            : DateTime.UtcNow;
+
+        return Ok(new SesionActualDTO
+        {
+            Rol = User.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty,
+            Nickname = User.FindFirst("nickname")?.Value ?? User.Identity?.Name ?? string.Empty,
+            FotoModificada = User.FindFirst("foto")?.Value,
+            Expiracion = expiracion
+        });
+    }
+
     /// <summary>Descargar la credencial PDF con código QR del usuario autenticado</summary>
     [HttpGet("credencial")]
     [Authorize]

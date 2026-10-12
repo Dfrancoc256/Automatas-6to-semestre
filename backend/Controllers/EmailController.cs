@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using LenguajesFormalesAPI.DTOs;
 using LenguajesFormalesAPI.Interfaces;
 
@@ -6,6 +8,7 @@ namespace LenguajesFormalesAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "ADMIN")]
     public class EmailController : ControllerBase
     {
         private readonly IEmailService _emailService;
@@ -16,6 +19,7 @@ namespace LenguajesFormalesAPI.Controllers
         }
 
         [HttpPost("send")]
+        [EnableRateLimiting("auth")]
         public async Task<IActionResult> SendEmail(
             [FromBody] SendEmailDto request)
         {
@@ -33,13 +37,12 @@ namespace LenguajesFormalesAPI.Controllers
                     message = "Correo enviado correctamente."
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, new
                 {
                     success = false,
-                    message = "No fue posible enviar el correo.",
-                    error = ex.Message
+                    message = "No fue posible enviar el correo. Revisa los registros del servidor."
                 });
             }
         }

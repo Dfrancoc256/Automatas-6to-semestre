@@ -40,6 +40,18 @@ export const useAuthStore = defineStore('auth', {
       const sesion = useCookie('umg_session_meta', { path: '/' })
       sesion.value = null
     },
+    establecerSesionVerificada(data: Omit<AuthUser, 'token' | 'codigoQr'>) {
+      // Los datos se actualizan únicamente después de que /auth/sesion validó
+      // la cookie HttpOnly en el servidor.
+      this.user = data
+      const sesion = useCookie<Omit<AuthUser, 'token' | 'codigoQr'> | null>('umg_session_meta', {
+        maxAge: 60 * 60 * 8,
+        sameSite: 'lax',
+        secure: !import.meta.dev,
+        path: '/'
+      })
+      sesion.value = data
+    },
     restore() {
       const sesion = useCookie<Omit<AuthUser, 'token' | 'codigoQr'> | null>('umg_session_meta', {
         maxAge: 60 * 60 * 8,

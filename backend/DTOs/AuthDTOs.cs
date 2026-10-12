@@ -124,6 +124,15 @@ public class AuthResponseDTO
     public string? CodigoQr { get; set; }
 }
 
+/// <summary>Datos mínimos de una sesión ya validada por la cookie HttpOnly.</summary>
+public class SesionActualDTO
+{
+    public string Rol { get; set; } = string.Empty;
+    public string Nickname { get; set; } = string.Empty;
+    public string? FotoModificada { get; set; }
+    public DateTime Expiracion { get; set; }
+}
+
 public class UsuarioPerfilDTO
 {
     public int Id { get; set; }
