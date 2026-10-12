@@ -128,6 +128,8 @@ public class UsuarioPerfilDTO
 {
     public int Id { get; set; }
     public string Correo { get; set; } = string.Empty;
+    public string Nombre { get; set; } = string.Empty;
+    public string Apellido { get; set; } = string.Empty;
     public string NombreCompleto { get; set; } = string.Empty;
     public string Telefono { get; set; } = string.Empty;
     public string Nickname { get; set; } = string.Empty;

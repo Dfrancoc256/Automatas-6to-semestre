@@ -280,6 +280,8 @@ public class AuthService : IAuthService
         {
             Id                 = u.Id,
             Correo             = u.Correo,
+            Nombre             = u.Nombre,
+            Apellido           = u.Apellido,
             NombreCompleto     = u.NombreCompleto,
             Telefono           = u.Telefono,
             Nickname           = u.Nickname,

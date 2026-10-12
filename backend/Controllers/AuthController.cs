@@ -271,6 +271,8 @@ public class AuthController : ControllerBase
         {
             Id = perfil.Id,
             Correo = perfil.Correo,
+            Nombre = perfil.Nombre,
+            Apellido = perfil.Apellido,
             Telefono = perfil.Telefono,
             Nickname = perfil.Nickname,
             Rol = perfil.Rol,
