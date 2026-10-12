@@ -154,8 +154,11 @@
               </div>
             </div>
 
-            <v-alert v-if="error" type="error" variant="tonal" class="mb-4" density="compact">
+            <v-alert v-if="error" type="error" variant="tonal" class="mb-4" density="compact" closable @click:close="error = ''">
               {{ error }}
+              <template #append>
+                <v-btn size="small" variant="text" @click="registrar">Reintentar</v-btn>
+              </template>
             </v-alert>
 
             <div class="d-flex gap-2">
@@ -356,13 +359,27 @@ async function registrar() {
     auth.login(data)
     paso.value = 3
   } catch (e: any) {
-    const respuesta = e.response?.data
-    error.value = Array.isArray(respuesta?.errores)
-      ? respuesta.errores.join(' ')
-      : respuesta?.mensaje || 'Error al registrarse.'
+    error.value = obtenerMensajeErrorRegistro(e)
   } finally {
     cargando.value = false
   }
+}
+
+/** Convierte respuestas HTTP y errores de red en textos seguros para la persona usuaria. */
+function obtenerMensajeErrorRegistro(errorRespuesta: any) {
+  const estado = errorRespuesta?.response?.status
+  const respuesta = errorRespuesta?.response?.data
+
+  if (Array.isArray(respuesta?.errores)) return respuesta.errores.join(' ')
+  if (typeof respuesta?.mensaje === 'string' && respuesta.mensaje.trim()) return respuesta.mensaje
+  if (typeof respuesta?.detail === 'string' && respuesta.detail.trim()) return respuesta.detail
+  if (typeof respuesta === 'string' && respuesta.trim()) return respuesta
+
+  if (!estado) return 'No se pudo conectar con el servidor. Verifica tu conexión e inténtalo nuevamente.'
+  if (estado === 413) return 'La fotografía es demasiado grande. Selecciona una imagen menor de 5 MB.'
+  if (estado === 429) return 'Se alcanzó el límite de intentos. Espera un minuto antes de volver a intentarlo.'
+  if (estado >= 500) return 'El servidor no pudo completar el registro. Intenta nuevamente en unos minutos.'
+  return 'No fue posible completar el registro. Revisa los datos e inténtalo nuevamente.'
 }
 
 async function descargarCredencial() {
