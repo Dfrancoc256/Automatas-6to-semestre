@@ -117,8 +117,14 @@
 
               <!-- Foto capturada -->
               <div v-if="fotoCapturada" class="mb-4">
-                <img :src="fotoParaCredencial || fotoCapturada" :style="{ filter: filtroActual.css }"
-                     style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid #B48B21" />
+                <div ref="vistaPreviaFoto" class="foto-preview">
+                  <img :src="fotoParaCredencial || fotoCapturada" :style="{ filter: filtroActual.css }"
+                       class="foto-preview__imagen" alt="Vista previa de la credencial" />
+                  <img v-if="stickerActual !== 'ninguno'" :src="imagenesStickers[stickerActual]"
+                       class="foto-preview__sticker"
+                       :style="{ left: `${posicionSticker.x}px`, top: `${posicionSticker.y}px`, width: `${tamanoSticker}px` }"
+                       alt="Sticker decorativo" draggable="false" @pointerdown.prevent="iniciarArrastreSticker" />
+                </div>
                 <p v-if="procesandoRostro" class="text-caption mt-1">Analizando rostro...</p>
                 <p v-else-if="descriptorFacial" class="text-caption mt-1 text-success">✓ Foto capturada · rostro detectado</p>
                 <p v-else class="text-caption mt-1 text-warning">
@@ -138,6 +144,11 @@
                   </v-btn>
                 </div>
               </div>
+
+              <PhotoStickerSelector v-if="fotoCapturada" v-model="stickerActual" class="mb-4" />
+              <p v-if="fotoCapturada && stickerActual !== 'ninguno'" class="text-caption text-medium-emphasis mb-4">
+                Arrastra el icono sobre la foto para colocarlo donde prefieras.
+              </p>
 
               <div class="d-flex flex-wrap gap-2 justify-center mb-4">
                 <v-btn v-if="!fotoCapturada" color="accent" class="umg-gold-button"
@@ -162,9 +173,9 @@
               Reintentar registro
             </v-btn>
 
-            <div>
-              <v-btn color="accent" class="umg-gold-button" flex-grow-1 :loading="cargando"
-                     :disabled="!fotoCapturada" @click="registrar" style="flex:1">
+            <div class="registro-submit">
+              <v-btn color="accent" class="umg-gold-button" :loading="cargando"
+                     :disabled="!fotoCapturada" @click="registrar">
                 Registrarme
               </v-btn>
             </div>
@@ -247,6 +258,19 @@ const fotoCapturada = ref<string | null>(null)
 const fotoParaCredencial = ref<string | null>(null)
 const descriptorFacial  = ref<number[] | null>(null)
 const procesandoRostro  = ref(false)
+const vistaPreviaFoto = ref<HTMLElement | null>(null)
+const stickerActual = ref('ninguno')
+const posicionSticker = reactive({ x: 72, y: 12 })
+const tamanoSticker = 42
+const imagenesStickers: Record<string, string> = {
+  graduacion: '/stickers/graduacion.png',
+  lentes: '/stickers/lentes.png',
+  corona: '/stickers/corona.png',
+  estrella: '/stickers/estrella.png',
+  corazon: '/stickers/corazon.png'
+}
+let arrastrandoSticker = false
+let desplazamientoSticker = { x: 0, y: 0 }
 
 const filtros = [
   { id: 'normal', nombre: 'Natural', icono: 'mdi-image-filter-none', css: 'none', canvas: 'none' },
@@ -255,6 +279,32 @@ const filtros = [
   { id: 'gris', nombre: 'Clásico', icono: 'mdi-image-filter-black-white', css: 'grayscale(1) contrast(1.08)', canvas: 'grayscale(100%) contrast(108%)' }
 ]
 const filtroActual = ref(filtros[0]!)
+
+function iniciarArrastreSticker(evento: PointerEvent) {
+  const vista = vistaPreviaFoto.value
+  if (!vista) return
+  const limites = vista.getBoundingClientRect()
+  arrastrandoSticker = true
+  desplazamientoSticker = {
+    x: evento.clientX - limites.left - posicionSticker.x,
+    y: evento.clientY - limites.top - posicionSticker.y
+  }
+  window.addEventListener('pointermove', moverSticker)
+  window.addEventListener('pointerup', terminarArrastreSticker, { once: true })
+}
+
+function moverSticker(evento: PointerEvent) {
+  const vista = vistaPreviaFoto.value
+  if (!arrastrandoSticker || !vista) return
+  const limites = vista.getBoundingClientRect()
+  posicionSticker.x = Math.max(0, Math.min(limites.width - tamanoSticker, evento.clientX - limites.left - desplazamientoSticker.x))
+  posicionSticker.y = Math.max(0, Math.min(limites.height - tamanoSticker, evento.clientY - limites.top - desplazamientoSticker.y))
+}
+
+function terminarArrastreSticker() {
+  arrastrandoSticker = false
+  window.removeEventListener('pointermove', moverSticker)
+}
 
 async function siguientePaso() {
   error.value = ''
@@ -376,6 +426,25 @@ async function crearFotoPersonalizada() {
     const contexto = lienzo.getContext('2d')!
     contexto.filter = filtroActual.value.canvas
     contexto.drawImage(imagen, 0, 0, lienzo.width, lienzo.height)
+    contexto.filter = 'none'
+
+    const rutaSticker = imagenesStickers[stickerActual.value]
+    if (rutaSticker) {
+      try {
+        const sticker = await cargarImagen(rutaSticker)
+        const anchoVista = vistaPreviaFoto.value?.clientWidth || 120
+        const altoVista = vistaPreviaFoto.value?.clientHeight || 160
+        contexto.drawImage(
+          sticker,
+          posicionSticker.x * lienzo.width / anchoVista,
+          posicionSticker.y * lienzo.height / altoVista,
+          tamanoSticker * lienzo.width / anchoVista,
+          tamanoSticker * lienzo.height / altoVista
+        )
+      } catch {
+        // El registro no se bloquea si un recurso decorativo no está disponible.
+      }
+    }
     return lienzo.toDataURL('image/jpeg', 0.85)
   } catch {
     // No bloqueamos la creación de la cuenta si el lienzo no es compatible.
@@ -387,7 +456,12 @@ function retomar() {
   fotoCapturada.value = null
   fotoParaCredencial.value = null
   descriptorFacial.value = null
+  stickerActual.value = 'ninguno'
+  posicionSticker.x = 72
+  posicionSticker.y = 12
 }
+
+onBeforeUnmount(terminarArrastreSticker)
 
 async function registrar() {
   error.value = ''
@@ -493,6 +567,28 @@ async function descargarCredencial() {
 .registro-content--captura :deep(.v-stepper-header) { min-height: 60px; }
 .registro-content--captura :deep(.face-scanner) { max-width: 420px; }
 .selector-foto-oculto { display: none; }
+.foto-preview {
+  position: relative;
+  width: 120px;
+  height: 160px;
+  margin: 0 auto;
+  overflow: hidden;
+  border: 3px solid #B48B21;
+  border-radius: 12px;
+  background: #edf1f4;
+}
+.foto-preview__imagen { display: block; width: 100%; height: 100%; object-fit: cover; }
+.foto-preview__sticker {
+  position: absolute;
+  z-index: 1;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.foto-preview__sticker:active { cursor: grabbing; }
+.registro-submit { display: flex; justify-content: center; width: 100%; }
+.registro-submit .v-btn { width: min(100%, 420px); }
 .auth-inline-link { border: 0; background: transparent; color: #7A5E12; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
 .registro-error { min-width: 0; }
 .registro-error__message { display: block; min-width: 0; overflow-wrap: anywhere; white-space: normal; }
