@@ -10,11 +10,11 @@
         <p class="text-body-2 text-medium-emphasis mt-1">Completa el formulario para registrarte</p>
       </div>
 
-      <v-stepper v-model="paso" alt-labels flat>
+      <v-stepper v-model="paso" alt-labels flat non-linear>
         <v-stepper-header>
-          <v-stepper-item title="Datos" :value="1" :complete="paso > 1" />
+          <v-stepper-item title="Datos" :value="1" :complete="paso > 1" :editable="paso === 2" />
           <v-divider />
-          <v-stepper-item title="Foto" :value="2" :complete="paso > 2" />
+          <v-stepper-item title="Foto" :value="2" :complete="paso > 2" :editable="paso === 3" />
           <v-divider />
           <v-stepper-item title="Listo" :value="3" />
         </v-stepper-header>
@@ -94,7 +94,7 @@
           <!-- Paso 2: foto -->
           <v-stepper-window-item :value="2">
             <div class="text-center mb-4">
-                <p class="text-body-2 mb-4">Toma una foto: la credencial usará un recorte centrado en tu rostro</p>
+              <p class="text-body-2 mb-4">Toma una foto: la credencial usará un recorte centrado en tu rostro</p>
 
               <!-- Cámara con marco guía y animación de escaneo -->
               <FaceScanner
@@ -132,6 +132,7 @@
                   <v-btn v-for="filtro in filtros" :key="filtro.id" size="small"
                          :color="filtroActual.id === filtro.id ? 'accent' : 'primary'"
                          :variant="filtroActual.id === filtro.id ? 'flat' : 'outlined'"
+                         :prepend-icon="filtro.icono"
                          @click="filtroActual = filtro">
                     {{ filtro.nombre }}
                   </v-btn>
@@ -161,10 +162,7 @@
               Reintentar registro
             </v-btn>
 
-            <div class="d-flex gap-2">
-              <v-btn variant="outlined" @click="paso = 1">
-                <v-icon start>mdi-arrow-left</v-icon> Atrás
-              </v-btn>
+            <div>
               <v-btn color="accent" class="umg-gold-button" flex-grow-1 :loading="cargando"
                      :disabled="!fotoCapturada" @click="registrar" style="flex:1">
                 Registrarme
@@ -251,10 +249,10 @@ const descriptorFacial  = ref<number[] | null>(null)
 const procesandoRostro  = ref(false)
 
 const filtros = [
-  { id: 'normal', nombre: 'Natural', css: 'none', canvas: 'none' },
-  { id: 'calido', nombre: 'Cálido', css: 'sepia(.28) saturate(1.15)', canvas: 'sepia(28%) saturate(115%)' },
-  { id: 'azul', nombre: 'Azul UMG', css: 'hue-rotate(175deg) saturate(1.1)', canvas: 'hue-rotate(175deg) saturate(110%)' },
-  { id: 'gris', nombre: 'Clásico', css: 'grayscale(1) contrast(1.08)', canvas: 'grayscale(100%) contrast(108%)' }
+  { id: 'normal', nombre: 'Natural', icono: 'mdi-image-filter-none', css: 'none', canvas: 'none' },
+  { id: 'calido', nombre: 'Cálido', icono: 'mdi-white-balance-sunny', css: 'sepia(.28) saturate(1.15)', canvas: 'sepia(28%) saturate(115%)' },
+  { id: 'azul', nombre: 'Azul UMG', icono: 'mdi-palette-outline', css: 'hue-rotate(175deg) saturate(1.1)', canvas: 'hue-rotate(175deg) saturate(110%)' },
+  { id: 'gris', nombre: 'Clásico', icono: 'mdi-image-filter-black-white', css: 'grayscale(1) contrast(1.08)', canvas: 'grayscale(100%) contrast(108%)' }
 ]
 const filtroActual = ref(filtros[0]!)
 
@@ -353,10 +351,10 @@ async function crearRecorteDesdeImagen(foto: string): Promise<string> {
   if (!caja) return foto
 
   const relacion = 3 / 4
-  const altoRecorte = Math.min(imagen.naturalHeight, Math.max(caja.alto * 2.2, caja.ancho / relacion * 1.5))
+  const altoRecorte = Math.min(imagen.naturalHeight, Math.max(caja.alto * 1.5, caja.ancho / relacion * 1.4))
   const anchoRecorte = Math.min(imagen.naturalWidth, altoRecorte * relacion)
   const centroX = caja.x + caja.ancho / 2
-  const centroY = caja.y + caja.alto * 0.95
+  const centroY = caja.y + caja.alto * 0.52
   const origenX = Math.max(0, Math.min(imagen.naturalWidth - anchoRecorte, centroX - anchoRecorte / 2))
   const origenY = Math.max(0, Math.min(imagen.naturalHeight - altoRecorte, centroY - altoRecorte / 2))
   const lienzo = document.createElement('canvas')
@@ -404,7 +402,8 @@ async function registrar() {
       password:           form.password,
       confirmarPassword:  form.confirmarPassword,
       metodoNotificacion: form.metodoNotificacion,
-      fotoBase64:         fotoCapturada.value,
+      // Por privacidad se guarda el recorte facial; no el cuadro completo de cámara.
+      fotoBase64:         fotoParaCredencial.value || fotoCapturada.value,
       fotoModificadaBase64: await crearFotoPersonalizada(),
       descriptor:         descriptorFacial.value,
       recaptchaToken:     bypassDesarrollo.value ? 'dev-bypass' : recaptchaToken.value

@@ -129,18 +129,23 @@
       </Transition>
     </v-card>
 
-    <v-dialog v-model="mostrarFacial" max-width="440">
+    <v-dialog v-model="mostrarFacial" max-width="440" :persistent="verificandoFacial || rostroValidado">
       <v-card class="pa-6">
         <v-card-title class="px-0 text-h6">Reconocimiento facial</v-card-title>
         <v-card-text class="px-0 text-center">
           <FaceScanner
-            v-if="mostrarFacial"
+            v-if="mostrarFacial && !rostroValidado"
             ref="escanerLogin"
             :ocupado="verificandoFacial"
             @capturado="verificarRostro"
             @error="errorFacial = $event"
           />
-          <p class="text-body-2 text-medium-emphasis my-3">
+          <div v-else-if="rostroValidado" class="facial-success py-7" role="status" aria-live="polite">
+            <v-icon color="success" size="70" class="mb-3">mdi-check-circle</v-icon>
+            <h2 class="text-h6 mb-2">Identidad validada</h2>
+            <p class="text-body-2 text-medium-emphasis mb-0">Acceso correcto. Estamos preparando tu dashboard.</p>
+          </div>
+          <p v-if="!rostroValidado" class="text-body-2 text-medium-emphasis my-3">
             Coloca tu rostro dentro del marco. El escaneo comienza solo.
           </p>
 
@@ -149,7 +154,7 @@
           </v-alert>
         </v-card-text>
         <v-card-actions class="px-0 justify-end">
-          <v-btn variant="outlined" @click="mostrarFacial = false">Cancelar</v-btn>
+          <v-btn variant="outlined" :disabled="verificandoFacial || rostroValidado" @click="mostrarFacial = false">Cancelar</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -197,6 +202,7 @@ const accesoExitoso = ref(false)
 const mostrarFacial     = ref(false)
 const verificandoFacial = ref(false)
 const errorFacial       = ref('')
+const rostroValidado    = ref(false)
 const escanerLogin      = ref<{ reiniciar: () => void } | null>(null)
 
 const form = reactive({ identificador: '', password: '' })
@@ -284,6 +290,7 @@ async function loginPassword() {
 
 function abrirLoginFacial() {
   errorFacial.value = ''
+  rostroValidado.value = false
   mostrarFacial.value = true
 }
 
@@ -299,6 +306,10 @@ async function verificarRostro(captura: { descriptor: number[] | null }) {
     })
 
     auth.login(data)
+    rostroValidado.value = true
+    // Da retroalimentación clara antes de cambiar de vista: el usuario ve que
+    // la biometría fue válida en lugar de percibir un salto repentino.
+    await new Promise(resolve => setTimeout(resolve, 1200))
     mostrarFacial.value = false
     await navigateTo(rutaDestino.value)
   } catch (e: any) {
@@ -446,4 +457,5 @@ function identificadorValido(valor: string) {
   .auth-flip-enter-active, .auth-flip-leave-active { transition: none; }
 }
 .login-register-link button { border: 0; background: transparent; color: #7A5E12; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+.facial-success h2 { color: #051B2E; font-weight: 700; }
 </style>
