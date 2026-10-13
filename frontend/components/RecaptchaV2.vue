@@ -36,6 +36,13 @@ function reiniciarCarga() {
   window.__umgRecaptchaLoader = undefined
 }
 
+/** El token de reCAPTCHA se usa una sola vez; permite al formulario pedir uno nuevo. */
+function reiniciar() {
+  mensaje.value = ''
+  emit('update:token', '')
+  if (widgetId !== null && window.grecaptcha) window.grecaptcha.reset(widgetId)
+}
+
 function cargarApi(): Promise<void> {
   if (window.grecaptcha?.render) return Promise.resolve()
   if (window.__umgRecaptchaLoader) return window.__umgRecaptchaLoader
@@ -123,6 +130,8 @@ onBeforeUnmount(() => {
   activo = false
   if (widgetId !== null && window.grecaptcha) window.grecaptcha.reset(widgetId)
 })
+
+defineExpose({ reiniciar })
 </script>
 
 <style scoped>

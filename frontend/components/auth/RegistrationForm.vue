@@ -74,6 +74,7 @@
 
               <RecaptchaV2
                 v-if="requiereRecaptcha"
+                ref="recaptcha"
                 v-model:token="recaptchaToken"
                 :site-key="recaptchaSiteKey"
                 class="mb-4"
@@ -168,6 +169,9 @@
             <v-alert v-if="error" type="error" variant="tonal" class="registro-error mb-3" density="compact" closable @click:close="error = ''">
               <span class="registro-error__message">{{ error }}</span>
             </v-alert>
+            <v-alert v-else-if="fotoCapturada && !bypassDesarrollo && !recaptchaToken" type="warning" variant="tonal" density="compact" class="mb-3">
+              La verificación reCAPTCHA venció. Selecciona el paso <strong>Datos</strong> para validarla nuevamente.
+            </v-alert>
             <v-btn v-if="error && fotoCapturada" class="registro-retry mb-4" size="small" variant="text" prepend-icon="mdi-refresh" @click="registrar">
               Reintentar registro
             </v-btn>
@@ -178,7 +182,7 @@
                 Retomar
               </v-btn>
               <v-btn color="accent" class="umg-gold-button" :loading="cargando"
-                     :disabled="!fotoCapturada" @click="registrar">
+                     :disabled="!puedeRegistrar" @click="registrar">
                 Registrarme
               </v-btn>
             </div>
@@ -249,10 +253,12 @@ function activarEdicion() {
   formularioEnEdicion.value = true
 }
 const recaptchaToken = ref('')
+const recaptcha = ref<{ reiniciar: () => void } | null>(null)
 const recaptchaSiteKey = computed(() => config.public.recaptchaSiteKey.trim())
 const requiereRecaptcha = computed(() => recaptchaSiteKey.value.length > 0)
 const bypassDesarrollo = computed(() => import.meta.dev && !requiereRecaptcha.value)
 const puedeEnviar = computed(() => bypassDesarrollo.value || recaptchaToken.value.length > 0)
+const puedeRegistrar = computed(() => !!fotoCapturada.value && puedeEnviar.value)
 
 // Webcam (la cámara la administra <FaceScanner>)
 const escaner       = ref<{ capturar: () => Promise<{ descriptor: number[] | null, foto: string | null, fotoRecortada: string | null } | null> } | null>(null)
@@ -494,6 +500,14 @@ async function registrar() {
     paso.value = 3
   } catch (e: any) {
     error.value = obtenerMensajeErrorRegistro(e)
+    // Google invalida el token después de enviarlo, incluso si el servidor rechaza
+    // el registro por otro dato. Volvemos al paso 1 para solicitar uno nuevo.
+    if (requiereRecaptcha.value && !bypassDesarrollo.value) {
+      recaptchaToken.value = ''
+      recaptcha.value?.reiniciar()
+      paso.value = 1
+      error.value += ' Completa nuevamente reCAPTCHA antes de reintentar.'
+    }
   } finally {
     cargando.value = false
   }
