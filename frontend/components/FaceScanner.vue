@@ -110,14 +110,14 @@ function tomarFoto(video: HTMLVideoElement): string | null {
   return lienzo.toDataURL('image/jpeg', 0.8)
 }
 
-/** Genera una fotografía 3:4 centrada en el rostro para la credencial. */
+/** Genera un retrato 3:4 ajustado al rostro para la credencial y el guardado. */
 function recortarRostro(video: HTMLVideoElement, caja: { x: number, y: number, ancho: number, alto: number }): string {
   const relacion = 3 / 4
-  const altoRecorte = Math.min(video.videoHeight, Math.max(caja.alto * 2.2, caja.ancho / relacion * 1.5))
+  // Margen pequeño para no cortar mentón/frente, sin conservar el fondo ni el torso.
+  const altoRecorte = Math.min(video.videoHeight, Math.max(caja.alto * 1.5, caja.ancho / relacion * 1.4))
   const anchoRecorte = Math.min(video.videoWidth, altoRecorte * relacion)
   const centroX = caja.x + caja.ancho / 2
-  // Deja un poco más de espacio bajo el rostro para incluir hombros.
-  const centroY = caja.y + caja.alto * 0.95
+  const centroY = caja.y + caja.alto * 0.52
   const origenX = Math.max(0, Math.min(video.videoWidth - anchoRecorte, centroX - anchoRecorte / 2))
   const origenY = Math.max(0, Math.min(video.videoHeight - altoRecorte, centroY - altoRecorte / 2))
   const lienzo = document.createElement('canvas')
