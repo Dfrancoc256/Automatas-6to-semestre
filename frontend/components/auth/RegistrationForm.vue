@@ -145,7 +145,10 @@
                 </div>
               </div>
 
-              <PhotoStickerSelector v-if="fotoCapturada" v-model="stickerActual" class="mb-4" />
+              <div v-if="fotoCapturada" class="efectos-foto mb-4">
+                <p class="text-caption font-weight-bold mb-2">Agrega iconos y adornos</p>
+                <PhotoStickerSelector v-model="stickerActual" />
+              </div>
               <p v-if="fotoCapturada && stickerActual !== 'ninguno'" class="text-caption text-medium-emphasis mb-4">
                 Arrastra el icono sobre la foto para colocarlo donde prefieras.
               </p>
@@ -159,10 +162,6 @@
                        prepend-icon="mdi-image-plus" @click="selectorFoto?.click()">
                   Tomar o subir foto
                 </v-btn>
-                <v-btn v-if="fotoCapturada" color="secondary" variant="outlined"
-                       prepend-icon="mdi-refresh" @click="retomar">
-                  Retomar
-                </v-btn>
               </div>
             </div>
 
@@ -173,7 +172,11 @@
               Reintentar registro
             </v-btn>
 
-            <div class="registro-submit">
+            <div class="registro-actions">
+              <v-btn color="secondary" variant="outlined" prepend-icon="mdi-refresh"
+                     :disabled="cargando" @click="retomar">
+                Retomar
+              </v-btn>
               <v-btn color="accent" class="umg-gold-button" :loading="cargando"
                      :disabled="!fotoCapturada" @click="registrar">
                 Registrarme
@@ -587,8 +590,22 @@ async function descargarCredencial() {
   -webkit-user-drag: none;
 }
 .foto-preview__sticker:active { cursor: grabbing; }
-.registro-submit { display: flex; justify-content: center; width: 100%; }
-.registro-submit .v-btn { width: min(100%, 420px); }
+.efectos-foto {
+  max-width: 420px;
+  margin-right: auto;
+  margin-left: auto;
+  padding-top: 4px;
+  border-top: 1px solid rgba(5, 27, 46, .12);
+}
+.registro-actions {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+}
+.registro-actions .v-btn:first-child { min-width: 138px; }
+.registro-actions .umg-gold-button { width: min(100%, 300px); }
 .auth-inline-link { border: 0; background: transparent; color: #7A5E12; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
 .registro-error { min-width: 0; }
 .registro-error__message { display: block; min-width: 0; overflow-wrap: anywhere; white-space: normal; }
@@ -600,5 +617,8 @@ async function descargarCredencial() {
   .registro-content--captura :deep(.face-scanner) { max-width: 100%; }
   .registro-error :deep(.v-alert__content) { min-width: 0; width: 100%; }
   .registro-error :deep(.v-alert__close) { align-self: flex-start; }
+  .registro-actions { gap: 8px; }
+  .registro-actions .v-btn:first-child { min-width: 0; }
+  .registro-actions .umg-gold-button { width: auto; flex: 1; }
 }
 </style>
