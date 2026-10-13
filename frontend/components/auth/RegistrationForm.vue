@@ -126,7 +126,7 @@
                        alt="Sticker decorativo" draggable="false" @pointerdown.prevent="iniciarArrastreSticker" />
                 </div>
                 <p v-if="procesandoRostro" class="text-caption mt-1">Analizando rostro...</p>
-                <p v-else-if="descriptorFacial" class="text-caption mt-1 text-success">✓ Foto capturada · rostro detectado</p>
+                <p v-else-if="rostroDetectado" class="text-caption mt-1 text-success">✓ Foto capturada · rostro detectado y recortado</p>
                 <p v-else class="text-caption mt-1 text-warning">
                   ✓ Foto capturada · no se detectó un rostro claro (podrás enrolarlo después desde tu perfil)
                 </p>
@@ -261,6 +261,7 @@ const fotoCapturada = ref<string | null>(null)
 const fotoParaCredencial = ref<string | null>(null)
 const descriptorFacial  = ref<number[] | null>(null)
 const procesandoRostro  = ref(false)
+const rostroDetectado = ref(false)
 const vistaPreviaFoto = ref<HTMLElement | null>(null)
 const stickerActual = ref('ninguno')
 const posicionSticker = reactive({ x: 72, y: 12 })
@@ -330,9 +331,15 @@ async function capturarFoto() {
       error.value = 'No se pudo tomar la foto. Verifica que la cámara esté activa.'
       return
     }
+    if (!captura.fotoRecortada) {
+      error.value = 'No se detectó un rostro. Centra tu rostro, mejora la iluminación y vuelve a tomar la foto.'
+      return
+    }
     descriptorFacial.value = captura.descriptor
     fotoCapturada.value = captura.foto
-    fotoParaCredencial.value = captura.fotoRecortada || captura.foto
+    // La credencial siempre usa el retrato producido desde la caja facial detectada.
+    fotoParaCredencial.value = captura.fotoRecortada
+    rostroDetectado.value = true
   } catch {
     error.value = 'No se pudo tomar la foto.'
   } finally {
@@ -365,18 +372,16 @@ async function seleccionarFoto(evento: Event) {
       lector.readAsDataURL(archivo)
     })
 
-    // La lectura del archivo ya fue exitosa. Nunca descartamos una foto válida
-    // porque la detección facial (que es opcional para el registro) falle.
-    fotoCapturada.value = fotoLeida
-    fotoParaCredencial.value = fotoLeida
-    try {
-      fotoParaCredencial.value = await crearRecorteDesdeImagen(fotoLeida)
-    } catch {
-      // El original se conserva para la credencial; podrá enrolarse después.
-      fotoParaCredencial.value = fotoLeida
+    const recorte = await crearRecorteDesdeImagen(fotoLeida)
+    if (!recorte) {
+      error.value = 'No se detectó un rostro en la fotografía. Toma otra foto de frente, con buena iluminación.'
+      return
     }
-    // Una foto elegida desde el teléfono no garantiza descriptor facial; se podrá enrolar después.
+    fotoCapturada.value = fotoLeida
+    fotoParaCredencial.value = recorte
+    // Una foto elegida desde el teléfono se enrola después, pero el retrato ya fue recortado.
     descriptorFacial.value = null
+    rostroDetectado.value = true
   } catch {
     error.value = 'No se pudo leer la fotografía seleccionada.'
   }
@@ -391,17 +396,15 @@ function cargarImagen(origen: string): Promise<HTMLImageElement> {
   })
 }
 
-async function crearRecorteDesdeImagen(foto: string): Promise<string> {
+async function crearRecorteDesdeImagen(foto: string): Promise<string | null> {
   const imagen = await cargarImagen(foto)
   let caja: Awaited<ReturnType<typeof detectarRostro>> = null
   try {
     caja = await detectarRostro(imagen)
   } catch {
-    // Los modelos se cargan desde red y pueden no estar disponibles en un móvil.
-    // El registro sigue siendo válido sin recorte automático.
-    return foto
+    return null
   }
-  if (!caja) return foto
+  if (!caja) return null
 
   const relacion = 3 / 4
   const altoRecorte = Math.min(imagen.naturalHeight, Math.max(caja.alto * 1.5, caja.ancho / relacion * 1.4))
@@ -459,6 +462,7 @@ function retomar() {
   fotoCapturada.value = null
   fotoParaCredencial.value = null
   descriptorFacial.value = null
+  rostroDetectado.value = false
   stickerActual.value = 'ninguno'
   posicionSticker.x = 72
   posicionSticker.y = 12
@@ -604,8 +608,7 @@ async function descargarCredencial() {
   gap: 12px;
   width: 100%;
 }
-.registro-actions .v-btn:first-child { min-width: 138px; }
-.registro-actions .umg-gold-button { width: min(100%, 300px); }
+.registro-actions .v-btn { flex: 1 1 0; max-width: 300px; }
 .auth-inline-link { border: 0; background: transparent; color: #7A5E12; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
 .registro-error { min-width: 0; }
 .registro-error__message { display: block; min-width: 0; overflow-wrap: anywhere; white-space: normal; }
@@ -618,7 +621,6 @@ async function descargarCredencial() {
   .registro-error :deep(.v-alert__content) { min-width: 0; width: 100%; }
   .registro-error :deep(.v-alert__close) { align-self: flex-start; }
   .registro-actions { gap: 8px; }
-  .registro-actions .v-btn:first-child { min-width: 0; }
-  .registro-actions .umg-gold-button { width: auto; flex: 1; }
+  .registro-actions .v-btn { min-width: 0; }
 }
 </style>
