@@ -11,7 +11,7 @@
         </div>
         <div>
           <div class="sidebar-title">Universidad Mariano Gálvez</div>
-          <div class="sidebar-subtitle">Sistema académico · 2026</div>
+          <div class="sidebar-subtitle">Lenguajes formales y autómatas</div>
         </div>
       </div>
 
@@ -30,7 +30,7 @@
       </div>
 
       <nav class="sidebar-nav" @click="sidebarOpen = false">
-        <div class="nav-section">Principal</div>
+        <div class="nav-section">Espacio de trabajo</div>
 
         <NuxtLink to="/dashboard" class="nav-item" title="Dashboard" :class="{ active: route.path === '/dashboard' }">
           <v-icon size="18">mdi-view-dashboard</v-icon>

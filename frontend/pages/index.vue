@@ -7,9 +7,8 @@
       </NuxtLink>
 
       <nav class="landing-links" aria-label="Navegación principal">
-        <a href="#proceso"><v-icon size="16">mdi-source-branch</v-icon><span>Proceso</span></a>
-        <a href="#capacidades"><v-icon size="16">mdi-chart-box-outline</v-icon><span>Capacidades</span></a>
-        <a href="#acceso"><v-icon size="16">mdi-shield-account-outline</v-icon><span>Acceso</span></a>
+        <a href="#proceso"><v-icon size="16">mdi-source-branch</v-icon><span>Cómo funciona</span></a>
+        <a href="#capacidades"><v-icon size="16">mdi-chart-box-outline</v-icon><span>Herramientas</span></a>
       </nav>
       <div class="landing-nav__actions">
         <v-btn to="/registro" class="landing-register" variant="text">Crear cuenta</v-btn>
@@ -26,9 +25,8 @@
             />
           </template>
           <v-list class="landing-mobile-menu" density="comfortable" min-width="230" nav>
-            <v-list-item href="#proceso" prepend-icon="mdi-source-branch" title="Proceso" />
-            <v-list-item href="#capacidades" prepend-icon="mdi-chart-box-outline" title="Capacidades" />
-            <v-list-item href="#acceso" prepend-icon="mdi-shield-account-outline" title="Acceso" />
+            <v-list-item href="#proceso" prepend-icon="mdi-source-branch" title="Cómo funciona" />
+            <v-list-item href="#capacidades" prepend-icon="mdi-chart-box-outline" title="Herramientas" />
             <v-divider class="my-1" />
             <v-list-item to="/registro" prepend-icon="mdi-account-plus-outline" title="Crear cuenta" />
             <v-list-item to="/login" prepend-icon="mdi-login" title="Ingresar" />
@@ -53,25 +51,25 @@
           <v-btn to="/registro" class="landing-register-cta" variant="text" append-icon="mdi-arrow-right">Crear una cuenta</v-btn>
         </div>
         <div class="landing-stats" aria-label="Características principales">
-          <div><strong>5</strong><span>idiomas disponibles</span></div>
-          <div><strong>.txt</strong><span>formato de análisis</span></div>
-          <div><strong>100%</strong><span>historial consultable</span></div>
+          <div><v-icon>mdi-translate</v-icon><span>Análisis en varios idiomas</span></div>
+          <div><v-icon>mdi-file-document-outline</v-icon><span>Documentos de texto</span></div>
+          <div><v-icon>mdi-history</v-icon><span>Historial personal</span></div>
         </div>
       </div>
     </section>
 
     <section id="proceso" class="landing-section landing-process">
-      <div class="landing-section__intro landing-reveal"><p class="landing-section__label">01 · Proceso</p><h2>Una ruta clara, desde el archivo hasta el resultado.</h2></div>
+      <div class="landing-section__intro landing-reveal"><p class="landing-section__label">Flujo de análisis</p><h2>Una ruta clara, desde el archivo hasta el resultado.</h2></div>
       <div class="landing-steps">
-        <article class="landing-reveal"><v-icon>mdi-file-upload-outline</v-icon><span>01</span><h3>Carga</h3><p>Selecciona tu documento de texto y el idioma que deseas procesar.</p></article>
-        <article class="landing-reveal"><v-icon>mdi-text-search</v-icon><span>02</span><h3>Analiza</h3><p>El sistema clasifica palabras, pronombres, verbos y patrones del contenido.</p></article>
-        <article class="landing-reveal"><v-icon>mdi-chart-box-outline</v-icon><span>03</span><h3>Consulta</h3><p>Revisa y conserva tus hallazgos desde tu historial personal.</p></article>
+        <article class="landing-reveal"><div class="landing-step__icon"><v-icon>mdi-file-upload-outline</v-icon></div><h3>Carga</h3><p>Selecciona tu documento de texto y el idioma que deseas procesar.</p></article>
+        <article class="landing-reveal"><div class="landing-step__icon"><v-icon>mdi-text-search</v-icon></div><h3>Analiza</h3><p>El sistema clasifica palabras, pronombres, verbos y patrones del contenido.</p></article>
+        <article class="landing-reveal"><div class="landing-step__icon"><v-icon>mdi-chart-box-outline</v-icon></div><h3>Consulta</h3><p>Revisa y conserva tus hallazgos desde tu historial personal.</p></article>
       </div>
     </section>
 
     <section id="capacidades" class="landing-section landing-capabilities">
       <div class="landing-capabilities__panel landing-reveal">
-        <p class="landing-section__label">02 · Capacidades</p><h2>Lecturas que dejan evidencia.</h2>
+        <p class="landing-section__label">Herramientas académicas</p><h2>Lecturas que dejan evidencia.</h2>
         <p>Una vista ordenada para identificar la estructura del texto, no solo contar palabras.</p>
         <ul><li><v-icon>mdi-check-circle-outline</v-icon> Frecuencias y palabras poco comunes</li><li><v-icon>mdi-check-circle-outline</v-icon> Sustantivos, verbos y pronombres</li><li><v-icon>mdi-check-circle-outline</v-icon> Patrones léxicos por idioma</li></ul>
       </div>
@@ -82,7 +80,7 @@
       </div>
     </section>
 
-    <section id="acceso" class="landing-cta landing-reveal"><div><p class="landing-section__label">03 · Acceso</p><h2>Tu próxima lectura empieza aquí.</h2><p>Crea tu cuenta para acceder al panel académico o inicia sesión si ya cuentas con credenciales.</p></div><div class="landing-cta__actions"><v-btn to="/registro" class="umg-gold-button" size="large" prepend-icon="mdi-account-plus-outline">Crear cuenta</v-btn><v-btn to="/login" class="landing-login--inverse" variant="outlined" size="large" prepend-icon="mdi-login">Ingresar</v-btn></div></section>
+    <section id="acceso" class="landing-cta landing-reveal"><div><p class="landing-section__label">Acceso institucional</p><h2>Tu próxima lectura empieza aquí.</h2><p>Crea tu cuenta para acceder al panel académico o inicia sesión si ya cuentas con credenciales.</p></div><div class="landing-cta__actions"><v-btn to="/registro" class="umg-gold-button" size="large" prepend-icon="mdi-account-plus-outline">Crear cuenta</v-btn><v-btn to="/login" class="landing-login--inverse" variant="outlined" size="large" prepend-icon="mdi-login">Ingresar</v-btn></div></section>
     <footer class="landing-footer"><span>Universidad Mariano Gálvez de Guatemala</span><span>Analizador léxico · {{ new Date().getFullYear() }}</span></footer>
   </main>
 </template>
