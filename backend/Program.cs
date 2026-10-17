@@ -114,6 +114,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddScoped<IJwtService,             JwtService>();
 builder.Services.AddScoped<IAuthService,            AuthService>();
 builder.Services.AddScoped<IAnalisisLexicoService,  AnalisisLexicoService>();
+builder.Services.AddScoped<IAnalisisReporteService, AnalisisReporteService>();
 builder.Services.AddScoped<IRecaptchaService,       RecaptchaService>();
 builder.Services.AddScoped<ICredentialService,      CredentialService>();
 builder.Services.AddScoped<IFacialService,          FacialService>();

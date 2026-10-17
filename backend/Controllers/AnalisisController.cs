@@ -17,6 +17,7 @@ namespace LenguajesFormalesAPI.Controllers;
 public class AnalisisController : ControllerBase
 {
     private readonly IAnalisisLexicoService _analizador;
+    private readonly IAnalisisReporteService _reporte;
     private readonly AppDbContext           _db;
     private readonly ILogger<AnalisisController> _logger;
     private readonly bool _sinBaseDeDatos;
@@ -25,10 +26,11 @@ public class AnalisisController : ControllerBase
         new(StringComparer.OrdinalIgnoreCase)
         { "español", "inglés", "ruso", "chino", "árabe" };
 
-    public AnalisisController(IAnalisisLexicoService analizador, AppDbContext db,
+    public AnalisisController(IAnalisisLexicoService analizador, IAnalisisReporteService reporte, AppDbContext db,
         ILogger<AnalisisController> logger, IConfiguration configuration)
     {
         _analizador = analizador;
+        _reporte    = reporte;
         _db         = db;
         _logger     = logger;
         _sinBaseDeDatos = configuration.GetValue<bool>("Demo:SinBaseDeDatos");
@@ -140,5 +142,29 @@ public class AnalisisController : ControllerBase
 
         var detalle = JsonSerializer.Deserialize<AnalisisResultadoDTO>(registro.DetalleJson);
         return Ok(detalle);
+    }
+
+    [HttpGet("{id:int}/reporte")]
+    public async Task<IActionResult> DescargarReporte(int id)
+    {
+        var idStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(idStr, out var usuarioId))
+            return Unauthorized();
+
+        var rol = User.FindFirst(ClaimTypes.Role)?.Value ?? "";
+        var registro = await _db.ResultadosAnalisis.FindAsync(id);
+        if (registro == null) return NotFound();
+        if (rol != "ADMIN" && rol != "SUPERVISOR" && registro.UsuarioId != usuarioId)
+            return Forbid();
+
+        var detalle = JsonSerializer.Deserialize<AnalisisResultadoDTO>(registro.DetalleJson);
+        if (detalle == null)
+            return StatusCode(500, new { mensaje = "No se pudo generar el reporte." });
+
+        var nombreBase = Path.GetFileNameWithoutExtension(registro.NombreArchivo);
+        var nombreSeguro = string.Concat(nombreBase.Select(caracter =>
+            Path.GetInvalidFileNameChars().Contains(caracter) ? '_' : caracter));
+        var pdf = _reporte.GenerarPdf(detalle);
+        return File(pdf, "application/pdf", $"reporte-{nombreSeguro}.pdf");
     }
 }
