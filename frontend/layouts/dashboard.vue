@@ -4,7 +4,7 @@
     <div v-if="sidebarOpen" class="sidebar-overlay" @click="sidebarOpen = false" />
 
     <!-- Sidebar -->
-    <aside :class="['sidebar', { open: sidebarOpen, collapsed: sidebarCollapsed }]">
+    <aside :class="['sidebar', { open: sidebarOpen, collapsed: sidebarCollapsed }]" aria-label="Navegación principal">
       <div class="sidebar-logo">
         <div class="sidebar-logo-icon">
           <img src="/images/logo-umg-oficial.png" alt="Logo UMG" />
@@ -24,27 +24,27 @@
           </span>
         </v-avatar>
         <div>
-          <div class="sidebar-user-name">{{ auth.user?.nickname }}</div>
-          <div class="sidebar-user-role">{{ auth.user?.rol }}</div>
+          <div class="sidebar-user-name">{{ auth.user?.nickname || 'Usuario UMG' }}</div>
+          <div class="sidebar-user-role">{{ auth.user?.rol || 'USUARIO' }}</div>
         </div>
       </div>
 
       <nav class="sidebar-nav" @click="sidebarOpen = false">
         <div class="nav-section">Principal</div>
 
-        <NuxtLink to="/dashboard" class="nav-item" title="Dashboard" :class="{ active: $route.path === '/dashboard' }">
+        <NuxtLink to="/dashboard" class="nav-item" title="Dashboard" :class="{ active: route.path === '/dashboard' }">
           <v-icon size="18">mdi-view-dashboard</v-icon>
           Dashboard
         </NuxtLink>
 
         <NuxtLink to="/dashboard/analisis" class="nav-item" title="Análisis léxico"
-                  :class="{ active: $route.path === '/dashboard/analisis' }">
+                  :class="{ active: route.path === '/dashboard/analisis' }">
           <v-icon size="18">mdi-text-search</v-icon>
           Análisis Léxico
         </NuxtLink>
 
         <NuxtLink to="/dashboard/historial" class="nav-item" title="Historial de análisis"
-                  :class="{ active: $route.path === '/dashboard/historial' }">
+                  :class="{ active: route.path === '/dashboard/historial' }">
           <v-icon size="18">mdi-history</v-icon>
           Historial
         </NuxtLink>
@@ -52,7 +52,7 @@
         <template v-if="auth.isSupervisor">
           <div class="nav-section">Reportes</div>
           <NuxtLink to="/dashboard/reportes" class="nav-item" title="Estadísticas y reportes"
-                    :class="{ active: $route.path === '/dashboard/reportes' }">
+                    :class="{ active: route.path === '/dashboard/reportes' }">
             <v-icon size="18">mdi-chart-bar</v-icon>
             Estadísticas
           </NuxtLink>
@@ -61,12 +61,12 @@
         <template v-if="auth.isAdmin">
           <div class="nav-section">Administración</div>
           <NuxtLink to="/dashboard/usuarios" class="nav-item" title="Usuarios y roles"
-                    :class="{ active: $route.path === '/dashboard/usuarios' }">
+                    :class="{ active: route.path === '/dashboard/usuarios' }">
             <v-icon size="18">mdi-account-group</v-icon>
             Usuarios
           </NuxtLink>
           <NuxtLink to="/dashboard/bitacora" class="nav-item" title="Bitácora de accesos"
-                    :class="{ active: $route.path === '/dashboard/bitacora' }">
+                    :class="{ active: route.path === '/dashboard/bitacora' }">
             <v-icon size="18">mdi-shield-check</v-icon>
             Bitácora
           </NuxtLink>
@@ -74,7 +74,7 @@
 
         <div class="nav-section">Cuenta</div>
         <NuxtLink to="/dashboard/perfil" class="nav-item" title="Mi perfil"
-                  :class="{ active: $route.path === '/dashboard/perfil' }">
+                  :class="{ active: route.path === '/dashboard/perfil' }">
           <v-icon size="18">mdi-account-edit</v-icon>
           Mi Perfil
         </NuxtLink>
@@ -96,15 +96,16 @@
         <button
           type="button"
           class="mobile-hamburger"
-          :aria-expanded="sidebarOpen || !sidebarCollapsed"
-          aria-label="Expandir o contraer menú de navegación"
+          :aria-expanded="sidebarOpen"
+          :aria-label="sidebarOpen ? 'Cerrar menú de navegación' : 'Abrir menú de navegación'"
           @click="alternarSidebar"
         >
           <span />
           <span />
           <span />
         </button>
-        <span class="ml-2 font-weight-bold">Universidad Mariano Gálvez</span>
+        <span class="dashboard-topbar__brand">Universidad Mariano Gálvez</span>
+        <span class="dashboard-topbar__context">Analizador léxico</span>
       </div>
 
       <slot />
@@ -176,11 +177,16 @@ async function cerrarSesion() {
   transition: transform .2s ease, opacity .2s ease;
 }
 
-.mobile-hamburger[aria-expanded='true'] span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
-.mobile-hamburger[aria-expanded='true'] span:nth-child(2) { opacity: 0; }
-.mobile-hamburger[aria-expanded='true'] span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
-
 .dashboard-topbar { min-height: 48px; }
+.dashboard-topbar__brand { margin-left: 12px; font-size: 15px; font-weight: 700; color: #051B2E; }
+.dashboard-topbar__context { margin-left: 10px; padding-left: 10px; border-left: 1px solid #D9E0E6; font-size: 12px; color: #64748B; }
+
+@media (max-width: 768px) {
+  .mobile-hamburger[aria-expanded='true'] span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .mobile-hamburger[aria-expanded='true'] span:nth-child(2) { opacity: 0; }
+  .mobile-hamburger[aria-expanded='true'] span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+  .dashboard-topbar__context { display: none; }
+}
 
 .items-center { align-items: center; }
 .gap-3        { gap: 12px; }
