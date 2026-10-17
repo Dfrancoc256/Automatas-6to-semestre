@@ -13,8 +13,7 @@ useHead({
     { name: 'viewport', content: 'width=device-width, initial-scale=1' }
   ],
   link: [
-    // Fuerza el emblema institucional como ícono de la pestaña y evita
-    // que el navegador reutilice el favicon heredado del proyecto.
+    // Ícono institucional de la pestaña.
     { rel: 'icon', type: 'image/png', href: '/images/logo-umg-oficial.png' }
   ]
 })

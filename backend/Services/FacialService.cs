@@ -12,12 +12,7 @@ public interface IFacialService
     Task<(Usuario? usuario, double confianza)> BuscarCoincidenciaAsync(List<double> descriptor);
 }
 
-/// <summary>
-/// Reconocimiento facial 1:N por comparación de descriptores (distancia euclidiana),
-/// el mismo enfoque que el servicio externo de biometrico (persona.encoding_facial),
-/// solo que aquí el descriptor de 128 valores se calcula en el navegador con face-api.js
-/// en vez de un microservicio Python externo, y la comparación ocurre en este backend.
-/// </summary>
+/// <summary>Reconocimiento facial por descriptores.</summary>
 public class FacialService : IFacialService
 {
     // face-api.js recomienda 0.6 como umbral de coincidencia para su descriptor de 128-d.

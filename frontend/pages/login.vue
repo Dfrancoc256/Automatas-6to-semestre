@@ -175,8 +175,7 @@
 
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
-// Prepara las conexiones externas antes de montar el widget. Así el captcha
-// aparece más rápido, sin cargarlo en páginas que no son de acceso.
+// Conexiones necesarias para reCAPTCHA.
 useHead({
   title: 'Acceso | Analizador Léxico',
   link: [
@@ -211,13 +210,10 @@ const recaptchaSiteKey = computed(() => config.public.recaptchaSiteKey.trim())
 const requiereRecaptcha = computed(() => recaptchaSiteKey.value.length > 0)
 const bypassDesarrollo = computed(() => import.meta.dev && !requiereRecaptcha.value)
 const puedeEnviar = computed(() => bypassDesarrollo.value || recaptchaToken.value.length > 0)
-// El cambio entre acceso y registro ocurre dentro de la misma vista. No usamos
-// navegación para evitar remontar la tarjeta ni recuperar un formulario anterior.
+// El acceso y el registro comparten esta vista.
 const modoRegistro = ref(route.query.modo === 'registro')
 
-// Si se llega desde un enlace externo (por ejemplo, la barra de navegación),
-// Nuxt reutiliza esta misma página al pasar de /login?modo=registro a /login.
-// Sin esta sincronización quedaba visible el formulario de registro anterior.
+// Sincroniza el modo al cambiar la URL.
 watch(
   () => route.query.modo,
   (modo) => {
@@ -231,7 +227,7 @@ function cambiarModo(modo: 'login' | 'registro') {
 
   modoRegistro.value = mostrarRegistro
 
-  // Actualiza la URL sin añadir una entrada al historial ni recargar componentes.
+  // Actualiza la URL sin recargar la vista.
   if (import.meta.client) {
     const url = new URL(window.location.href)
     if (mostrarRegistro) url.searchParams.set('modo', 'registro')
@@ -246,8 +242,7 @@ onMounted(() => {
   if (auth.isAuthenticated) navigateTo(rutaDestino.value)
 })
 
-// Solo se permite regresar a una ruta interna del área protegida. Así se evita
-// que un parámetro ?redirect= envíe al usuario a un sitio externo.
+// Solo permite redirecciones internas.
 const rutaDestino = computed(() => {
   const destino = route.query.redirect
   return typeof destino === 'string' && destino.startsWith('/dashboard')
@@ -307,14 +302,13 @@ async function verificarRostro(captura: { descriptor: number[] | null }) {
 
     auth.login(data)
     rostroValidado.value = true
-    // Da retroalimentación clara antes de cambiar de vista: el usuario ve que
-    // la biometría fue válida en lugar de percibir un salto repentino.
+    // Muestra la validación antes de redirigir.
     await new Promise(resolve => setTimeout(resolve, 1200))
     mostrarFacial.value = false
     await navigateTo(rutaDestino.value)
   } catch (e: any) {
     errorFacial.value = e.response?.data?.mensaje || 'Rostro no reconocido.'
-    // Pausa breve para no saturar al servidor y luego vuelve a escanear.
+    // Pausa breve antes de reanudar el escaneo.
     setTimeout(() => { errorFacial.value = ''; escanerLogin.value?.reiniciar() }, 1800)
   } finally {
     verificandoFacial.value = false

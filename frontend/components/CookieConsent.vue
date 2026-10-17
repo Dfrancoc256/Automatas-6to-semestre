@@ -20,7 +20,7 @@
 <script setup lang="ts">
 type Consentimiento = 'aceptado' | 'rechazado' | null
 
-// Esta cookie registra la decisión; es necesaria para no volver a mostrar el aviso.
+// Guarda la decisión para no mostrar el aviso nuevamente.
 const consentimiento = useCookie<Consentimiento>('umg_cookie_consent', {
   default: () => null,
   maxAge: 60 * 60 * 24 * 180,

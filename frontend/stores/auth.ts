@@ -23,8 +23,7 @@ export const useAuthStore = defineStore('auth', {
 
   actions: {
     login(data: AuthUser) {
-      // El token se guarda exclusivamente en la cookie HttpOnly del backend.
-      // Esta cookie solo mantiene el perfil necesario para la interfaz.
+      // La sesión se conserva en la cookie HttpOnly.
       const { token: _token, codigoQr: _codigoQr, ...perfil } = data
       this.user = perfil
       const sesion = useCookie<Omit<AuthUser, 'token' | 'codigoQr'> | null>('umg_session_meta', {
@@ -41,8 +40,7 @@ export const useAuthStore = defineStore('auth', {
       sesion.value = null
     },
     establecerSesionVerificada(data: Omit<AuthUser, 'token' | 'codigoQr'>) {
-      // Los datos se actualizan únicamente después de que /auth/sesion validó
-      // la cookie HttpOnly en el servidor.
+      // Actualiza el perfil validado por el servidor.
       this.user = data
       const sesion = useCookie<Omit<AuthUser, 'token' | 'codigoQr'> | null>('umg_session_meta', {
         maxAge: 60 * 60 * 8,

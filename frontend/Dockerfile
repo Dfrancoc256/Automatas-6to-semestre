@@ -1,4 +1,4 @@
-# Compilación de Nuxt en una imagen reproducible.
+# Build de Nuxt.
 FROM node:20-alpine AS build
 WORKDIR /app
 
@@ -8,7 +8,7 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# Runtime sin dependencias de desarrollo ni código fuente innecesario.
+# Imagen de producción.
 FROM node:20-alpine AS final
 WORKDIR /app
 

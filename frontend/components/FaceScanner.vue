@@ -2,7 +2,7 @@
   <div class="face-scanner" :class="[`face-scanner--${estado}`]" role="group" aria-label="Escáner facial">
     <video ref="videoEl" class="face-scanner__video" autoplay playsinline muted />
 
-    <!-- Marco guía: el óvalo recorta el fondo oscurecido para indicar dónde colocar el rostro -->
+    <!-- Guía para encuadrar el rostro -->
     <div class="face-scanner__marco" aria-hidden="true">
       <div class="face-scanner__ovalo">
         <div class="face-scanner__barrido"><span /></div>
@@ -24,25 +24,17 @@
 </template>
 
 <script setup lang="ts">
-/**
- * Cámara con guía de encuadre y animación de escaneo.
- *
- * - Modo automático (`auto`): al detectar un rostro bien encuadrado y estable calcula el
- *   descriptor y emite `capturado` sin que el usuario tenga que pulsar nada.
- * - Modo manual (`auto = false`): solo guía el encuadre; el padre llama a `capturar()`.
- *
- * La cámara se abre al montar el componente y se apaga al desmontarlo (usar v-if).
- */
+/** Cámara y detección facial. */
 const props = withDefaults(defineProps<{
   auto?: boolean
-  conFoto?: boolean   // incluir la foto (JPEG base64) junto al descriptor
-  ocupado?: boolean   // el padre está procesando el resultado (p. ej. llamando a la API)
+  conFoto?: boolean   // incluye la foto en base64
+  ocupado?: boolean   // el resultado está en proceso
 }>(), { auto: true, conFoto: false, ocupado: false })
 
 interface CapturaFacial {
   descriptor: number[] | null
   foto: string | null
-  // Versión vertical para la credencial, centrada en el rostro detectado.
+  // Retrato vertical para la credencial.
   fotoRecortada: string | null
 }
 
@@ -63,7 +55,7 @@ let activo = false
 let pausado = false
 let buenosSeguidos = 0
 
-// Cuántos cuadros seguidos bien encuadrados se piden antes de capturar (evita capturas borrosas).
+// Cuadros válidos requeridos antes de capturar.
 const CUADROS_ESTABLES = 2
 const INTERVALO_MS = 40
 
@@ -87,7 +79,7 @@ const icono = computed(() => {
   return 'mdi-face-man-shimmer-outline'
 })
 
-// Proporción del video que ocupa el óvalo guía (ver CSS): el rostro debe caer dentro.
+// Tamaño del óvalo dentro del video.
 function evaluarEncuadre(caja: { x: number, y: number, ancho: number, alto: number }, video: HTMLVideoElement) {
   const anchoV = video.videoWidth
   const altoV = video.videoHeight
@@ -110,10 +102,10 @@ function tomarFoto(video: HTMLVideoElement): string | null {
   return lienzo.toDataURL('image/jpeg', 0.8)
 }
 
-/** Genera un retrato 3:4 ajustado al rostro para la credencial y el guardado. */
+/** Genera el retrato 3:4 para la credencial. */
 function recortarRostro(video: HTMLVideoElement, caja: { x: number, y: number, ancho: number, alto: number }): string {
   const relacion = 3 / 4
-  // Margen pequeño para no cortar mentón/frente, sin conservar el fondo ni el torso.
+  // Margen para conservar frente y mentón.
   const altoRecorte = Math.min(video.videoHeight, Math.max(caja.alto * 1.5, caja.ancho / relacion * 1.4))
   const anchoRecorte = Math.min(video.videoWidth, altoRecorte * relacion)
   const centroX = caja.x + caja.ancho / 2
@@ -131,7 +123,7 @@ async function calcularCaptura(): Promise<CapturaFacial | null> {
   const video = videoEl.value
   if (!video || !video.videoWidth) return null
   const [descriptor, caja] = await Promise.all([obtenerDescriptor(video), detectarRostro(video)])
-  // La foto se toma justo después del cálculo para que coincida con el rostro evaluado.
+  // Captura el mismo rostro evaluado.
   return { descriptor, foto: tomarFoto(video), fotoRecortada: caja ? recortarRostro(video, caja) : null }
 }
 
@@ -169,7 +161,7 @@ async function ciclo() {
           estado.value = 'escaneando'
           try {
             const captura = await calcularCaptura()
-            if (captura?.descriptor) {
+            if (captura?.descriptor && captura.fotoRecortada) {
               estado.value = 'ok'
               emit('capturado', captura)
             } else {
@@ -188,7 +180,7 @@ async function ciclo() {
   }
 }
 
-/** Modo manual: calcula el descriptor del cuadro actual. La foto se devuelve aunque no haya rostro. */
+/** Calcula el descriptor del cuadro actual. */
 async function capturar(): Promise<CapturaFacial | null> {
   const video = videoEl.value
   if (!video || !video.videoWidth) return null
@@ -203,7 +195,7 @@ async function capturar(): Promise<CapturaFacial | null> {
   }
 }
 
-/** Vuelve a buscar un rostro (p. ej. tras un intento fallido en el servidor). */
+/** Reinicia la detección facial. */
 function reiniciar() {
   buenosSeguidos = 0
   estado.value = 'buscando'
@@ -221,7 +213,7 @@ async function iniciarCamara() {
     emit('error', 'No se pudo acceder a la cámara. Revisa los permisos del navegador.')
     return
   }
-  // Los modelos se cargan en paralelo con el permiso de cámara; aquí ya deberían estar listos.
+  // Los modelos ya se cargaron junto con la cámara.
   await calentar()
   if (!activo) return
   estado.value = 'buscando'
@@ -264,17 +256,17 @@ defineExpose({ capturar, reiniciar })
   position: absolute; inset: 0;
   width: 100%; height: 100%;
   object-fit: cover;
-  transform: scaleX(-1); /* efecto espejo, más natural al encuadrarse */
+  transform: scaleX(-1); /* Vista espejo */
 }
 
 .face-scanner__marco {
   position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
-  padding-bottom: 8%; /* deja libre la franja del mensaje inferior */
+  padding-bottom: 8%; /* Espacio para el mensaje */
   pointer-events: none;
 }
 
-/* Óvalo guía: su sombra gigante oscurece todo lo que queda fuera */
+/* Óvalo de encuadre */
 .face-scanner__ovalo {
   position: relative;
   height: 74%;
@@ -286,7 +278,7 @@ defineExpose({ capturar, reiniciar })
   transition: border-color .25s ease, box-shadow .25s ease;
 }
 
-/* Línea de escaneo que recorre el óvalo, con estela luminosa */
+/* Línea de escaneo */
 .face-scanner__barrido { position: absolute; inset: 0; }
 .face-scanner__barrido span {
   position: absolute; left: 0; right: 0; top: 0;
@@ -308,7 +300,7 @@ defineExpose({ capturar, reiniciar })
   100% { transform: translateY(240%); }
 }
 
-/* Esquinas tipo visor alrededor del óvalo */
+/* Esquinas del visor */
 .face-scanner__esquina {
   position: absolute;
   width: 26px; height: 26px;

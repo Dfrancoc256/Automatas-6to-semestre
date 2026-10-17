@@ -1,7 +1,6 @@
 import vuetify from 'vite-plugin-vuetify'
 
-// Mantiene el archivo tipado aun cuando el proyecto no instala los tipos de
-// Node de forma explícita; Nuxt evalúa esta configuración en el servidor.
+// Variables disponibles al iniciar Nuxt.
 const environment = (globalThis as typeof globalThis & {
   process?: { env?: Record<string, string | undefined> }
 }).process?.env ?? {}
