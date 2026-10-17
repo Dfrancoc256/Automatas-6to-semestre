@@ -136,12 +136,16 @@
           <FaceScanner
             v-if="mostrarFacial && !rostroValidado"
             ref="escanerLogin"
+            con-foto
             :ocupado="verificandoFacial"
             @capturado="verificarRostro"
             @error="errorFacial = $event"
           />
           <div v-else-if="rostroValidado" class="facial-success py-7" role="status" aria-live="polite">
-            <v-icon color="success" size="70" class="mb-3">mdi-check-circle</v-icon>
+            <v-avatar v-if="fotoLoginRecortada" size="88" class="mb-3 facial-success__photo">
+              <v-img :src="fotoLoginRecortada" cover eager />
+            </v-avatar>
+            <v-icon v-else color="success" size="70" class="mb-3">mdi-check-circle</v-icon>
             <h2 class="text-h6 mb-2">Identidad validada</h2>
             <p class="text-body-2 text-medium-emphasis mb-0">Acceso correcto. Estamos preparando tu dashboard.</p>
           </div>
@@ -202,6 +206,7 @@ const mostrarFacial     = ref(false)
 const verificandoFacial = ref(false)
 const errorFacial       = ref('')
 const rostroValidado    = ref(false)
+const fotoLoginRecortada = ref<string | null>(null)
 const escanerLogin      = ref<{ reiniciar: () => void } | null>(null)
 
 const form = reactive({ identificador: '', password: '' })
@@ -286,11 +291,12 @@ async function loginPassword() {
 function abrirLoginFacial() {
   errorFacial.value = ''
   rostroValidado.value = false
+  fotoLoginRecortada.value = null
   mostrarFacial.value = true
 }
 
-async function verificarRostro(captura: { descriptor: number[] | null }) {
-  if (!captura.descriptor || verificandoFacial.value) return
+async function verificarRostro(captura: { descriptor: number[] | null, fotoRecortada: string | null }) {
+  if (!captura.descriptor || !captura.fotoRecortada || verificandoFacial.value) return
   errorFacial.value = ''
   verificandoFacial.value = true
 
@@ -301,6 +307,7 @@ async function verificarRostro(captura: { descriptor: number[] | null }) {
     })
 
     auth.login(data)
+    fotoLoginRecortada.value = captura.fotoRecortada
     rostroValidado.value = true
     // Muestra la validación antes de redirigir.
     await new Promise(resolve => setTimeout(resolve, 1200))
@@ -329,6 +336,8 @@ function identificadorValido(valor: string) {
   transform-style: preserve-3d;
   transition: opacity .12s ease, transform .2s cubic-bezier(.22, 1, .36, 1);
 }
+
+.facial-success__photo { border: 3px solid #B48B21; }
 
 .auth-flip-enter-from {
   opacity: 0;
@@ -363,8 +372,7 @@ function identificadorValido(valor: string) {
   position: relative;
   display: flex;
   flex-direction: column;
-  /* Aprovecha la ventana sin rebasarla. Si hace falta, el contenido se
-     desplaza dentro de la tarjeta y nunca queda cortado detrás de ella. */
+  /* Altura de la tarjeta. */
   height: min(820px, calc(100dvh - 32px));
   overflow: hidden;
 }
@@ -432,7 +440,7 @@ function identificadorValido(valor: string) {
 .auth-access-tabs--registro::before { transform: translateX(calc(100% + 4px)); }
 .auth-access-tabs--login:has(button:nth-child(2):hover)::before, .auth-access-tabs--login:has(button:nth-child(2):focus-visible)::before { transform: translateX(calc(100% + 4px)); box-shadow: 0 5px 12px rgba(5,27,46,.16); }
 .auth-access-tabs--registro:has(button:first-child:hover)::before, .auth-access-tabs--registro:has(button:first-child:focus-visible)::before { transform: translateX(0); box-shadow: 0 5px 12px rgba(5,27,46,.16); }
-/* En móvil se prioriza el área táctil y se evita que el selector quede fuera de la tarjeta. */
+/* Ajustes móviles. */
 @media (max-width: 700px) {
   .auth-access-tabs {
     align-self: center;
