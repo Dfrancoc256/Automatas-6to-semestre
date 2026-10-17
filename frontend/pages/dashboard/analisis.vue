@@ -1,17 +1,17 @@
 <template>
   <div>
-    <div class="d-flex align-center mb-6">
+    <div class="analysis-page-title d-flex align-center mb-5">
       <v-icon color="accent" class="mr-3">mdi-text-search</v-icon>
       <div>
         <h1 class="text-h5 font-weight-bold" style="color:#051B2E">Análisis Léxico</h1>
-        <p class="text-body-2 text-medium-emphasis">Carga un archivo .txt para analizarlo</p>
+        <p class="text-body-2 text-medium-emphasis">Procesa un archivo de texto y consulta sus resultados.</p>
       </div>
     </div>
 
     <v-row>
-      <v-col cols="12" md="5">
-        <v-card class="pa-5">
-          <h2 class="text-subtitle-1 font-weight-bold mb-4">Configuración</h2>
+      <v-col cols="12" md="4">
+        <v-card class="analysis-config-card pa-5">
+          <h2 class="text-subtitle-1 font-weight-bold mb-4">Archivo de texto</h2>
 
           <div class="upload-zone mb-4"
                :class="{ 'upload-zone--active': arrastrando }"
@@ -35,6 +35,8 @@
             :items="idiomas"
             item-title="label"
             item-value="value"
+            density="compact"
+            hide-details
             class="mb-4"
           />
 
@@ -43,7 +45,7 @@
             :model-value="contenido.substring(0, 500) + (contenido.length > 500 ? '...' : '')"
             label="Vista previa"
             readonly
-            rows="4"
+            rows="3"
             density="compact"
             class="mb-4"
           />
@@ -67,7 +69,7 @@
         </v-card>
       </v-col>
 
-      <v-col cols="12" md="7">
+      <v-col cols="12" md="8">
         <div v-if="!resultado" class="analisis-empty-state d-flex flex-column align-center justify-center">
           <v-icon size="80" color="grey-lighten-2" class="mb-4">mdi-text-box-search-outline</v-icon>
           <p class="text-h6 font-weight-medium">Esperando archivo</p>
@@ -96,17 +98,19 @@
             </div>
           </div>
 
-          <v-row class="analysis-metrics mb-4">
-            <v-col v-for="m in metricas" :key="m.label" cols="6" sm="3" md="6" lg="3">
-              <v-card class="analysis-metric pa-3">
+          <v-card class="analysis-summary mb-4">
+            <v-row no-gutters>
+              <v-col v-for="m in metricas" :key="m.label" cols="6" sm="3">
+                <div class="analysis-metric pa-3">
                 <v-icon size="18" :color="m.color">{{ m.icono }}</v-icon>
                 <div>
                   <div class="analysis-metric__value">{{ m.valor }}</div>
                   <div class="analysis-metric__label">{{ m.label }}</div>
                 </div>
-              </v-card>
-            </v-col>
-          </v-row>
+                </div>
+              </v-col>
+            </v-row>
+          </v-card>
 
           <v-card class="analysis-results-card">
             <v-tabs v-model="tabResultado" color="accent" density="compact">
@@ -261,9 +265,9 @@ const categorias = [
 
 const metricas = computed(() => resultado.value ? [
   { label: 'Palabras', valor: resultado.value.totalPalabras.toLocaleString(), color: 'accent', icono: 'mdi-format-letter-case' },
-  { label: 'Oraciones', valor: resultado.value.totalOraciones.toLocaleString(), color: 'success', icono: 'mdi-text-long' },
-  { label: 'Párrafos', valor: resultado.value.totalParrafos.toLocaleString(), color: 'warning', icono: 'mdi-format-align-left' },
-  { label: 'Promedio por palabra', valor: resultado.value.promedioLongitudPalabra + ' caracteres', color: 'info', icono: 'mdi-ruler' }
+  { label: 'Oraciones', valor: resultado.value.totalOraciones.toLocaleString(), color: 'accent', icono: 'mdi-text-long' },
+  { label: 'Párrafos', valor: resultado.value.totalParrafos.toLocaleString(), color: 'accent', icono: 'mdi-format-align-left' },
+  { label: 'Promedio por palabra', valor: resultado.value.promedioLongitudPalabra + ' caracteres', color: 'accent', icono: 'mdi-ruler' }
 ] : [])
 
 function nombreIdioma(valor: string) {
@@ -336,7 +340,7 @@ async function descargarReporte() {
 .upload-zone {
   border: 2px dashed #CBD5E1;
   border-radius: 12px;
-  padding: 32px 16px;
+  padding: 24px 16px;
   text-align: center;
   cursor: pointer;
   transition: border-color .2s, background .2s;
@@ -348,6 +352,8 @@ async function descargarReporte() {
   background: #FFF8E1;
 }
 .gap-1 { gap: 4px; }
+.analysis-page-title { min-height: 62px; }
+.analysis-config-card { box-shadow: none !important; border: 1px solid #E5EAF0 !important; }
 
 .analysis-result-context {
   display: flex;
@@ -380,11 +386,12 @@ async function descargarReporte() {
   text-transform: capitalize;
 }
 
-.analysis-metrics :deep(.v-col) { display: flex; }
-.analysis-metric { display: flex; width: 100%; align-items: center; gap: 10px; border: 1px solid #E2E8F0 !important; box-shadow: none !important; text-align: left; }
+.analysis-summary { overflow: hidden; border: 1px solid #E2E8F0 !important; box-shadow: none !important; }
+.analysis-summary :deep(.v-col) + :deep(.v-col) { border-left: 1px solid #E2E8F0; }
+.analysis-metric { display: flex; min-height: 72px; align-items: center; gap: 10px; text-align: left; }
 .analysis-metric__value { color: #17324D; font-size: 17px; font-weight: 700; line-height: 1.15; }
 .analysis-metric__label { margin-top: 2px; color: #64748B; font-size: 11px; line-height: 1.25; }
-.analysis-results-card { border: 1px solid #E2E8F0 !important; }
+.analysis-results-card { border: 1px solid #E2E8F0 !important; box-shadow: none !important; }
 .analysis-tab-intro { margin: 0 0 18px; color: #64748B; font-size: 13px; line-height: 1.5; }
 .analysis-table-title { display: flex; align-items: center; gap: 7px; margin: 0 0 10px; color: #17324D; font-size: 14px; font-weight: 700; }
 .analysis-table-title .v-icon { color: #B48B21; }
@@ -424,5 +431,7 @@ async function descargarReporte() {
   .analysis-patterns { grid-template-columns: 1fr; }
   .analysis-result-context { align-items: flex-start; flex-direction: column; }
   .analysis-result-context__actions { width: 100%; justify-content: space-between; }
+  .analysis-summary :deep(.v-col):nth-child(odd) { border-left: 0; }
+  .analysis-summary :deep(.v-col):nth-child(n + 3) { border-top: 1px solid #E2E8F0; }
 }
 </style>

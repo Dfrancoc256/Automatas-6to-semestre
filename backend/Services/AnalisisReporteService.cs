@@ -12,6 +12,8 @@ public interface IAnalisisReporteService
 
 public sealed class AnalisisReporteService : IAnalisisReporteService
 {
+    private static readonly string RutaLogo = Path.Combine(AppContext.BaseDirectory, "wwwroot", "images", "logo-umg-oficial.png");
+
     static AnalisisReporteService() => QuestPDF.Settings.License = LicenseType.Community;
 
     public byte[] GenerarPdf(AnalisisResultadoDTO resultado)
@@ -21,7 +23,7 @@ public sealed class AnalisisReporteService : IAnalisisReporteService
             page.Size(PageSizes.A4);
             page.MarginVertical(34);
             page.MarginHorizontal(42);
-            page.DefaultTextStyle(style => style.FontFamily(Fonts.Arial).FontSize(9).FontColor("27364A"));
+            page.DefaultTextStyle(style => style.FontFamily(Fonts.Arial).FontSize(9).FontColor("111111"));
 
             page.Header().Element(contenedor => EncabezadoDocumento(contenedor));
 
@@ -46,17 +48,17 @@ public sealed class AnalisisReporteService : IAnalisisReporteService
         {
             columna.Item().Row(fila =>
             {
-                fila.ConstantItem(34).Height(30).Background("B48B21").AlignCenter().AlignMiddle()
-                    .Text("UMG").Bold().FontSize(9).FontColor(Colors.White);
-                fila.RelativeItem().PaddingLeft(10).Column(marca =>
+                var logo = fila.ConstantItem(39).Height(39).AlignCenter().AlignMiddle();
+                if (File.Exists(RutaLogo))
+                    logo.Image(RutaLogo).FitArea();
+
+                fila.RelativeItem().PaddingLeft(9).Column(marca =>
                 {
-                    marca.Item().Text("UNIVERSIDAD MARIANO GÁLVEZ").Bold().FontSize(11).FontColor("051B2E");
-                    marca.Item().Text("Sistema de análisis léxico").FontSize(8).FontColor("6B7280");
+                    marca.Item().Text("Universidad Mariano Gálvez").Bold().FontSize(12).FontColor("111111");
+                    marca.Item().PaddingTop(2).Text("Sistema de análisis léxico").FontSize(8).FontColor("444444");
                 });
-                fila.ConstantItem(115).AlignRight().AlignMiddle().Text("REPORTE ACADÉMICO")
-                    .Bold().FontSize(8).LetterSpacing(0.8f).FontColor("9A7418");
             });
-            columna.Item().PaddingTop(9).LineHorizontal(1).LineColor("D9E0E6");
+            columna.Item().PaddingTop(10).LineHorizontal(1).LineColor("CFCFCF");
         });
     }
 
@@ -64,18 +66,18 @@ public sealed class AnalisisReporteService : IAnalisisReporteService
     {
         contenedor.Background("F5F7F9").BorderLeft(4).BorderColor("B48B21").Padding(14).Column(columna =>
         {
-            columna.Item().Text("ANÁLISIS DE DOCUMENTO").Bold().FontSize(8).LetterSpacing(0.8f).FontColor("9A7418");
-            columna.Item().PaddingTop(4).Text(resultado.NombreArchivo).Bold().FontSize(18).FontColor("17324D");
+            columna.Item().Text("Reporte de análisis léxico").Bold().FontSize(16).FontColor("111111");
+            columna.Item().PaddingTop(5).Text(resultado.NombreArchivo).FontSize(12).FontColor("222222");
             columna.Item().PaddingTop(9).Row(fila =>
             {
                 fila.RelativeItem().Text(texto =>
                 {
-                    texto.Span("Idioma: ").FontColor("6B7280");
+                    texto.Span("Idioma: ").FontColor("444444");
                     texto.Span(Titulo(resultado.Idioma)).Bold();
                 });
                 fila.RelativeItem().AlignRight().Text(texto =>
                 {
-                    texto.Span("Generado: ").FontColor("6B7280");
+                    texto.Span("Generado: ").FontColor("444444");
                     texto.Span(resultado.FechaAnalisis.ToLocalTime().ToString("dd/MM/yyyy HH:mm")).Bold();
                 });
             });
@@ -124,7 +126,7 @@ public sealed class AnalisisReporteService : IAnalisisReporteService
     {
         contenedor.Column(column =>
         {
-            column.Item().Background("F5F7F9").Padding(8).Text(titulo).Bold().FontColor("17324D");
+            column.Item().Background("F5F7F9").Padding(8).Text(titulo).Bold().FontColor("111111");
             column.Item().Table(tabla =>
             {
                 tabla.ColumnsDefinition(columnas =>
@@ -193,15 +195,15 @@ public sealed class AnalisisReporteService : IAnalisisReporteService
 
     private static void Encabezado(ColumnDescriptor columna, string titulo, string descripcion)
     {
-        columna.Item().Text(titulo).Bold().FontSize(12).FontColor("051B2E");
-        columna.Item().PaddingTop(2).Text(descripcion).FontSize(8).FontColor("6B7280");
+        columna.Item().Text(titulo).Bold().FontSize(12).FontColor("111111");
+        columna.Item().PaddingTop(2).Text(descripcion).FontSize(8).FontColor("444444");
     }
 
     private static void Dato(TableDescriptor tabla, string etiqueta, string valor) =>
         tabla.Cell().Border(1).BorderColor("D9E0E6").Padding(9).Column(columna =>
         {
-            columna.Item().Text(valor).Bold().FontSize(13).FontColor("17324D");
-            columna.Item().PaddingTop(2).Text(etiqueta).FontSize(8).FontColor("6B7280");
+            columna.Item().Text(valor).Bold().FontSize(13).FontColor("111111");
+            columna.Item().PaddingTop(2).Text(etiqueta).FontSize(8).FontColor("444444");
         });
 
     private static void FilaClasificacion(TableDescriptor tabla, string etiqueta, IEnumerable<string> valores)
@@ -211,7 +213,7 @@ public sealed class AnalisisReporteService : IAnalisisReporteService
         if (encontrados.Count > 24)
             texto += $" (+{encontrados.Count - 24} adicionales)";
 
-        tabla.Cell().BorderBottom(1).BorderColor("E2E8F0").PaddingVertical(6).Text(etiqueta).Bold().FontColor("17324D");
+        tabla.Cell().BorderBottom(1).BorderColor("E2E8F0").PaddingVertical(6).Text(etiqueta).Bold().FontColor("111111");
         tabla.Cell().BorderBottom(1).BorderColor("E2E8F0").PaddingVertical(6).Text(texto);
     }
 
