@@ -9,12 +9,10 @@
     </div>
 
     <v-row>
-      <!-- Panel de carga -->
       <v-col cols="12" md="5">
         <v-card class="pa-5">
           <h2 class="text-subtitle-1 font-weight-bold mb-4">Configuración</h2>
 
-          <!-- Zona de carga -->
           <div class="upload-zone mb-4"
                :class="{ 'upload-zone--active': arrastrando }"
                @dragover.prevent="arrastrando = true"
@@ -30,7 +28,6 @@
                    @change="onFileSelect" />
           </div>
 
-          <!-- Selector de idioma -->
           <v-select
             v-model="idioma"
             label="Idioma del texto"
@@ -41,7 +38,6 @@
             class="mb-4"
           />
 
-          <!-- Vista previa del texto -->
           <v-textarea
             v-if="contenido"
             :model-value="contenido.substring(0, 500) + (contenido.length > 500 ? '...' : '')"
@@ -71,7 +67,6 @@
         </v-card>
       </v-col>
 
-      <!-- Resultados -->
       <v-col cols="12" md="7">
         <div v-if="!resultado" class="analisis-empty-state d-flex flex-column align-center justify-center">
           <v-icon size="80" color="grey-lighten-2" class="mb-4">mdi-text-box-search-outline</v-icon>
@@ -80,37 +75,44 @@
         </div>
 
         <template v-else>
-          <!-- Métricas principales -->
-          <v-row class="mb-4">
+          <div class="analysis-result-context mb-4">
+            <div class="analysis-result-context__file">
+              <v-icon size="20">mdi-file-document-outline</v-icon>
+              <span>{{ resultado.nombreArchivo }}</span>
+            </div>
+            <span class="analysis-result-context__language">{{ nombreIdioma(resultado.idioma) }}</span>
+          </div>
+
+          <v-row class="analysis-metrics mb-4">
             <v-col v-for="m in metricas" :key="m.label" cols="6" sm="3" md="6" lg="3">
-              <v-card class="pa-3 text-center" variant="tonal" :color="m.color">
-                <div class="text-h5 font-weight-bold">{{ m.valor }}</div>
-                <div class="text-caption">{{ m.label }}</div>
+              <v-card class="analysis-metric pa-3">
+                <v-icon size="18" :color="m.color">{{ m.icono }}</v-icon>
+                <div>
+                  <div class="analysis-metric__value">{{ m.valor }}</div>
+                  <div class="analysis-metric__label">{{ m.label }}</div>
+                </div>
               </v-card>
             </v-col>
           </v-row>
 
-          <!-- Tabs de resultados -->
-          <v-card>
+          <v-card class="analysis-results-card">
             <v-tabs v-model="tabResultado" color="accent" density="compact">
-              <v-tab value="frecuencia">Frecuencia</v-tab>
-              <v-tab value="clasificacion">Clasificación</v-tab>
-              <v-tab value="patrones">Patrones</v-tab>
+              <v-tab value="frecuencia" prepend-icon="mdi-chart-bar">Frecuencia</v-tab>
+              <v-tab value="clasificacion" prepend-icon="mdi-format-list-bulleted-type">Clasificación</v-tab>
+              <v-tab value="patrones" prepend-icon="mdi-magnify-scan">Datos detectados</v-tab>
             </v-tabs>
 
             <v-divider />
 
             <v-window v-model="tabResultado">
-              <!-- Frecuencia -->
               <v-window-item value="frecuencia" class="pa-4">
+                <p class="analysis-tab-intro">Muestra las palabras que más se repiten y las que aparecen con menor frecuencia.</p>
                 <v-row>
                   <v-col cols="12" md="6">
-                    <h3 class="text-subtitle-2 font-weight-bold mb-2">
-                      🔼 Más frecuentes
-                    </h3>
+                    <h3 class="analysis-table-title"><v-icon size="18">mdi-arrow-up</v-icon> Más repetidas</h3>
                     <table class="tabla-frecuencia">
                       <thead>
-                        <tr><th>Palabra</th><th>Veces</th></tr>
+                        <tr><th>Palabra</th><th>Apariciones</th></tr>
                       </thead>
                       <tbody>
                         <tr v-for="t in resultado.palabrasMasFrecuentes.slice(0,10)" :key="t.token">
@@ -123,12 +125,10 @@
                     </table>
                   </v-col>
                   <v-col cols="12" md="6">
-                    <h3 class="text-subtitle-2 font-weight-bold mb-2">
-                      🔽 Menos frecuentes
-                    </h3>
+                    <h3 class="analysis-table-title"><v-icon size="18">mdi-arrow-down</v-icon> Menos repetidas</h3>
                     <table class="tabla-frecuencia">
                       <thead>
-                        <tr><th>Palabra</th><th>Veces</th></tr>
+                        <tr><th>Palabra</th><th>Apariciones</th></tr>
                       </thead>
                       <tbody>
                         <tr v-for="t in resultado.palabrasMenosFrecuentes.slice(0,10)" :key="t.token">
@@ -143,13 +143,13 @@
                 </v-row>
               </v-window-item>
 
-              <!-- Clasificación gramatical -->
               <v-window-item value="clasificacion" class="pa-4">
+                <p class="analysis-tab-intro">Palabras agrupadas según las reglas del idioma seleccionado.</p>
                 <v-row>
                   <v-col cols="12" sm="6" v-for="cat in categorias" :key="cat.key">
                     <div class="mb-4">
                       <div class="d-flex align-center mb-2">
-                        <span class="text-h6 mr-2">{{ cat.icon }}</span>
+                        <v-icon size="19" class="mr-2" :color="cat.color">{{ cat.icon }}</v-icon>
                         <span class="text-subtitle-2 font-weight-bold">{{ cat.label }}</span>
                         <v-chip size="x-small" class="ml-2" color="grey" variant="tonal">
                           {{ resultado[cat.key]?.length || 0 }}
@@ -168,44 +168,40 @@
                 </v-row>
               </v-window-item>
 
-              <!-- Patrones adicionales -->
               <v-window-item value="patrones" class="pa-4">
-                <v-row>
-                  <v-col cols="12" sm="6">
-                    <h4 class="text-subtitle-2 font-weight-bold mb-2">📧 Correos</h4>
-                    <div class="d-flex flex-wrap gap-1 mb-4">
-                      <v-chip v-for="e in resultado.correosEncontrados" :key="e"
-                              size="small" color="blue" variant="tonal">{{ e }}</v-chip>
-                      <span v-if="!resultado.correosEncontrados?.length"
-                            class="text-caption text-medium-emphasis">Ninguno</span>
-                    </div>
-
-                    <h4 class="text-subtitle-2 font-weight-bold mb-2">🌐 URLs</h4>
-                    <div class="d-flex flex-wrap gap-1 mb-4">
-                      <v-chip v-for="u in resultado.urlsEncontradas" :key="u"
-                              size="small" color="teal" variant="tonal">{{ u }}</v-chip>
-                      <span v-if="!resultado.urlsEncontradas?.length"
-                            class="text-caption text-medium-emphasis">Ninguna</span>
-                    </div>
-                  </v-col>
-                  <v-col cols="12" sm="6">
-                    <h4 class="text-subtitle-2 font-weight-bold mb-2">📅 Fechas</h4>
-                    <div class="d-flex flex-wrap gap-1 mb-4">
-                      <v-chip v-for="f in resultado.fechasEncontradas" :key="f"
-                              size="small" color="orange" variant="tonal">{{ f }}</v-chip>
-                      <span v-if="!resultado.fechasEncontradas?.length"
-                            class="text-caption text-medium-emphasis">Ninguna</span>
-                    </div>
-
-                    <h4 class="text-subtitle-2 font-weight-bold mb-2">🔢 Números</h4>
-                    <div class="d-flex flex-wrap gap-1">
-                      <v-chip v-for="n in resultado.numeros?.slice(0,10)" :key="n"
-                              size="small" color="purple" variant="tonal">{{ n }}</v-chip>
-                      <span v-if="!resultado.numeros?.length"
-                            class="text-caption text-medium-emphasis">Ninguno</span>
-                    </div>
-                  </v-col>
-                </v-row>
+                <p class="analysis-tab-intro">Elementos identificados directamente en el contenido del documento.</p>
+                <div class="analysis-patterns">
+                  <section class="analysis-pattern">
+                    <h4><v-icon size="18">mdi-email-outline</v-icon> Correos electrónicos</h4>
+                    <ul v-if="resultado.correosEncontrados?.length">
+                      <li v-for="correo in resultado.correosEncontrados" :key="correo">{{ correo }}</li>
+                    </ul>
+                    <p v-else>Sin coincidencias.</p>
+                  </section>
+                  <section class="analysis-pattern">
+                    <h4><v-icon size="18">mdi-link-variant</v-icon> Enlaces web</h4>
+                    <ul v-if="resultado.urlsEncontradas?.length">
+                      <li v-for="url in resultado.urlsEncontradas" :key="url">
+                        <a :href="url" target="_blank" rel="noopener noreferrer">{{ url }}</a>
+                      </li>
+                    </ul>
+                    <p v-else>Sin coincidencias.</p>
+                  </section>
+                  <section class="analysis-pattern">
+                    <h4><v-icon size="18">mdi-calendar-outline</v-icon> Fechas</h4>
+                    <ul v-if="resultado.fechasEncontradas?.length">
+                      <li v-for="fecha in resultado.fechasEncontradas" :key="fecha">{{ fecha }}</li>
+                    </ul>
+                    <p v-else>Sin coincidencias.</p>
+                  </section>
+                  <section class="analysis-pattern">
+                    <h4><v-icon size="18">mdi-numeric</v-icon> Números</h4>
+                    <ul v-if="resultado.numeros?.length">
+                      <li v-for="numero in resultado.numeros.slice(0, 10)" :key="numero">{{ numero }}</li>
+                    </ul>
+                    <p v-else>Sin coincidencias.</p>
+                  </section>
+                </div>
               </v-window-item>
             </v-window>
           </v-card>
@@ -240,21 +236,25 @@ const idiomas = [
 ]
 
 const categorias = [
-  { key: 'pronombres',    label: 'Pronombres personales', icon: '🗣️',  color: 'indigo' },
-  { key: 'verbos',        label: 'Verbos (raíz)',         icon: '⚡',   color: 'green' },
-  { key: 'sustantivos',   label: 'Sustantivos',           icon: '🏷️',  color: 'blue' },
-  { key: 'adjetivos',     label: 'Adjetivos',             icon: '✨',   color: 'pink' },
-  { key: 'nombresPersonas', label: 'Nombres de personas', icon: '👤',  color: 'amber' },
-  { key: 'conectores',    label: 'Conectores',            icon: '🔗',  color: 'cyan' },
-  { key: 'preposiciones', label: 'Preposiciones',         icon: '📌',  color: 'deep-purple' },
+  { key: 'pronombres', label: 'Pronombres personales', icon: 'mdi-account-voice', color: 'indigo' },
+  { key: 'verbos', label: 'Verbos', icon: 'mdi-run', color: 'green' },
+  { key: 'sustantivos', label: 'Sustantivos', icon: 'mdi-tag-outline', color: 'blue' },
+  { key: 'adjetivos', label: 'Adjetivos', icon: 'mdi-format-color-text', color: 'pink' },
+  { key: 'nombresPersonas', label: 'Nombres de personas', icon: 'mdi-account-outline', color: 'amber' },
+  { key: 'conectores', label: 'Conectores', icon: 'mdi-link-variant', color: 'cyan' },
+  { key: 'preposiciones', label: 'Preposiciones', icon: 'mdi-map-marker-outline', color: 'deep-purple' },
 ]
 
 const metricas = computed(() => resultado.value ? [
-  { label: 'Palabras',   valor: resultado.value.totalPalabras.toLocaleString(),  color: 'accent' },
-  { label: 'Oraciones',  valor: resultado.value.totalOraciones.toLocaleString(), color: 'success' },
-  { label: 'Párrafos',   valor: resultado.value.totalParrafos.toLocaleString(),  color: 'warning' },
-  { label: 'Long. prom', valor: resultado.value.promedioLongitudPalabra,         color: 'info' }
+  { label: 'Palabras', valor: resultado.value.totalPalabras.toLocaleString(), color: 'accent', icono: 'mdi-format-letter-case' },
+  { label: 'Oraciones', valor: resultado.value.totalOraciones.toLocaleString(), color: 'success', icono: 'mdi-text-long' },
+  { label: 'Párrafos', valor: resultado.value.totalParrafos.toLocaleString(), color: 'warning', icono: 'mdi-format-align-left' },
+  { label: 'Promedio por palabra', valor: resultado.value.promedioLongitudPalabra + ' caracteres', color: 'info', icono: 'mdi-ruler' }
 ] : [])
+
+function nombreIdioma(valor: string) {
+  return idiomas.find((item) => item.value === valor)?.label || valor
+}
 
 function onFileSelect(e: Event) {
   const f = (e.target as HTMLInputElement).files?.[0]
@@ -313,4 +313,78 @@ async function procesar() {
   background: #FFF8E1;
 }
 .gap-1 { gap: 4px; }
+
+.analysis-result-context {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #E2E8F0;
+  border-radius: 9px;
+  background: #FFFFFF;
+}
+
+.analysis-result-context__file {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  color: #17324D;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.analysis-result-context__file span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.analysis-result-context__file .v-icon { color: #B48B21; }
+.analysis-result-context__language {
+  flex: 0 0 auto;
+  color: #506174;
+  font-size: 12px;
+  text-transform: capitalize;
+}
+
+.analysis-metrics :deep(.v-col) { display: flex; }
+.analysis-metric { display: flex; width: 100%; align-items: center; gap: 10px; border: 1px solid #E2E8F0 !important; box-shadow: none !important; text-align: left; }
+.analysis-metric__value { color: #17324D; font-size: 17px; font-weight: 700; line-height: 1.15; }
+.analysis-metric__label { margin-top: 2px; color: #64748B; font-size: 11px; line-height: 1.25; }
+.analysis-results-card { border: 1px solid #E2E8F0 !important; }
+.analysis-tab-intro { margin: 0 0 18px; color: #64748B; font-size: 13px; line-height: 1.5; }
+.analysis-table-title { display: flex; align-items: center; gap: 7px; margin: 0 0 10px; color: #17324D; font-size: 14px; font-weight: 700; }
+.analysis-table-title .v-icon { color: #B48B21; }
+
+.analysis-patterns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.analysis-pattern {
+  min-height: 116px;
+  padding: 14px;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  background: #FFFFFF;
+}
+
+.analysis-pattern h4 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 11px;
+  color: #17324D;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.analysis-pattern h4 .v-icon { color: #B48B21; }
+.analysis-pattern p { margin: 0; color: #7B8794; font-size: 13px; }
+.analysis-pattern ul { display: grid; gap: 6px; padding: 0; margin: 0; list-style: none; }
+.analysis-pattern li { overflow: hidden; color: #405064; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
+.analysis-pattern a { color: #1A5080; text-decoration: none; }
+.analysis-pattern a:hover { text-decoration: underline; }
+
+@media (max-width: 600px) {
+  .analysis-patterns { grid-template-columns: 1fr; }
+}
 </style>

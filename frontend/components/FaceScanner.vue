@@ -106,10 +106,10 @@ function tomarFoto(video: HTMLVideoElement): string | null {
 function recortarRostro(video: HTMLVideoElement, caja: { x: number, y: number, ancho: number, alto: number }): string {
   const relacion = 3 / 4
   // Margen para conservar frente y mentón.
-  const altoRecorte = Math.min(video.videoHeight, Math.max(caja.alto * 1.5, caja.ancho / relacion * 1.4))
+  const altoRecorte = Math.min(video.videoHeight, Math.max(caja.alto * 1.22, caja.ancho / relacion * 1.18))
   const anchoRecorte = Math.min(video.videoWidth, altoRecorte * relacion)
   const centroX = caja.x + caja.ancho / 2
-  const centroY = caja.y + caja.alto * 0.52
+  const centroY = caja.y + caja.alto * 0.48
   const origenX = Math.max(0, Math.min(video.videoWidth - anchoRecorte, centroX - anchoRecorte / 2))
   const origenY = Math.max(0, Math.min(video.videoHeight - altoRecorte, centroY - altoRecorte / 2))
   const lienzo = document.createElement('canvas')

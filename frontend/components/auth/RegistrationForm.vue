@@ -413,10 +413,10 @@ async function crearRecorteDesdeImagen(foto: string): Promise<string | null> {
   if (!caja) return null
 
   const relacion = 3 / 4
-  const altoRecorte = Math.min(imagen.naturalHeight, Math.max(caja.alto * 1.5, caja.ancho / relacion * 1.4))
+  const altoRecorte = Math.min(imagen.naturalHeight, Math.max(caja.alto * 1.22, caja.ancho / relacion * 1.18))
   const anchoRecorte = Math.min(imagen.naturalWidth, altoRecorte * relacion)
   const centroX = caja.x + caja.ancho / 2
-  const centroY = caja.y + caja.alto * 0.52
+  const centroY = caja.y + caja.alto * 0.48
   const origenX = Math.max(0, Math.min(imagen.naturalWidth - anchoRecorte, centroX - anchoRecorte / 2))
   const origenY = Math.max(0, Math.min(imagen.naturalHeight - altoRecorte, centroY - altoRecorte / 2))
   const lienzo = document.createElement('canvas')
