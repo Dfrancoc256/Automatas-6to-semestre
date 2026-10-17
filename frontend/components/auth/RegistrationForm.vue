@@ -260,7 +260,7 @@ const bypassDesarrollo = computed(() => import.meta.dev && !requiereRecaptcha.va
 const puedeEnviar = computed(() => bypassDesarrollo.value || recaptchaToken.value.length > 0)
 const puedeRegistrar = computed(() => !!fotoCapturada.value && puedeEnviar.value)
 
-// Webcam (la cámara la administra <FaceScanner>)
+// La cámara se administra en FaceScanner.
 const escaner       = ref<{ capturar: () => Promise<{ descriptor: number[] | null, foto: string | null, fotoRecortada: string | null } | null> } | null>(null)
 const selectorFoto  = ref<HTMLInputElement | null>(null)
 const fotoCapturada = ref<string | null>(null)
@@ -343,7 +343,7 @@ async function capturarFoto() {
     }
     descriptorFacial.value = captura.descriptor
     fotoCapturada.value = captura.foto
-    // La credencial siempre usa el retrato producido desde la caja facial detectada.
+    // La credencial usa el retrato recortado.
     fotoParaCredencial.value = captura.fotoRecortada
     rostroDetectado.value = true
   } catch {
@@ -353,7 +353,7 @@ async function capturarFoto() {
   }
 }
 
-/** Alternativa para móvil: abre la cámara nativa o la galería cuando el navegador lo requiera. */
+/** Abre la cámara o galería nativa en móvil. */
 async function seleccionarFoto(evento: Event) {
   error.value = ''
   const input = evento.target as HTMLInputElement
@@ -385,7 +385,7 @@ async function seleccionarFoto(evento: Event) {
     }
     fotoCapturada.value = fotoLeida
     fotoParaCredencial.value = recorte
-    // Una foto elegida desde el teléfono se enrola después, pero el retrato ya fue recortado.
+    // El retrato se recorta antes de enrolar el rostro.
     descriptorFacial.value = null
     rostroDetectado.value = true
   } catch {
@@ -432,7 +432,7 @@ async function crearFotoPersonalizada() {
   try {
     const imagen = await cargarImagen(fuente)
     const lienzo = document.createElement('canvas')
-    // La foto de credencial es vertical (3:4); no se deforma como una webcam 4:3.
+    // La credencial usa formato vertical 3:4.
     lienzo.width = 360
     lienzo.height = 480
     const contexto = lienzo.getContext('2d')!
@@ -454,12 +454,12 @@ async function crearFotoPersonalizada() {
           tamanoSticker * lienzo.height / altoVista
         )
       } catch {
-        // El registro no se bloquea si un recurso decorativo no está disponible.
+        // El registro continúa aunque falle un recurso visual.
       }
     }
     return lienzo.toDataURL('image/jpeg', 0.85)
   } catch {
-    // No bloqueamos la creación de la cuenta si el lienzo no es compatible.
+    // No bloquea el registro si Canvas no está disponible.
     return fuente
   }
 }
@@ -489,7 +489,7 @@ async function registrar() {
       password:           form.password,
       confirmarPassword:  form.confirmarPassword,
       metodoNotificacion: form.metodoNotificacion,
-      // Por privacidad se guarda el recorte facial; no el cuadro completo de cámara.
+      // Guarda solo el recorte facial.
       fotoBase64:         fotoParaCredencial.value || fotoCapturada.value,
       fotoModificadaBase64: await crearFotoPersonalizada(),
       descriptor:         descriptorFacial.value,
@@ -500,8 +500,7 @@ async function registrar() {
     paso.value = 3
   } catch (e: any) {
     error.value = obtenerMensajeErrorRegistro(e)
-    // Google invalida el token después de enviarlo, incluso si el servidor rechaza
-    // el registro por otro dato. Volvemos al paso 1 para solicitar uno nuevo.
+    // El token debe renovarse después de cada envío.
     if (requiereRecaptcha.value && !bypassDesarrollo.value) {
       recaptchaToken.value = ''
       recaptcha.value?.reiniciar()
@@ -513,7 +512,7 @@ async function registrar() {
   }
 }
 
-/** Convierte respuestas HTTP y errores de red en textos seguros para la persona usuaria. */
+/** Convierte errores HTTP y de red en mensajes legibles. */
 function obtenerMensajeErrorRegistro(errorRespuesta: any) {
   const estado = errorRespuesta?.response?.status
   const respuesta = errorRespuesta?.response?.data
@@ -571,7 +570,7 @@ async function descargarCredencial() {
   transform: translateY(0);
   transition: max-height .24s ease, opacity .16s ease, margin .24s ease, transform .24s ease;
 }
-/* En datos y foto se repliega el encabezado: en foto ese espacio se usa para la cámara. */
+/* Reduce el encabezado durante el registro. */
 .registro-content--edicion > .text-center.mb-6,
 .registro-content--captura > .text-center.mb-6 {
   max-height: 0;

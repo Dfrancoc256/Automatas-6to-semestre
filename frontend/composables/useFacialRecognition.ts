@@ -5,8 +5,7 @@ type Fuente = HTMLVideoElement | HTMLCanvasElement | HTMLImageElement
 let modelosPromesa: Promise<void> | null = null
 let calentadoPromesa: Promise<void> | null = null
 
-// 320 px ofrece una detección más estable en fotos de teléfono y sigue siendo ágil
-// para la vista previa de la cámara. La caja detectada se usa también para el recorte.
+// Tamaño de entrada para detección y recorte.
 const opcionesDetector = () => new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.45 })
 
 async function cargarModelos() {
@@ -21,10 +20,7 @@ async function cargarModelos() {
   return modelosPromesa
 }
 
-/**
- * Carga los modelos y ejecuta una pasada de prueba para que los shaders de WebGL queden
- * compilados: sin esto, el primer escaneo real paga ese costo (~1 s) delante del usuario.
- */
+/** Prepara los modelos faciales. */
 function calentar() {
   if (!calentadoPromesa) {
     calentadoPromesa = (async () => {
@@ -34,9 +30,7 @@ function calentar() {
         c.width = c.height = lado
         return c
       }
-      // Una imagen en blanco no contiene rostro, así que la cadena detector → landmarks →
-      // descriptor se cortaría en el primer paso. Se ejecuta cada red por separado con su
-      // tamaño de entrada real (detector 320, landmarks 112, reconocimiento 150).
+      // Carga cada red con su tamaño de entrada.
       await faceapi.detectSingleFace(lienzo(320), opcionesDetector())
       await faceapi.nets.faceLandmark68Net.detectLandmarks(lienzo(112))
       await faceapi.nets.faceRecognitionNet.computeFaceDescriptor(lienzo(150))
@@ -47,10 +41,7 @@ function calentar() {
 
 export interface CajaRostro { x: number, y: number, ancho: number, alto: number, puntaje: number }
 
-/**
- * Detección rápida (solo la caja del rostro, sin landmarks ni descriptor). Sirve para guiar
- * al usuario en tiempo real y decidir cuándo vale la pena calcular el descriptor completo.
- */
+/** Detecta la posición de un rostro. */
 async function detectarRostro(input: Fuente): Promise<CajaRostro | null> {
   await cargarModelos()
   const deteccion = await faceapi.detectSingleFace(input, opcionesDetector())
@@ -59,11 +50,7 @@ async function detectarRostro(input: Fuente): Promise<CajaRostro | null> {
   return { x, y, ancho: width, alto: height, puntaje: deteccion.score }
 }
 
-/**
- * Detecta un único rostro en la imagen/video y devuelve su descriptor facial
- * (128 valores). Mismo concepto que el "encoding_facial" de biometrico, pero
- * calculado en el navegador con face-api.js en vez de un servicio Python externo.
- */
+/** Obtiene el descriptor facial. */
 async function obtenerDescriptor(input: Fuente): Promise<number[] | null> {
   await cargarModelos()
 

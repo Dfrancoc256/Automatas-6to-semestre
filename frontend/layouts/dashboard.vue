@@ -1,9 +1,7 @@
 <template>
   <div class="main-layout">
-    <!-- Overlay móvil -->
     <div v-if="sidebarOpen" class="sidebar-overlay" @click="sidebarOpen = false" />
 
-    <!-- Sidebar -->
     <aside :class="['sidebar', { open: sidebarOpen, collapsed: sidebarCollapsed }]" aria-label="Navegación principal">
       <div class="sidebar-logo">
         <div class="sidebar-logo-icon">
@@ -15,13 +13,19 @@
         </div>
       </div>
 
-      <!-- Avatar de usuario -->
       <div class="sidebar-user px-4 py-3 flex items-center gap-3">
         <v-avatar size="36" color="accent">
-          <v-img v-if="fotoSidebarUrl" :src="fotoSidebarUrl" />
-          <span v-else class="text-white text-sm font-bold">
+          <span v-if="!fotoSidebarCargada" class="text-white text-sm font-bold">
             {{ auth.user?.nickname?.charAt(0).toUpperCase() }}
           </span>
+          <img
+            v-if="fotoSidebarUrl"
+            :src="fotoSidebarUrl"
+            class="sidebar-user-photo"
+            alt=""
+            @load="fotoSidebarCargada = true"
+            @error="fotoSidebarCargada = false"
+          >
         </v-avatar>
         <div>
           <div class="sidebar-user-name">{{ auth.user?.nickname || 'Usuario UMG' }}</div>
@@ -80,7 +84,6 @@
         </NuxtLink>
       </nav>
 
-      <!-- Cerrar sesión -->
       <div style="padding:16px;border-top:1px solid rgba(255,255,255,.12)">
         <v-btn block variant="outlined" color="white" size="small" title="Cerrar sesión" aria-label="Cerrar sesión"
                prepend-icon="mdi-logout" @click="cerrarSesion">
@@ -89,9 +92,7 @@
       </div>
     </aside>
 
-    <!-- Contenido principal -->
     <main :class="['page-content', { 'sidebar-collapsed': sidebarCollapsed }]">
-      <!-- Control de barra lateral -->
       <div class="dashboard-topbar d-flex align-center mb-4">
         <button
           type="button"
@@ -118,9 +119,14 @@ const auth  = useAuthStore()
 const route = useRoute()
 const { fotoUrl } = useMediaUrl()
 const fotoSidebarUrl = computed(() => fotoUrl(auth.user?.fotoModificada))
+const fotoSidebarCargada = ref(false)
 
 const sidebarOpen = ref(false)
 const sidebarCollapsed = ref(false)
+
+watch(fotoSidebarUrl, () => {
+  fotoSidebarCargada.value = false
+}, { immediate: true })
 
 onMounted(() => auth.restore())
 
@@ -138,7 +144,7 @@ async function cerrarSesion() {
   try {
     await api.post('/auth/logout')
   } catch {
-    // Aunque la sesión del servidor ya no sea válida, se limpia el estado local.
+    // Limpia el estado local.
   }
   auth.logout()
   await navigateTo('/')
@@ -196,4 +202,5 @@ async function cerrarSesion() {
 .text-white   { color: white; }
 .text-sm      { font-size: 13px; }
 .font-bold    { font-weight: 700; }
+.sidebar-user-photo { width: 100%; height: 100%; object-fit: cover; }
 </style>

@@ -1,5 +1,4 @@
-// Construye la URL pública de un archivo servido por el backend en /uploads
-// (fotos de perfil, incluida la capturada al enrolar el rostro).
+// URL pública de archivos guardados en /uploads.
 export function useMediaUrl() {
   const config = useRuntimeConfig()
 

@@ -81,7 +81,7 @@ public class AuthService : IAuthService
         return CrearRespuestaSesion(usuario);
     }
 
-    // Solo para ejecución local sin PostgreSQL. No persiste usuarios ni bitácora.
+    // Registro temporal para desarrollo local.
     private AuthResponseDTO? LoginLocal(LoginDTO dto)
     {
         var identificador = dto.Identificador.Trim().ToLowerInvariant();
@@ -217,10 +217,7 @@ public class AuthService : IAuthService
         return respuesta;
     }
 
-    /// <summary>
-    /// Envía las notificaciones elegidas sin revertir un registro que ya fue persistido.
-    /// Nunca se incluye la contraseña ni información biométrica en los mensajes.
-    /// </summary>
+    /// <summary>Envía las notificaciones del registro.</summary>
     private async Task NotificarRegistroAsync(Usuario usuario, string codigoQr)
     {
         var nombre = WebUtility.HtmlEncode(usuario.NombreCompleto);
@@ -237,7 +234,7 @@ public class AuthService : IAuthService
         }
         catch (Exception ex)
         {
-            // El alta ya fue guardada: una credencial no debe revertirla.
+            // El registro no se revierte si falla la credencial.
             _logger.LogError(ex, "No se pudo generar la credencial inicial del usuario {UsuarioId}", usuario.Id);
         }
 
@@ -281,8 +278,7 @@ public class AuthService : IAuthService
         }
     }
 
-    // Registro demostrativo para desarrollo local. No persiste correo, foto,
-    // descriptor facial ni contraseña mientras PostgreSQL no esté disponible.
+    // Registro temporal para desarrollo.
     private AuthResponseDTO RegistrarLocal(RegisterDTO dto)
     {
         var usuario = new Usuario

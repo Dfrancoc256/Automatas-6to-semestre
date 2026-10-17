@@ -1,4 +1,4 @@
-# Compilación aislada de la API.
+# Build de la API.
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
@@ -8,7 +8,7 @@ RUN dotnet restore "LenguajesFormalesAPI.csproj"
 COPY . .
 RUN dotnet publish "LenguajesFormalesAPI.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
-# Imagen final mínima, sin SDK ni código fuente.
+# Imagen de producción.
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 

@@ -7,12 +7,11 @@ export function useApi() {
   const client = axios.create({
     baseURL: config.public.apiBase,
     timeout: 30000,
-    // Permite que el navegador envíe la cookie HttpOnly de sesión al API.
+    // Envía la cookie de sesión.
     withCredentials: true
   })
 
-  // Compatibilidad temporal para clientes que aún entregan un token explícito.
-  // La aplicación web usa la cookie HttpOnly emitida por el backend.
+  // Compatibilidad con clientes que aún envían token.
   client.interceptors.request.use((req) => {
     if (authStore.user?.token) {
       req.headers.Authorization = `Bearer ${authStore.user.token}`
@@ -26,8 +25,7 @@ export function useApi() {
     (err) => {
       if (err.response?.status === 401) {
         authStore.logout()
-        // La verificación de navegación decide el destino y conserva la ruta
-        // solicitada. Evitamos competir con ella cuando consulta /auth/sesion.
+        // El guard de navegación controla esta consulta.
         if (err.config?.url !== '/auth/sesion') {
           navigateTo('/login')
         }

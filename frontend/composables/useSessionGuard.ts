@@ -1,5 +1,4 @@
-// Una verificación remota por navegación protege contra una cookie visual
-// vencida o manipulada. El servidor valida la cookie HttpOnly real.
+// Valida la sesión en el servidor al navegar.
 let validacionPendiente: Promise<boolean> | null = null
 let sesionValidadaHasta = 0
 

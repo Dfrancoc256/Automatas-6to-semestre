@@ -65,8 +65,7 @@ public class AuthController : ControllerBase
         }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException postgres)
         {
-            // La causa completa queda en el log del VPS; al navegador solo se
-            // le entrega una explicación segura y accionable.
+            // El detalle queda en el log.
             _logger.LogError(ex, "No se pudo guardar el registro. PostgreSQL: {SqlState}", postgres.SqlState);
 
             return postgres.SqlState switch
@@ -195,8 +194,16 @@ public class AuthController : ControllerBase
     /// <summary>Valida la cookie de sesión sin exponer el JWT al navegador.</summary>
     [HttpGet("sesion")]
     [Authorize]
-    public IActionResult SesionActual()
+    public async Task<IActionResult> SesionActual()
     {
+        var idStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(idStr, out var id))
+            return Unauthorized();
+
+        var perfil = await _auth.ObtenerPerfilAsync(id);
+        if (perfil == null)
+            return Unauthorized();
+
         var exp = User.FindFirst("exp")?.Value;
         var expiracion = long.TryParse(exp, out var segundos)
             ? DateTimeOffset.FromUnixTimeSeconds(segundos).UtcDateTime
@@ -204,9 +211,9 @@ public class AuthController : ControllerBase
 
         return Ok(new SesionActualDTO
         {
-            Rol = User.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty,
-            Nickname = User.FindFirst("nickname")?.Value ?? User.Identity?.Name ?? string.Empty,
-            FotoModificada = User.FindFirst("foto")?.Value,
+            Rol = perfil.Rol,
+            Nickname = perfil.Nickname,
+            FotoModificada = perfil.FotoModificada,
             Expiracion = expiracion
         });
     }
@@ -238,7 +245,7 @@ public class AuthController : ControllerBase
 
         var (pdf, nombreArchivo, perfil) = credencial.Value;
 
-        // Siempre al correo/teléfono registrados: nunca a un destino indicado por el cliente.
+        // Usa los datos de contacto registrados.
         try
         {
             if (dto.Canal == "email")
@@ -360,7 +367,6 @@ public class AuthController : ControllerBase
         });
     }
 
-    // En producción la sesión nunca debe viajar por HTTP. En desarrollo se
-    // permite localhost sin TLS para no bloquear el entorno local.
+    // HTTPS en producción.
     private bool UsarCookieSegura() => !_environment.IsDevelopment() || Request.IsHttps;
 }

@@ -14,7 +14,7 @@ interface GrecaptchaApi {
 declare global {
   interface Window {
     grecaptcha?: GrecaptchaApi
-    /** Promesa compartida para no insertar el script de Google más de una vez. */
+    /** Carga compartida de la API de Google. */
     __umgRecaptchaLoader?: Promise<void>
   }
 }
@@ -36,7 +36,7 @@ function reiniciarCarga() {
   window.__umgRecaptchaLoader = undefined
 }
 
-/** El token de reCAPTCHA se usa una sola vez; permite al formulario pedir uno nuevo. */
+/** Reinicia el desafío después de cada intento. */
 function reiniciar() {
   mensaje.value = ''
   emit('update:token', '')
@@ -71,7 +71,7 @@ function cargarApi(): Promise<void> {
     document.head.appendChild(script)
   })
 
-  // Permite reintentar si la red bloqueó la primera carga.
+  // Permite reintentar si falla la carga.
   window.__umgRecaptchaLoader.catch(() => {
     reiniciarCarga()
   })
@@ -79,11 +79,7 @@ function cargarApi(): Promise<void> {
   return window.__umgRecaptchaLoader
 }
 
-/**
- * Google puede responder antes de exponer `grecaptcha` en la primera carga.
- * Esperamos la API y reintentamos dos veces para no exigir al usuario cambiar
- * de formulario, especialmente en redes móviles lentas.
- */
+/** Espera a que Google deje disponible la API. */
 async function cargarApiConReintentos() {
   let ultimoError: unknown
 

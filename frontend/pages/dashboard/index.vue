@@ -2,17 +2,11 @@
   <div>
     <div class="dashboard-header d-flex align-center justify-space-between mb-8">
       <div>
-        <p class="dashboard-eyebrow">PANEL ACADÉMICO</p>
         <h1 class="dashboard-title">Dashboard</h1>
-        <p class="dashboard-subtitle">Bienvenido, {{ auth.user?.nickname }}</p>
+        <p class="dashboard-subtitle">Bienvenido, {{ auth.user?.nickname }}.</p>
       </div>
-      <v-chip class="role-chip" color="accent" variant="tonal">
-        <v-icon start size="14">mdi-circle</v-icon>
-        {{ auth.user?.rol }}
-      </v-chip>
     </div>
 
-    <!-- Resumen para Supervisor y Admin cuando el backend está conectado -->
     <template v-if="auth.isSupervisor && stats">
       <v-row class="mb-6">
         <v-col cols="12" sm="6" md="3">
@@ -53,7 +47,6 @@
         </v-col>
       </v-row>
 
-      <!-- Por idioma + Recientes -->
       <v-row>
         <v-col cols="12" md="4">
           <v-card>
@@ -111,35 +104,29 @@
     </template>
 
     <section class="module-hub mt-9" aria-labelledby="modulos-disponibles">
-      <div class="module-hub__header d-flex align-center justify-space-between mb-5 flex-wrap gap-3">
+      <div class="module-hub__header mb-5">
         <div>
-          <p class="dashboard-eyebrow mb-1">ACCESOS RÁPIDOS</p>
-          <h2 id="modulos-disponibles" class="dashboard-card-title mb-0">Módulos disponibles</h2>
+          <h2 id="modulos-disponibles" class="dashboard-card-title mb-1">Accesos directos</h2>
+          <p class="dashboard-subtitle">Elige una opción para continuar.</p>
         </div>
-        <v-chip color="primary" variant="tonal" size="small">
-          <v-icon start size="16">mdi-view-grid</v-icon>
-          {{ modulos.length }} módulos habilitados
-        </v-chip>
       </div>
 
       <v-row class="module-grid">
         <v-col v-for="modulo in modulos" :key="modulo.ruta" cols="12" sm="6" lg="4">
-          <v-card class="module-card pa-6" :class="{ 'module-card--featured': modulo.primario }">
-            <div class="d-flex align-start justify-space-between mb-5">
+          <v-card class="module-card pa-5" :class="{ 'module-card--featured': modulo.primario }">
+            <div class="module-card__header">
               <div class="module-card__icon" :class="`module-card__icon--${modulo.color}`">
-                <v-icon size="28">{{ modulo.icono }}</v-icon>
+                <v-icon size="24">{{ modulo.icono }}</v-icon>
               </div>
-              <v-chip size="x-small" color="success" variant="tonal">
-                <v-icon start size="12">mdi-check-circle</v-icon>Disponible
-              </v-chip>
+              <div>
+                <h2 class="module-card__title">{{ modulo.titulo }}</h2>
+                <p class="module-card__copy">{{ modulo.descripcion }}</p>
+              </div>
             </div>
-            <p class="dashboard-card-kicker">{{ modulo.categoria }}</p>
-            <h2 class="module-card__title">{{ modulo.titulo }}</h2>
-            <p class="module-card__copy">{{ modulo.descripcion }}</p>
             <v-btn :class="modulo.primario ? 'umg-gold-button' : ''"
               :color="modulo.primario ? 'accent' : 'primary'"
-              :variant="modulo.primario ? 'flat' : 'outlined'"
-              prepend-icon="mdi-arrow-right" @click="navigateTo(modulo.ruta)">
+              :variant="modulo.primario ? 'flat' : 'text'"
+              append-icon="mdi-arrow-right" @click="navigateTo(modulo.ruta)">
               {{ modulo.accion }}
             </v-btn>
           </v-card>

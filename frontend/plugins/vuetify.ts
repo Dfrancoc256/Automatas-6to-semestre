@@ -2,10 +2,7 @@ import { createVuetify } from 'vuetify'
 import * as components from 'vuetify/components'
 import * as directives from 'vuetify/directives'
 
-// Paleta 60-30-10 inspirada en la identidad visual UMG
-// 60% — marfil y gris azulado claro
-// 30% — azul institucional profundo
-// 10% — dorado institucional para acciones y énfasis
+// Colores institucionales.
 
 export default defineNuxtPlugin((nuxtApp) => {
   const vuetify = createVuetify({

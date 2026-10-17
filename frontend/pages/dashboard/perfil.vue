@@ -13,7 +13,7 @@
       <v-col cols="12" md="4">
         <v-card class="pa-6 text-center">
           <v-avatar size="96" class="mb-4" color="accent">
-            <v-img v-if="fotoPerfilUrl" :src="fotoPerfilUrl" />
+            <v-img v-if="fotoPerfilUrl" :src="fotoPerfilUrl" eager />
             <span v-else class="text-white text-h4 font-weight-bold">
               {{ perfil?.nickname?.charAt(0)?.toUpperCase() }}
             </span>
@@ -40,7 +40,7 @@
           </div>
 
           <div v-if="!camaraFacialActiva" class="text-center">
-            <v-img v-if="fotoPerfilUrl" :src="fotoPerfilUrl"
+            <v-img v-if="fotoPerfilUrl" :src="fotoPerfilUrl" eager
                    width="120" height="120" cover
                    class="mx-auto mb-3 rounded-circle facial-enrol-foto" />
             <p class="text-body-2 text-medium-emphasis mb-3">
@@ -192,17 +192,26 @@ function alFallarCamara(mensaje: string) {
   tipoMsgFacial.value = 'error'
 }
 
-async function enrolar(captura: { descriptor: number[] | null, foto: string | null }) {
-  if (!captura.descriptor || enrolando.value) return
+function actualizarFotoSesion(fotoModificada: string | null) {
+  if (!auth.user) return
+  auth.establecerSesionVerificada({ ...auth.user, fotoModificada })
+}
+
+async function enrolar(captura: { descriptor: number[] | null, fotoRecortada: string | null }) {
+  if (!captura.descriptor || !captura.fotoRecortada || enrolando.value) return
   msgFacial.value = ''
   enrolando.value = true
 
   try {
     await api.post('/facial/enrolar', { descriptor: captura.descriptor })
-    if (captura.foto) await api.put('/auth/perfil', { fotoModificadaBase64: captura.foto })
+    await api.put('/auth/perfil', {
+      fotoBase64: captura.fotoRecortada,
+      fotoModificadaBase64: captura.fotoRecortada
+    })
 
     const { data } = await api.get('/auth/perfil')
     perfil.value = data
+    actualizarFotoSesion(data.fotoModificada)
 
     msgFacial.value = 'Rostro enrolado correctamente.'
     tipoMsgFacial.value = 'success'

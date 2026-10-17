@@ -20,8 +20,7 @@ var connectionString =
 // ── Base de datos ─────────────────────────────────────────────────────────
 if (string.IsNullOrWhiteSpace(connectionString))
 {
-    // Base temporal mientras PostgreSQL todavía no está configurado.
-    // Los datos desaparecen al cerrar la aplicación.
+    // Base temporal para desarrollo.
     builder.Services.AddDbContext<AppDbContext>(options =>
         options.UseInMemoryDatabase("LenguajesFormalesDev"));
 }
@@ -40,8 +39,7 @@ if (string.IsNullOrWhiteSpace(jwtSecret) || Encoding.UTF8.GetByteCount(jwtSecret
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        // La sesión normal viaja en una cookie HttpOnly. Swagger y clientes externos
-        // pueden seguir enviando el token mediante el encabezado Authorization.
+        // Sesión por cookie o encabezado Authorization.
         options.Events = new JwtBearerEvents
         {
             OnMessageReceived = context =>
@@ -69,8 +67,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// Todo endpoint nuevo exige sesión por defecto. Solo las acciones marcadas
-// explícitamente con [AllowAnonymous] (registro e inicio de sesión) quedan públicas.
+// Los endpoints requieren sesión por defecto.
 builder.Services.AddAuthorization(options =>
 {
     options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
@@ -185,15 +182,13 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath  = "/uploads",
     OnPrepareResponse = contexto =>
     {
-        // Las fotografías son datos personales: nunca se guardan en caches
-        // compartidos ni se reutilizan después de cerrar sesión.
+        // No cachear fotografías.
         contexto.Context.Response.Headers["Cache-Control"] = "private, no-store, max-age=0";
     }
 });
 
 app.MapControllers();
-// El esquema se administra con backend/database/schema.sql.
-// Ejecuta el script antes de iniciar la API en un entorno nuevo.
+// Esquema: backend/database/schema.sql.
 
 
 app.Run();
