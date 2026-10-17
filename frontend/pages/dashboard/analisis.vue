@@ -80,7 +80,20 @@
               <v-icon size="20">mdi-file-document-outline</v-icon>
               <span>{{ resultado.nombreArchivo }}</span>
             </div>
-            <span class="analysis-result-context__language">{{ nombreIdioma(resultado.idioma) }}</span>
+            <div class="analysis-result-context__actions">
+              <span class="analysis-result-context__language">{{ nombreIdioma(resultado.idioma) }}</span>
+              <v-btn
+                size="small"
+                variant="outlined"
+                color="primary"
+                prepend-icon="mdi-download-outline"
+                :loading="descargandoReporte"
+                :disabled="!resultado.analisisId"
+                @click="descargarReporte"
+              >
+                Descargar reporte
+              </v-btn>
+            </div>
           </div>
 
           <v-row class="analysis-metrics mb-4">
@@ -226,6 +239,7 @@ const arrastrando = ref(false)
 const resultado  = ref<any>(null)
 const tabResultado = ref('frecuencia')
 const fileInput  = ref<HTMLInputElement | null>(null)
+const descargandoReporte = ref(false)
 
 const idiomas = [
   { label: '🇪🇸 Español', value: 'español' },
@@ -295,6 +309,27 @@ async function procesar() {
     procesando.value = false
   }
 }
+
+async function descargarReporte() {
+  if (!resultado.value?.analisisId) return
+
+  descargandoReporte.value = true
+  try {
+    const { data } = await api.get('/analisis/' + resultado.value.analisisId + '/reporte', {
+      responseType: 'blob'
+    })
+    const url = URL.createObjectURL(new Blob([data], { type: 'application/pdf' }))
+    const enlace = document.createElement('a')
+    enlace.href = url
+    enlace.download = 'reporte-' + (resultado.value.nombreArchivo || 'analisis').replace(/\.txt$/i, '') + '.pdf'
+    enlace.click()
+    URL.revokeObjectURL(url)
+  } catch (e: any) {
+    errorMsg.value = e.response?.data?.mensaje || 'No se pudo descargar el reporte.'
+  } finally {
+    descargandoReporte.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -337,6 +372,7 @@ async function procesar() {
 
 .analysis-result-context__file span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .analysis-result-context__file .v-icon { color: #B48B21; }
+.analysis-result-context__actions { display: flex; flex: 0 0 auto; align-items: center; gap: 12px; }
 .analysis-result-context__language {
   flex: 0 0 auto;
   color: #506174;
@@ -386,5 +422,7 @@ async function procesar() {
 
 @media (max-width: 600px) {
   .analysis-patterns { grid-template-columns: 1fr; }
+  .analysis-result-context { align-items: flex-start; flex-direction: column; }
+  .analysis-result-context__actions { width: 100%; justify-content: space-between; }
 }
 </style>
