@@ -81,15 +81,15 @@ public sealed class CredentialService : ICredentialService
 
                     row.ConstantItem(108).Column(codigo =>
                     {
-                        codigo.Item().AlignCenter().Text("ESCANEA PARA INGRESAR").Bold().FontSize(6.5f).FontColor("052E4C");
+                        codigo.Item().AlignCenter().Text("ESCANEA PARA VERIFICAR").Bold().FontSize(6.5f).FontColor("052E4C");
                         codigo.Item().PaddingTop(4).Border(1).BorderColor("C59A1C").Background("FFFFFF").Padding(4).Image(qr).FitArea();
-                        codigo.Item().PaddingTop(3).AlignCenter().Text("Código personal").FontSize(6.5f).FontColor("6A7B88");
+                        codigo.Item().PaddingTop(3).AlignCenter().Text("Verificación de credencial").FontSize(6.5f).FontColor("6A7B88");
                     });
                 });
             });
 
             page.Footer().Height(18).Background("C59A1C").AlignCenter().AlignMiddle()
-                .Text("Documento personal · No compartas tu código QR").FontSize(7).FontColor("FFFFFF");
+                .Text("Credencial institucional · Código QR de verificación").FontSize(7).FontColor("FFFFFF");
         })).GeneratePdf();
     }
 

@@ -162,25 +162,14 @@
 
               <v-window-item value="clasificacion" class="pa-4">
                 <p class="analysis-tab-intro">Palabras agrupadas según las reglas del idioma seleccionado.</p>
-                <v-row>
+                <v-row class="classification-summary">
                   <v-col cols="12" sm="6" v-for="cat in categorias" :key="cat.key">
-                    <div class="mb-4">
-                      <div class="d-flex align-center mb-2">
-                        <v-icon size="19" class="mr-2" :color="cat.color">{{ cat.icon }}</v-icon>
-                        <span class="text-subtitle-2 font-weight-bold">{{ cat.label }}</span>
-                        <v-chip size="x-small" class="ml-2" color="grey" variant="tonal">
-                          {{ resultado[cat.key]?.length || 0 }}
-                        </v-chip>
-                      </div>
-                      <div class="d-flex flex-wrap gap-1">
-                        <v-chip v-for="w in (resultado[cat.key] || []).slice(0,15)" :key="w"
-                                size="small" :color="cat.color" variant="tonal" class="resultado-chip">
-                          {{ w }}
-                        </v-chip>
-                        <span v-if="!resultado[cat.key]?.length"
-                              class="text-caption text-medium-emphasis">Sin resultados</span>
-                      </div>
-                    </div>
+                    <button type="button" class="classification-summary__item" @click="abrirCategoria(cat)">
+                      <v-icon size="21" color="primary">{{ cat.icon }}</v-icon>
+                      <span class="classification-summary__label">{{ cat.label }}</span>
+                      <span class="classification-summary__count">{{ resultado[cat.key]?.length || 0 }}</span>
+                      <v-icon size="18" color="primary">mdi-chevron-right</v-icon>
+                    </button>
                   </v-col>
                 </v-row>
               </v-window-item>
@@ -225,6 +214,23 @@
         </template>
       </v-col>
     </v-row>
+
+    <v-dialog v-model="dialogoCategoria" max-width="620">
+      <v-card v-if="categoriaSeleccionada">
+        <v-card-title class="d-flex align-center px-6 pt-5">
+          <v-icon color="primary" class="mr-3">{{ categoriaSeleccionada.icon }}</v-icon>
+          {{ categoriaSeleccionada.label }}
+        </v-card-title>
+        <v-card-text class="px-6 pb-3">
+          <p class="text-body-2 text-medium-emphasis mb-4">{{ palabrasCategoria.length }} {{ palabrasCategoria.length === 1 ? 'resultado encontrado' : 'resultados encontrados' }}.</p>
+          <div v-if="palabrasCategoria.length" class="classification-dialog__words">
+            <v-chip v-for="palabra in palabrasCategoria" :key="palabra" color="primary" variant="tonal" size="small">{{ palabra }}</v-chip>
+          </div>
+          <p v-else class="text-body-2 text-medium-emphasis mb-0">No se encontraron elementos en esta categoría.</p>
+        </v-card-text>
+        <v-card-actions class="px-6 pb-5"><v-spacer /><v-btn color="primary" variant="text" @click="dialogoCategoria = false">Cerrar</v-btn></v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -244,24 +250,31 @@ const resultado  = ref<any>(null)
 const tabResultado = ref('frecuencia')
 const fileInput  = ref<HTMLInputElement | null>(null)
 const descargandoReporte = ref(false)
+const dialogoCategoria = ref(false)
+const categoriaSeleccionada = ref<any>(null)
 
 const idiomas = [
-  { label: '🇪🇸 Español', value: 'español' },
-  { label: '🇺🇸 Inglés',  value: 'inglés' },
-  { label: '🇷🇺 Ruso',    value: 'ruso' },
-  { label: '🇨🇳 Chino',   value: 'chino' },
-  { label: '🇸🇦 Árabe',   value: 'árabe' }
+  { label: 'Español', value: 'español' },
+  { label: 'Inglés',  value: 'inglés' },
+  { label: 'Ruso',    value: 'ruso' },
+  { label: 'Chino',   value: 'chino' },
+  { label: 'Árabe',   value: 'árabe' }
 ]
 
 const categorias = [
-  { key: 'pronombres', label: 'Pronombres personales', icon: 'mdi-account-voice', color: 'indigo' },
-  { key: 'verbos', label: 'Verbos', icon: 'mdi-run', color: 'green' },
-  { key: 'sustantivos', label: 'Sustantivos', icon: 'mdi-tag-outline', color: 'blue' },
-  { key: 'adjetivos', label: 'Adjetivos', icon: 'mdi-format-color-text', color: 'pink' },
-  { key: 'nombresPersonas', label: 'Nombres de personas', icon: 'mdi-account-outline', color: 'amber' },
-  { key: 'conectores', label: 'Conectores', icon: 'mdi-link-variant', color: 'cyan' },
-  { key: 'preposiciones', label: 'Preposiciones', icon: 'mdi-map-marker-outline', color: 'deep-purple' },
+  { key: 'pronombres', label: 'Pronombres personales', icon: 'mdi-account-voice' },
+  { key: 'verbos', label: 'Verbos', icon: 'mdi-run' },
+  { key: 'sustantivos', label: 'Sustantivos', icon: 'mdi-tag-outline' },
+  { key: 'adjetivos', label: 'Adjetivos', icon: 'mdi-format-color-text' },
+  { key: 'nombresPersonas', label: 'Nombres de personas', icon: 'mdi-account-outline' },
+  { key: 'conectores', label: 'Conectores', icon: 'mdi-link-variant' },
+  { key: 'preposiciones', label: 'Preposiciones', icon: 'mdi-map-marker-outline' },
 ]
+
+const palabrasCategoria = computed(() => {
+  if (!categoriaSeleccionada.value || !resultado.value) return []
+  return resultado.value[categoriaSeleccionada.value.key] || []
+})
 
 const metricas = computed(() => resultado.value ? [
   { label: 'Palabras', valor: resultado.value.totalPalabras.toLocaleString(), color: 'accent', icono: 'mdi-format-letter-case' },
@@ -272,6 +285,11 @@ const metricas = computed(() => resultado.value ? [
 
 function nombreIdioma(valor: string) {
   return idiomas.find((item) => item.value === valor)?.label || valor
+}
+
+function abrirCategoria(categoria: any) {
+  categoriaSeleccionada.value = categoria
+  dialogoCategoria.value = true
 }
 
 function onFileSelect(e: Event) {
@@ -395,6 +413,29 @@ async function descargarReporte() {
 .analysis-tab-intro { margin: 0 0 18px; color: #64748B; font-size: 13px; line-height: 1.5; }
 .analysis-table-title { display: flex; align-items: center; gap: 7px; margin: 0 0 10px; color: #17324D; font-size: 14px; font-weight: 700; }
 .analysis-table-title .v-icon { color: #B48B21; }
+
+.classification-summary { margin-top: -4px; }
+.classification-summary__item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  width: 100%;
+  min-height: 62px;
+  gap: 12px;
+  align-items: center;
+  padding: 13px 14px;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  background: #FFFFFF;
+  color: #17324D;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color .18s ease, background .18s ease;
+}
+.classification-summary__item:hover,
+.classification-summary__item:focus-visible { border-color: #1A5080; background: #F5F9FC; outline: none; }
+.classification-summary__label { overflow: hidden; font-size: 14px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.classification-summary__count { min-width: 28px; color: #1A5080; font-size: 18px; font-weight: 700; text-align: right; }
+.classification-dialog__words { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .analysis-patterns {
   display: grid;

@@ -1,4 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Cryptography;
 using System.Security.Claims;
 using System.Text;
 using LenguajesFormalesAPI.Models;
@@ -10,8 +11,10 @@ public interface IJwtService
 {
     string GenerarToken(Usuario usuario);
     string GenerarTokenQr(Usuario usuario);
+    string GenerarCodigoQrCredencial(Usuario usuario);
     ClaimsPrincipal? ValidarToken(string token);
     ClaimsPrincipal? ValidarTokenQr(string token);
+    ClaimsPrincipal? ValidarCodigoQrCredencial(string token);
 }
 
 public class JwtService : IJwtService
@@ -41,6 +44,40 @@ public class JwtService : IJwtService
 
     public ClaimsPrincipal? ValidarTokenQr(string token) =>
         ValidarTokenInterno(token, "credencial_qr");
+
+    public string GenerarCodigoQrCredencial(Usuario usuario)
+    {
+        var dias = Math.Clamp(_config.GetValue("Jwt:QrExpirationDays", 365), 1, 730);
+        var vencimiento = DateTimeOffset.UtcNow.AddDays(dias).ToUnixTimeSeconds();
+        var contenido = $"{usuario.Id}.{vencimiento}";
+        var firma = FirmarCodigoQr(contenido);
+        var token = $"{contenido}.{firma}";
+        var urlConfigurada = _config["App:PublicUrl"];
+        var urlBase = (string.IsNullOrWhiteSpace(urlConfigurada)
+            ? "https://analizador-umg.duckdns.org"
+            : urlConfigurada).TrimEnd('/');
+        return $"{urlBase}/verificar-credencial?token={Uri.EscapeDataString(token)}";
+    }
+
+    public ClaimsPrincipal? ValidarCodigoQrCredencial(string token)
+    {
+        var partes = token.Split('.', StringSplitOptions.RemoveEmptyEntries);
+        if (partes.Length != 3 || !int.TryParse(partes[0], out var usuarioId)
+            || !long.TryParse(partes[1], out var vencimiento))
+            return null;
+
+        var contenido = $"{partes[0]}.{partes[1]}";
+        var firmaEsperada = FirmarCodigoQr(contenido);
+        if (!FirmaCoincide(partes[2], firmaEsperada))
+            return null;
+        if (DateTimeOffset.UtcNow.ToUnixTimeSeconds() > vencimiento)
+            return null;
+
+        var identidad = new ClaimsIdentity("credencial_qr");
+        identidad.AddClaim(new Claim(ClaimTypes.NameIdentifier, usuarioId.ToString()));
+        identidad.AddClaim(new Claim("tipo", "verificacion_credencial"));
+        return new ClaimsPrincipal(identidad);
+    }
 
     private IEnumerable<Claim> CrearClaimsBase(Usuario usuario) =>
     [
@@ -110,5 +147,19 @@ public class JwtService : IJwtService
             throw new InvalidOperationException("JWT SecretKey debe contener al menos 32 bytes");
 
         return secretKey;
+    }
+
+    private string FirmarCodigoQr(string contenido)
+    {
+        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(ObtenerClaveSecreta()));
+        return Base64UrlEncoder.Encode(hmac.ComputeHash(Encoding.UTF8.GetBytes(contenido)));
+    }
+
+    private static bool FirmaCoincide(string recibida, string esperada)
+    {
+        var izquierda = Encoding.UTF8.GetBytes(recibida);
+        var derecha = Encoding.UTF8.GetBytes(esperada);
+        return izquierda.Length == derecha.Length
+            && CryptographicOperations.FixedTimeEquals(izquierda, derecha);
     }
 }

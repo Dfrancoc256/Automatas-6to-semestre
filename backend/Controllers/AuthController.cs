@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using LenguajesFormalesAPI.DTOs;
 using LenguajesFormalesAPI.Interfaces;
 using LenguajesFormalesAPI.Services;
+using LenguajesFormalesAPI.Data;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -23,11 +24,12 @@ public class AuthController : ControllerBase
     private readonly IWhatsAppService _whatsApp;
     private readonly ILogger<AuthController> _logger;
     private readonly IWebHostEnvironment _environment;
+    private readonly AppDbContext _db;
 
     public AuthController(IAuthService auth, IRecaptchaService recaptcha,
         ICredentialService credential, IJwtService jwt,
         IEmailService email, IWhatsAppService whatsApp,
-        ILogger<AuthController> logger, IWebHostEnvironment environment)
+        ILogger<AuthController> logger, IWebHostEnvironment environment, AppDbContext db)
     {
         _email     = email;
         _whatsApp  = whatsApp;
@@ -37,6 +39,7 @@ public class AuthController : ControllerBase
         _jwt = jwt;
         _logger    = logger;
         _environment = environment;
+        _db = db;
     }
 
     /// <summary>Registro de nuevo usuario</summary>
@@ -143,6 +146,33 @@ public class AuthController : ControllerBase
             _logger.LogError(ex, "Error durante el inicio de sesión QR");
             return StatusCode(500, new { mensaje = "No fue posible iniciar sesión." });
         }
+    }
+
+    [HttpGet("verificar-credencial")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> VerificarCredencial([FromQuery] string token)
+    {
+        var principal = _jwt.ValidarCodigoQrCredencial(token);
+        var idTexto = principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(idTexto, out var usuarioId))
+            return Unauthorized(new { valido = false, mensaje = "La credencial no es válida o venció." });
+
+        var usuario = await _db.Usuarios
+            .Where(u => u.Id == usuarioId && u.Activo)
+            .Select(u => new { u.Nombre, u.Apellido, u.Nickname, u.Rol, u.FechaRegistro })
+            .FirstOrDefaultAsync();
+        if (usuario == null)
+            return NotFound(new { valido = false, mensaje = "La credencial no se encuentra activa." });
+
+        return Ok(new
+        {
+            valido = true,
+            nombre = $"{usuario.Nombre} {usuario.Apellido}".Trim(),
+            usuario.Nickname,
+            usuario.Rol,
+            usuario.FechaRegistro
+        });
     }
 
     /// <summary>Login mediante reconocimiento facial (descriptor calculado en el navegador)</summary>
@@ -258,7 +288,7 @@ public class AuthController : ControllerBase
                         <h2 style="color: #051B2E;">Hola, {System.Net.WebUtility.HtmlEncode(perfil.Nickname)}</h2>
                         <p>Adjuntamos tu credencial de la plataforma de Lenguajes Formales y Autómatas.</p>
                         <p style="font-size: 12px; color: #666;">
-                            El código QR permite iniciar sesión: no compartas este archivo con otras personas.
+                            El código QR permite verificar la autenticidad de esta credencial.
                         </p>
                     </div>
                     """,
@@ -272,7 +302,7 @@ public class AuthController : ControllerBase
                 perfil.Telefono,
                 pdf,
                 nombreArchivo,
-                $"Hola {perfil.Nickname}, esta es tu credencial. No la compartas con otras personas.");
+                $"Hola {perfil.Nickname}, esta es tu credencial. El código QR permite verificar su autenticidad.");
 
             return enviado
                 ? Ok(new { mensaje = "Credencial enviada por WhatsApp." })
@@ -307,7 +337,7 @@ public class AuthController : ControllerBase
             FotoModificada = perfil.FotoModificada,
             FechaRegistro = perfil.FechaRegistro
         };
-        var codigoQr = _jwt.GenerarTokenQr(usuario);
+        var codigoQr = _jwt.GenerarCodigoQrCredencial(usuario);
         var pdf = _credential.GenerarPdf(usuario, codigoQr);
         return (pdf, $"credencial-{usuario.Nickname}.pdf", perfil);
     }
