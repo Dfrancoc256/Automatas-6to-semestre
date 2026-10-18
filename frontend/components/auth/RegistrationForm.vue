@@ -627,9 +627,14 @@ async function descargarCredencial() {
 .registro-error__message { display: block; min-width: 0; overflow-wrap: anywhere; white-space: normal; }
 .registro-retry { color: #7A5E12 !important; font-weight: 700 !important; }
 @media (max-width: 700px) {
+  .registro-content { min-width: 0; max-width: 100%; overflow-x: hidden; }
+  .registro-content :deep(.v-stepper-header) { overflow: hidden; }
+  .registro-content :deep(.v-stepper-item) { min-width: 0; padding-inline: 2px; }
   .registro-content :deep(.v-stepper-window) { padding-right: 2px; }
+  .registro-content :deep(.v-stepper-window-item),
+  .registro-content :deep(.v-row) { min-width: 0; max-width: 100%; }
   .registro-content :deep(.v-stepper-header) { min-height: 64px; }
-  .registro-content :deep(.v-stepper-item__title) { font-size: 11px; }
+  .registro-content :deep(.v-stepper-item__title) { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
   .registro-content--captura :deep(.face-scanner) { max-width: 100%; }
   .registro-error :deep(.v-alert__content) { min-width: 0; width: 100%; }
   .registro-error :deep(.v-alert__close) { align-self: flex-start; }

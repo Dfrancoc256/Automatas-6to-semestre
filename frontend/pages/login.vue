@@ -398,7 +398,17 @@ function identificadorValido(valor: string) {
 .auth-card--shell :deep(.auth-form-content::-webkit-scrollbar-thumb) { background: #B48B21; border-radius: 999px; }
 .auth-card--login :deep(.auth-form-content) { padding-top: 4px; }
 @media (max-width: 700px) {
-  .auth-card--shell { height: calc(100dvh - 24px); }
+  .auth-card--shell {
+    width: 100%;
+    height: auto;
+    min-height: calc(100dvh - 24px);
+    overflow: visible;
+  }
+  .auth-card--shell :deep(.auth-form-content) {
+    min-width: 0;
+    overflow: visible;
+    padding-right: 0;
+  }
   .auth-back-home { top: 10px; left: 8px; }
 }
 
