@@ -29,6 +29,8 @@ html, body {
   font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
   background: var(--color-background);
   color: var(--color-text);
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 img, video, canvas { max-width: 100%; }
@@ -620,4 +622,30 @@ img, video, canvas { max-width: 100%; }
   }
 
   .auth-background__slide--one { opacity: 1; }
+}
+
+/* Barra pública y formularios adaptables. */
+.landing-nav { background: #0D3558; border-bottom-color: rgba(255,255,255,.16); }
+.landing-brand, .landing-brand strong, .landing-links a, .landing-login, .landing-menu-trigger { color: #FFFFFF !important; }
+.landing-brand small, .landing-links a .v-icon { color: #C5D6E5 !important; }
+.landing-register { color: #F5D77A !important; }
+.landing-login { border-color: rgba(255,255,255,.52) !important; }
+.landing-mobile-menu { color: #051B2E; }
+
+.auth-page, .auth-card, .auth-card--shell, .auth-form-content, .registro-content { max-width: 100%; min-width: 0; }
+.auth-page { width: 100%; overflow-x: clip; }
+
+@media (max-width: 700px) {
+  .auth-page { height: auto; min-height: 100dvh; padding: 12px; }
+  .auth-card, .auth-card--shell { width: 100%; max-width: 100%; margin: 0 auto; }
+  .auth-card--shell { height: auto; min-height: calc(100dvh - 24px); overflow: visible; }
+  .auth-card--shell .auth-form-content { overflow: visible; padding-right: 0; }
+  .registro-content .v-stepper,
+  .registro-content .v-stepper-window,
+  .registro-content .v-stepper-window-item,
+  .registro-content .v-row { min-width: 0; max-width: 100%; }
+  .registro-content .v-stepper-header { overflow: hidden; }
+  .registro-content .v-stepper-item { min-width: 0; padding-inline: 2px; }
+  .registro-content .v-stepper-item__title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .registro-content .v-field__input { min-width: 0; }
 }

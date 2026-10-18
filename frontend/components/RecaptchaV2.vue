@@ -27,6 +27,10 @@ const mensaje = ref('')
 let widgetId: number | null = null
 let activo = true
 
+function tamanoWidget() {
+  return contenedor.value && contenedor.value.clientWidth < 304 ? 'compact' : 'normal'
+}
+
 const esperar = (milisegundos: number) => new Promise<void>((resolve) => {
   window.setTimeout(resolve, milisegundos)
 })
@@ -110,6 +114,7 @@ onMounted(async () => {
 
     widgetId = window.grecaptcha.render(contenedor.value, {
       sitekey: props.siteKey,
+      size: tamanoWidget(),
       callback: (token: string) => emit('update:token', token),
       'expired-callback': () => emit('update:token', ''),
       'error-callback': () => {
@@ -131,6 +136,11 @@ defineExpose({ reiniciar })
 </script>
 
 <style scoped>
-.recaptcha-control { display: flex; justify-content: center; min-height: 78px; }
+.recaptcha-control { display: flex; width: 100%; min-width: 0; flex-direction: column; align-items: center; justify-content: center; min-height: 78px; overflow: hidden; }
+.recaptcha-control > div { display: flex; max-width: 100%; justify-content: center; }
 .recaptcha-control__message { margin: 4px 0 0; color: #b42318; font-size: 12px; text-align: center; }
+
+@media (max-width: 380px) {
+  .recaptcha-control { min-height: 62px; }
+}
 </style>

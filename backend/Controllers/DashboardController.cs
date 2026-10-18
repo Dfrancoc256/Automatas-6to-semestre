@@ -1,7 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Net;
+using System.Security.Claims;
 using LenguajesFormalesAPI.Data;
+using LenguajesFormalesAPI.Interfaces;
+using LenguajesFormalesAPI.Models;
 
 namespace LenguajesFormalesAPI.Controllers;
 
@@ -12,10 +16,14 @@ namespace LenguajesFormalesAPI.Controllers;
 public class DashboardController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly IEmailService _email;
+    private readonly IWhatsAppService _whatsApp;
 
-    public DashboardController(AppDbContext db)
+    public DashboardController(AppDbContext db, IEmailService email, IWhatsAppService whatsApp)
     {
         _db = db;
+        _email = email;
+        _whatsApp = whatsApp;
     }
 
     /// <summary>Estadísticas generales — solo Admin/Supervisor</summary>
@@ -103,8 +111,11 @@ public class DashboardController : ControllerBase
             {
                 u.Id,
                 u.Nickname,
+                u.Nombre,
+                u.Apellido,
                 u.Correo,
                 u.Telefono,
+                u.MetodoNotificacion,
                 u.Rol,
                 u.Activo,
                 u.FechaRegistro
@@ -146,6 +157,93 @@ public class DashboardController : ControllerBase
 
         return Ok(new { usuario.Id, usuario.Rol });
     }
+
+    [HttpPatch("usuarios/{id:int}")]
+    [Authorize(Roles = "ADMIN")]
+    public async Task<IActionResult> ActualizarUsuario(int id, [FromBody] ActualizarUsuarioAdminDTO dto)
+    {
+        var usuario = await _db.Usuarios.FindAsync(id);
+        if (usuario == null) return NotFound();
+
+        var correo = dto.Correo.Trim().ToLowerInvariant();
+        if (await _db.Usuarios.AnyAsync(u => u.Id != id && u.Correo == correo))
+            return Conflict(new { mensaje = "El correo ya está registrado." });
+
+        usuario.Nombre = dto.Nombre.Trim();
+        usuario.Apellido = dto.Apellido.Trim();
+        usuario.Correo = correo;
+        usuario.Telefono = dto.Telefono.Trim();
+        usuario.MetodoNotificacion = dto.MetodoNotificacion;
+        usuario.Rol = dto.Rol;
+        await _db.SaveChangesAsync();
+
+        return Ok(new { usuario.Id, usuario.Nombre, usuario.Apellido, usuario.Correo, usuario.Telefono, usuario.MetodoNotificacion, usuario.Rol });
+    }
+
+    [HttpDelete("usuarios/{id:int}")]
+    [Authorize(Roles = "ADMIN")]
+    public async Task<IActionResult> DesactivarUsuario(int id)
+    {
+        var idActual = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (idActual == id.ToString())
+            return BadRequest(new { mensaje = "No puedes desactivar tu propia cuenta." });
+
+        var usuario = await _db.Usuarios.FindAsync(id);
+        if (usuario == null) return NotFound();
+
+        usuario.Activo = false;
+        await _db.SaveChangesAsync();
+        return Ok(new { usuario.Id, usuario.Activo });
+    }
+
+    [HttpPost("usuarios/{id:int}/notificacion")]
+    [Authorize(Roles = "ADMIN")]
+    public async Task<IActionResult> NotificarUsuario(int id, [FromBody] NotificarUsuarioDTO dto)
+    {
+        var usuario = await _db.Usuarios.FindAsync(id);
+        if (usuario == null) return NotFound();
+
+        var nombre = WebUtility.HtmlEncode(usuario.NombreCompleto);
+        var mensaje = $"Hola {usuario.NombreCompleto}, un administrador actualizó la información de tu cuenta en el Analizador Léxico UMG.";
+
+        if (dto.Canal == "email")
+        {
+            await _email.SendEmailAsync(
+                usuario.Correo,
+                "Actualización de cuenta - Analizador Léxico UMG",
+                $"<p>Hola {nombre},</p><p>Un administrador actualizó la información de tu cuenta en el Analizador Léxico UMG.</p>");
+        }
+        else if (dto.Canal == "whatsapp")
+        {
+            var enviado = await _whatsApp.SendTextAsync(usuario.Telefono, mensaje);
+            if (!enviado)
+                return StatusCode(502, new { mensaje = "No se pudo enviar el mensaje por WhatsApp." });
+        }
+        else
+        {
+            return BadRequest(new { mensaje = "Canal inválido." });
+        }
+
+        return Ok(new { mensaje = "Notificación enviada." });
+    }
 }
 
 public record CambiarRolDTO(string? Rol);
+
+public class ActualizarUsuarioAdminDTO
+{
+    [System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.StringLength(80, MinimumLength = 2)]
+    public string Nombre { get; set; } = string.Empty;
+    [System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.StringLength(80, MinimumLength = 2)]
+    public string Apellido { get; set; } = string.Empty;
+    [System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.EmailAddress]
+    public string Correo { get; set; } = string.Empty;
+    [System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.RegularExpression(@"^\+?[0-9\s-]{8,20}$")]
+    public string Telefono { get; set; } = string.Empty;
+    [System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.RegularExpression("^(email|whatsapp|ambos)$")]
+    public string MetodoNotificacion { get; set; } = "email";
+    [System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.RegularExpression("^(ADMIN|SUPERVISOR|ANALISTA)$")]
+    public string Rol { get; set; } = "ANALISTA";
+}
+
+public record NotificarUsuarioDTO(string Canal);
