@@ -178,7 +178,7 @@ public class AuthController : ControllerBase
     /// <summary>Login mediante reconocimiento facial (descriptor calculado en el navegador)</summary>
     [HttpPost("login-facial")]
     [AllowAnonymous]
-    [EnableRateLimiting("auth")]
+    [EnableRateLimiting("facial-login")]
     public async Task<IActionResult> LoginFacial([FromBody] LoginFacialDTO dto)
     {
         if (!ModelState.IsValid)

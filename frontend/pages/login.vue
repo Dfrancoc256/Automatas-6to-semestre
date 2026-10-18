@@ -81,6 +81,7 @@
 
         <RecaptchaV2
           v-if="requiereRecaptcha"
+          ref="recaptcha"
           v-model:token="recaptchaToken"
           :site-key="recaptchaSiteKey"
           class="mt-6"
@@ -110,10 +111,10 @@
           color="primary"
           block
           prepend-icon="mdi-face-recognition"
-          :disabled="!puedeEnviar"
+          :disabled="!puedeLoginFacial"
           @click="abrirLoginFacial"
         >
-          Ingresar con reconocimiento facial
+          {{ intentosFacialesRestantes ? `Ingresar con reconocimiento facial (${intentosFacialesRestantes})` : 'Reconocimiento facial no disponible' }}
         </v-btn>
       </div>
 
@@ -150,7 +151,7 @@
             <p class="text-body-2 text-medium-emphasis mb-0">Acceso correcto. Estamos preparando tu dashboard.</p>
           </div>
           <p v-if="!rostroValidado" class="text-body-2 text-medium-emphasis my-3">
-            Coloca tu rostro dentro del marco. El escaneo comienza solo.
+            Coloca tu rostro dentro del marco. El escaneo comienza solo. Intentos disponibles: {{ intentosFacialesRestantes }}.
           </p>
 
           <v-alert v-if="errorFacial" type="error" variant="tonal" density="compact" class="mb-2">
@@ -208,6 +209,9 @@ const errorFacial       = ref('')
 const rostroValidado    = ref(false)
 const fotoLoginRecortada = ref<string | null>(null)
 const escanerLogin      = ref<{ reiniciar: () => void } | null>(null)
+const recaptcha = ref<{ reiniciar: () => void } | null>(null)
+const intentosFaciales = ref(0)
+const maxIntentosFaciales = 3
 
 const form = reactive({ identificador: '', password: '' })
 const recaptchaToken = ref('')
@@ -215,6 +219,8 @@ const recaptchaSiteKey = computed(() => config.public.recaptchaSiteKey.trim())
 const requiereRecaptcha = computed(() => recaptchaSiteKey.value.length > 0)
 const bypassDesarrollo = computed(() => import.meta.dev && !requiereRecaptcha.value)
 const puedeEnviar = computed(() => bypassDesarrollo.value || recaptchaToken.value.length > 0)
+const intentosFacialesRestantes = computed(() => Math.max(0, maxIntentosFaciales - intentosFaciales.value))
+const puedeLoginFacial = computed(() => puedeEnviar.value && intentosFacialesRestantes.value > 0)
 // El acceso y el registro comparten esta vista.
 const modoRegistro = ref(route.query.modo === 'registro')
 
@@ -289,6 +295,14 @@ async function loginPassword() {
 }
 
 function abrirLoginFacial() {
+  if (!puedeLoginFacial.value) {
+    error.value = intentosFacialesRestantes.value === 0
+      ? 'Se agotaron los tres intentos de reconocimiento facial. Espera diez minutos antes de volver a intentarlo.'
+      : 'Completa la verificación reCAPTCHA para continuar.'
+    return
+  }
+
+  error.value = ''
   errorFacial.value = ''
   rostroValidado.value = false
   fotoLoginRecortada.value = null
@@ -297,6 +311,11 @@ function abrirLoginFacial() {
 
 async function verificarRostro(captura: { descriptor: number[] | null, fotoRecortada: string | null }) {
   if (!captura.descriptor || !captura.fotoRecortada || verificandoFacial.value) return
+  if (!puedeLoginFacial.value) {
+    errorFacial.value = 'Completa nuevamente la verificación reCAPTCHA antes de escanear el rostro.'
+    return
+  }
+
   errorFacial.value = ''
   verificandoFacial.value = true
 
@@ -314,9 +333,25 @@ async function verificarRostro(captura: { descriptor: number[] | null, fotoRecor
     mostrarFacial.value = false
     await navigateTo(rutaDestino.value)
   } catch (e: any) {
-    errorFacial.value = e.response?.data?.mensaje || 'Rostro no reconocido.'
-    // Pausa breve antes de reanudar el escaneo.
-    setTimeout(() => { errorFacial.value = ''; escanerLogin.value?.reiniciar() }, 1800)
+    const estado = e.response?.status
+    if (estado === 401) intentosFaciales.value += 1
+
+    recaptchaToken.value = ''
+    recaptcha.value?.reiniciar()
+
+    if (estado === 429 || intentosFacialesRestantes.value === 0) {
+      errorFacial.value = 'Se agotaron los tres intentos de reconocimiento facial. Espera diez minutos antes de volver a intentarlo.'
+    } else {
+      errorFacial.value = estado === 401
+        ? `Rostro no reconocido. Te quedan ${intentosFacialesRestantes.value} intento(s). reCAPTCHA se reinició para el siguiente intento.`
+        : e.response?.data?.mensaje || 'No fue posible validar el rostro. reCAPTCHA se reinició para reintentar.'
+    }
+
+    window.setTimeout(() => {
+      mostrarFacial.value = false
+      error.value = errorFacial.value
+      errorFacial.value = ''
+    }, 2200)
   } finally {
     verificandoFacial.value = false
   }
