@@ -251,10 +251,22 @@ img, video, canvas { max-width: 100%; }
   width: 72px;
 }
 
-.sidebar.collapsed .sidebar-logo,
 .sidebar.collapsed .sidebar-user,
 .sidebar.collapsed .nav-section {
   display: none;
+}
+
+.sidebar.collapsed .sidebar-logo {
+  display: flex;
+  justify-content: center;
+  padding: 16px 7px 12px;
+}
+
+.sidebar.collapsed .sidebar-logo > :not(.sidebar-logo-icon) { display: none; }
+.sidebar.collapsed .sidebar-logo-icon {
+  width: 44px;
+  height: 44px;
+  flex-basis: 44px;
 }
 
 .sidebar.collapsed .sidebar-nav { padding: 16px 10px; }

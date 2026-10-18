@@ -10,6 +10,7 @@ public interface IAnalisisLexicoService
 
 public class AnalisisLexicoService : IAnalisisLexicoService
 {
+    private static readonly HashSet<string> PalabrasVacias = new(StringComparer.OrdinalIgnoreCase);
     // ──────────────────────────────────────────────────────────────
     // Listas léxicas por idioma
     // ──────────────────────────────────────────────────────────────
@@ -62,6 +63,19 @@ public class AnalisisLexicoService : IAnalisisLexicoService
             "stop","create","speak","read","spend","grow","open","walk","win","offer",
             "remember","love","consider","appear","buy","wait","serve","die","send","expect"
         },
+        ["ruso"] = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "быть","есть","иметь","делать","мочь","сказать","идти","знать","видеть","дать",
+            "хотеть","говорить","работать","жить","читать","писать","учиться","создать","использовать"
+        },
+        ["chino"] = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "是","有","在","做","说","去","看","给","想","知道","学习","阅读","写","使用","创建","喜欢"
+        },
+        ["árabe"] = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "يكون","كان","لديه","يفعل","يقول","يذهب","يرى","يعرف","يريد","يعمل","يقرأ","يكتب","يتعلم","يستخدم"
+        }
     };
 
     private static readonly Dictionary<string, HashSet<string>> Conectores = new()
@@ -81,6 +95,18 @@ public class AnalisisLexicoService : IAnalisisLexicoService
             "before","that","which","who","whom","whose","however","therefore","moreover",
             "furthermore","nevertheless","consequently","thus","hence","meanwhile"
         },
+        ["ruso"] = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "и","или","но","а","потому что","так как","если","когда","однако","поэтому","также","затем"
+        },
+        ["chino"] = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "和","或","但是","因为","所以","如果","虽然","然而","同时","然后","而且"
+        },
+        ["árabe"] = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "و","أو","لكن","لأن","لذلك","إذا","رغم","مع ذلك","ثم","أيضًا"
+        }
     };
 
     private static readonly Dictionary<string, HashSet<string>> Preposiciones = new()
@@ -98,6 +124,24 @@ public class AnalisisLexicoService : IAnalisisLexicoService
             "down","out","off","over","under","around","along","following","across",
             "behind","beyond","plus","except","up","towards","upon"
         },
+        ["ruso"] = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "в","на","с","к","из","у","для","по","о","об","над","под","между","перед","после"
+        },
+        ["chino"] = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "在","从","向","对","为","与","把","被","通过","关于"
+        },
+        ["árabe"] = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "في","من","إلى","على","عن","مع","ل","ب","بين","بعد","قبل"
+        },
+    };
+
+    private static readonly Dictionary<string, HashSet<string>> AdjetivosLexicos = new()
+    {
+        ["chino"] = new(StringComparer.OrdinalIgnoreCase) { "好","大","小","新","旧","重要","快速","简单","复杂","正式" },
+        ["árabe"] = new(StringComparer.OrdinalIgnoreCase) { "كبير","صغير","جديد","قديم","مهم","سريع","بسيط","رسمي" }
     };
 
     // Patrones de nombres propios (palabras que inician con mayúscula, no al inicio de oración)
@@ -138,10 +182,7 @@ public class AnalisisLexicoService : IAnalisisLexicoService
             .Where(oracion => !string.IsNullOrWhiteSpace(oracion))
             .ToArray();
 
-        // Tokenización: sólo palabras (sin números)
-        var tokens = Regex.Matches(contenido, @"\b[a-záéíóúüñA-ZÁÉÍÓÚÜÑA-Za-z\u0400-\u04FF\u4E00-\u9FFF\u0600-\u06FF]+\b")
-                         .Select(m => m.Value)
-                         .ToList();
+        var tokens = Tokenizar(contenido, idioma);
 
         var totalTokens  = tokens.Count;
         var totalPalabras = tokens.Count;
@@ -164,10 +205,10 @@ public class AnalisisLexicoService : IAnalisisLexicoService
             .ToList();
 
         // Clasificación
-        var pronomsSet = Pronombres.GetValueOrDefault(idioma, Pronombres["inglés"]);
-        var verbsSet   = Verbos.GetValueOrDefault(idioma, Verbos["inglés"]);
-        var conecSet   = Conectores.GetValueOrDefault(idioma, Conectores["inglés"]);
-        var prepSet    = Preposiciones.GetValueOrDefault(idioma, Preposiciones["inglés"]);
+        var pronomsSet = Pronombres.GetValueOrDefault(idioma, PalabrasVacias);
+        var verbsSet   = Verbos.GetValueOrDefault(idioma, PalabrasVacias);
+        var conecSet   = Conectores.GetValueOrDefault(idioma, PalabrasVacias);
+        var prepSet    = Preposiciones.GetValueOrDefault(idioma, PalabrasVacias);
 
         var pronombresEncontrados = tokens
             .Where(t => pronomsSet.Contains(t))
@@ -204,13 +245,15 @@ public class AnalisisLexicoService : IAnalisisLexicoService
             .Union(prepSet)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        var nombresPersonas = _patronNombrePropio.Matches(contenido)
-            .Select(m => m.Value)
-            .Where(n => !stopWords.Contains(n))
-            .Distinct()
-            .OrderBy(x => x)
-            .Take(30)
-            .ToList();
+        var nombresPersonas = idioma is "español" or "inglés"
+            ? _patronNombrePropio.Matches(contenido)
+                .Select(m => m.Value)
+                .Where(n => !stopWords.Contains(n))
+                .Distinct()
+                .OrderBy(x => x)
+                .Take(30)
+                .ToList()
+            : new List<string>();
 
         // Sustantivos (heurística: palabras largas, no clasificadas, frecuentes)
         var clasificadas = pronombresEncontrados
@@ -219,8 +262,9 @@ public class AnalisisLexicoService : IAnalisisLexicoService
             .Union(preposicionesEncontradas)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
+        var longitudMinimaSustantivo = idioma == "chino" ? 1 : idioma == "árabe" ? 3 : 4;
         var sustantivos = frecuencia
-            .Where(kv => kv.Key.Length > 4
+            .Where(kv => kv.Key.Length >= longitudMinimaSustantivo
                       && kv.Value >= 2
                       && !clasificadas.Contains(kv.Key)
                       && !numeros.Contains(kv.Key))
@@ -229,14 +273,11 @@ public class AnalisisLexicoService : IAnalisisLexicoService
             .Select(kv => kv.Key)
             .ToList();
 
-        // Adjetivos (heurística: terminan en -oso/a, -ble, -ivo/a, -ado/a, -ido/a para español;
-        //                        -ful, -less, -ive, -ous, -al para inglés)
+        var adjetivosSet = AdjetivosLexicos.GetValueOrDefault(idioma, PalabrasVacias);
         var adjetivos = tokens
             .Select(t => t.ToLowerInvariant())
             .Distinct()
-            .Where(t => idioma == "español"
-                ? Regex.IsMatch(t, @"(oso|osa|ble|ivo|iva|ado|ada|ido|ida|ante|ente|al|ar)$")
-                : Regex.IsMatch(t, @"(ful|less|ive|ous|al|ible|able|ent|ant|ary|ory|ic)$"))
+            .Where(t => EsAdjetivo(t, idioma, adjetivosSet))
             .Where(t => !clasificadas.Contains(t))
             .OrderBy(x => x)
             .Take(20)
@@ -268,6 +309,65 @@ public class AnalisisLexicoService : IAnalisisLexicoService
             Idioma                 = idioma,
             NombreArchivo          = nombreArchivo,
             FechaAnalisis          = DateTime.UtcNow
+        };
+    }
+
+    private static List<string> Tokenizar(string contenido, string idioma)
+    {
+        if (idioma != "chino")
+        {
+            return Regex.Matches(contenido, @"[\p{L}]+")
+                .Select(match => match.Value)
+                .ToList();
+        }
+
+        var diccionario = Pronombres["chino"]
+            .Union(Verbos["chino"])
+            .Union(Conectores["chino"])
+            .Union(Preposiciones["chino"])
+            .Union(AdjetivosLexicos["chino"])
+            .OrderByDescending(palabra => palabra.Length)
+            .ToArray();
+        var tokens = new List<string>();
+
+        foreach (Match coincidencia in Regex.Matches(contenido, @"[\u4E00-\u9FFF]+|[\p{L}]+"))
+        {
+            var bloque = coincidencia.Value;
+            if (!Regex.IsMatch(bloque, @"^[\u4E00-\u9FFF]+$"))
+            {
+                tokens.Add(bloque);
+                continue;
+            }
+
+            for (var posicion = 0; posicion < bloque.Length;)
+            {
+                var palabra = diccionario.FirstOrDefault(item => bloque.AsSpan(posicion).StartsWith(item, StringComparison.Ordinal));
+                if (palabra == null)
+                {
+                    tokens.Add(bloque[posicion].ToString());
+                    posicion++;
+                }
+                else
+                {
+                    tokens.Add(palabra);
+                    posicion += palabra.Length;
+                }
+            }
+        }
+
+        return tokens;
+    }
+
+    private static bool EsAdjetivo(string palabra, string idioma, HashSet<string> adjetivosLexicos)
+    {
+        if (adjetivosLexicos.Contains(palabra)) return true;
+
+        return idioma switch
+        {
+            "español" => Regex.IsMatch(palabra, @"(oso|osa|ble|ivo|iva|ado|ada|ido|ida|ante|ente|al|ar)$"),
+            "inglés" => Regex.IsMatch(palabra, @"(ful|less|ive|ous|al|ible|able|ent|ant|ary|ory|ic)$"),
+            "ruso" => Regex.IsMatch(palabra, @"(ый|ий|ой|ая|яя|ое|ее|ые|ие)$"),
+            _ => false
         };
     }
 }

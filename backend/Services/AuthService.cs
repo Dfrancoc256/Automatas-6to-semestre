@@ -209,7 +209,7 @@ public class AuthService : IAuthService
         await _db.SaveChangesAsync();
 
         _logger.LogInformation("Nuevo usuario registrado: {UsuarioId} ({Correo})", usuario.Id, usuario.Correo);
-        var codigoQr = _jwt.GenerarTokenQr(usuario);
+        var codigoQr = _jwt.GenerarCodigoQrCredencial(usuario);
         await NotificarRegistroAsync(usuario, codigoQr);
 
         var respuesta = CrearRespuestaSesion(usuario);
@@ -300,7 +300,7 @@ public class AuthService : IAuthService
 
         _logger.LogWarning("Registro local sin base de datos para {Usuario}; los datos no se conservarán", usuario.Nickname);
         var respuesta = CrearRespuestaSesion(usuario);
-        respuesta.CodigoQr = _jwt.GenerarTokenQr(usuario);
+        respuesta.CodigoQr = _jwt.GenerarCodigoQrCredencial(usuario);
         return respuesta;
     }
 

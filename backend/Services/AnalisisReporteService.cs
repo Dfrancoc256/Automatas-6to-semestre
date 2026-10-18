@@ -23,7 +23,7 @@ public sealed class AnalisisReporteService : IAnalisisReporteService
             page.Size(PageSizes.A4);
             page.MarginVertical(34);
             page.MarginHorizontal(42);
-            page.DefaultTextStyle(style => style.FontFamily(Fonts.Arial).FontSize(9).FontColor("111111"));
+            page.DefaultTextStyle(style => style.FontFamily(Fonts.TimesNewRoman).FontSize(10).FontColor("111111"));
 
             page.Header().Element(contenedor => EncabezadoDocumento(contenedor));
 
@@ -38,7 +38,6 @@ public sealed class AnalisisReporteService : IAnalisisReporteService
                 column.Item().Element(contenedor => AgregarPatrones(contenedor, resultado));
             });
 
-            page.Footer().PaddingTop(8).Element(PieDocumento);
         })).GeneratePdf();
     }
 
@@ -54,21 +53,20 @@ public sealed class AnalisisReporteService : IAnalisisReporteService
 
                 fila.RelativeItem().PaddingLeft(9).Column(marca =>
                 {
-                    marca.Item().Text("Universidad Mariano Gálvez").Bold().FontSize(12).FontColor("111111");
-                    marca.Item().PaddingTop(2).Text("Sistema de análisis léxico").FontSize(8).FontColor("444444");
+                    marca.Item().Text("Universidad Mariano Gálvez").Bold().FontSize(13).FontColor("111111");
+                    marca.Item().PaddingTop(2).Text("Sistema de análisis léxico").FontSize(9).FontColor("444444");
                 });
             });
-            columna.Item().PaddingTop(10).LineHorizontal(1).LineColor("CFCFCF");
         });
     }
 
     private static void CabeceraReporte(IContainer contenedor, AnalisisResultadoDTO resultado)
     {
-        contenedor.Background("F5F7F9").BorderLeft(4).BorderColor("B48B21").Padding(14).Column(columna =>
+        contenedor.PaddingTop(12).Column(columna =>
         {
-            columna.Item().Text("Reporte de análisis léxico").Bold().FontSize(16).FontColor("111111");
+            columna.Item().Text("Reporte de análisis léxico").Bold().FontSize(17).FontColor("111111");
             columna.Item().PaddingTop(5).Text(resultado.NombreArchivo).FontSize(12).FontColor("222222");
-            columna.Item().PaddingTop(9).Row(fila =>
+            columna.Item().PaddingTop(7).Row(fila =>
             {
                 fila.RelativeItem().Text(texto =>
                 {
@@ -88,7 +86,7 @@ public sealed class AnalisisReporteService : IAnalisisReporteService
     {
         contenedor.Column(column =>
         {
-            Encabezado(column, "Resumen del documento", "Indicadores generales del procesamiento");
+            Encabezado(column, "Resumen del documento");
             column.Item().Table(tabla =>
             {
                 tabla.ColumnsDefinition(columnas =>
@@ -111,12 +109,12 @@ public sealed class AnalisisReporteService : IAnalisisReporteService
     {
         contenedor.Column(column =>
         {
-            Encabezado(column, "Frecuencia de palabras", "Términos con mayor y menor aparición en el documento");
-            column.Item().Row(row =>
+            Encabezado(column, "Frecuencia de palabras");
+            column.Item().Border(1).BorderColor("C8CED4").Padding(10).Row(row =>
             {
-                row.RelativeItem().PaddingRight(8).Element(celda =>
+                row.RelativeItem().PaddingRight(10).Element(celda =>
                     TablaFrecuencia(celda, "Mayor frecuencia", resultado.PalabrasMasFrecuentes.Take(8)));
-                row.RelativeItem().PaddingLeft(8).Element(celda =>
+                row.RelativeItem().PaddingLeft(10).Element(celda =>
                     TablaFrecuencia(celda, "Menor frecuencia", resultado.PalabrasMenosFrecuentes.Take(8)));
             });
         });
@@ -126,7 +124,7 @@ public sealed class AnalisisReporteService : IAnalisisReporteService
     {
         contenedor.Column(column =>
         {
-            column.Item().Background("F5F7F9").Padding(8).Text(titulo).Bold().FontColor("111111");
+            column.Item().PaddingBottom(5).Text(titulo).Bold().FontColor("111111");
             column.Item().Table(tabla =>
             {
                 tabla.ColumnsDefinition(columnas =>
@@ -136,13 +134,13 @@ public sealed class AnalisisReporteService : IAnalisisReporteService
                 });
                 tabla.Header(cabecera =>
                 {
-                    cabecera.Cell().Background("E7EDF2").Padding(5).Text("Palabra").Bold();
-                    cabecera.Cell().Background("E7EDF2").Padding(5).AlignRight().Text("Apariciones").Bold();
+                    cabecera.Cell().BorderBottom(1).BorderColor("9FA8B2").PaddingBottom(5).Text("Palabra").Bold();
+                    cabecera.Cell().BorderBottom(1).BorderColor("9FA8B2").PaddingBottom(5).AlignRight().Text("Apariciones").Bold();
                 });
                 foreach (var palabra in palabras)
                 {
-                    tabla.Cell().BorderBottom(1).BorderColor("E2E8F0").Padding(5).Text(palabra.Token);
-                    tabla.Cell().BorderBottom(1).BorderColor("E2E8F0").Padding(5).AlignRight().Text(palabra.Frecuencia.ToString()).Bold().FontColor("9A7418");
+                    tabla.Cell().BorderBottom(1).BorderColor("D7DCE1").PaddingVertical(5).Text(palabra.Token);
+                    tabla.Cell().BorderBottom(1).BorderColor("D7DCE1").PaddingVertical(5).AlignRight().Text(palabra.Frecuencia.ToString()).Bold().FontColor("111111");
                 }
             });
         });
@@ -152,7 +150,7 @@ public sealed class AnalisisReporteService : IAnalisisReporteService
     {
         contenedor.Column(column =>
         {
-            Encabezado(column, "Clasificación lingüística", "Resultados identificados por las reglas del idioma seleccionado");
+            Encabezado(column, "Clasificación lingüística");
             column.Item().Table(tabla =>
             {
                 tabla.ColumnsDefinition(columnas =>
@@ -176,7 +174,7 @@ public sealed class AnalisisReporteService : IAnalisisReporteService
     {
         contenedor.Column(column =>
         {
-            Encabezado(column, "Datos detectados", "Patrones identificados en el contenido del archivo");
+            Encabezado(column, "Datos detectados");
             column.Item().Table(tabla =>
             {
                 tabla.ColumnsDefinition(columnas =>
@@ -193,10 +191,9 @@ public sealed class AnalisisReporteService : IAnalisisReporteService
         });
     }
 
-    private static void Encabezado(ColumnDescriptor columna, string titulo, string descripcion)
+    private static void Encabezado(ColumnDescriptor columna, string titulo)
     {
-        columna.Item().Text(titulo).Bold().FontSize(12).FontColor("111111");
-        columna.Item().PaddingTop(2).Text(descripcion).FontSize(8).FontColor("444444");
+        columna.Item().Text(titulo).Bold().FontSize(13).FontColor("111111");
     }
 
     private static void Dato(TableDescriptor tabla, string etiqueta, string valor) =>
@@ -220,18 +217,4 @@ public sealed class AnalisisReporteService : IAnalisisReporteService
     private static string Titulo(string valor) =>
         string.IsNullOrWhiteSpace(valor) ? "No indicado" : char.ToUpper(valor[0]) + valor[1..];
 
-    private static void PieDocumento(IContainer contenedor)
-    {
-        contenedor.Row(fila =>
-        {
-            fila.RelativeItem().Text("Analizador léxico · Universidad Mariano Gálvez").FontSize(8).FontColor("6B7280");
-            fila.RelativeItem().AlignRight().Text(texto =>
-            {
-                texto.Span("Página ").FontSize(8).FontColor("6B7280");
-                texto.CurrentPageNumber().FontSize(8).FontColor("6B7280");
-                texto.Span(" de ").FontSize(8).FontColor("6B7280");
-                texto.TotalPages().FontSize(8).FontColor("6B7280");
-            });
-        });
-    }
 }
