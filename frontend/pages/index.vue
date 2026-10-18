@@ -74,9 +74,26 @@
         <ul><li><v-icon>mdi-check-circle-outline</v-icon> Frecuencias y palabras poco comunes</li><li><v-icon>mdi-check-circle-outline</v-icon> Sustantivos, verbos y pronombres</li><li><v-icon>mdi-check-circle-outline</v-icon> Patrones léxicos por idioma</li></ul>
       </div>
       <div class="landing-results landing-reveal" aria-label="Resumen de resultados">
-        <div class="landing-result-card landing-result-card--large"><span>Resultado de análisis</span><strong>Palabras clave</strong><div class="landing-bars"><i /><i /><i /><i /></div></div>
-        <div class="landing-result-card"><v-icon>mdi-translate</v-icon><strong>Idiomas</strong><small>ES · EN · RU · ZH · AR</small></div>
-        <div class="landing-result-card"><v-icon>mdi-history</v-icon><strong>Historial</strong><small>Consulta tus resultados cuando los necesites.</small></div>
+        <div class="landing-result-card landing-result-card--large">
+          <span>Resultado de análisis</span>
+          <strong>Resumen del documento</strong>
+          <div class="landing-result-metrics" aria-label="Métricas del análisis">
+            <div><b>703</b><small>Palabras</small></div>
+            <div><b>42</b><small>Oraciones</small></div>
+            <div><b>38</b><small>Párrafos</small></div>
+            <div><b>4.99</b><small>Promedio</small></div>
+          </div>
+        </div>
+        <div class="landing-result-card">
+          <v-icon>mdi-format-list-bulleted-type</v-icon>
+          <strong>Clasificación léxica</strong>
+          <small>Consulta pronombres, verbos, sustantivos, adjetivos y conectores.</small>
+        </div>
+        <div class="landing-result-card">
+          <v-icon>mdi-text-search</v-icon>
+          <strong>Datos detectados</strong>
+          <small>Identifica enlaces, correos, fechas y números dentro del documento.</small>
+        </div>
       </div>
     </section>
 
