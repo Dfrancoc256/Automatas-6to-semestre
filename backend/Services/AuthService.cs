@@ -223,7 +223,10 @@ public class AuthService : IAuthService
         var nombre = WebUtility.HtmlEncode(usuario.NombreCompleto);
         var correo = WebUtility.HtmlEncode(usuario.Correo);
         var nickname = WebUtility.HtmlEncode(usuario.Nickname);
-        var urlWeb = (_configuration["App:PublicUrl"] ?? "https://analizador-umg.duckdns.org").TrimEnd('/');
+        var urlConfigurada = _configuration["App:PublicUrl"];
+        var urlWeb = (string.IsNullOrWhiteSpace(urlConfigurada)
+            ? "https://analizador-umg.duckdns.org"
+            : urlConfigurada).TrimEnd('/');
         var urlHtml = WebUtility.HtmlEncode(urlWeb);
         var nombreArchivo = $"credencial-{usuario.Nickname}.pdf";
         byte[]? credencial = null;
