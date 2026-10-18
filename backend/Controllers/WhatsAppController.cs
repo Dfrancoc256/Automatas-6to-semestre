@@ -18,7 +18,7 @@ namespace LenguajesFormalesAPI.Controllers
             _whatsApp = whatsApp;
         }
 
-        /// <summary>Envía un WhatsApp de prueba. Solo ADMIN, para no exponer un relé abierto.</summary>
+     
         [HttpPost("send")]
         [EnableRateLimiting("auth")]
         public async Task<IActionResult> Send([FromBody] SendWhatsAppDto request)
