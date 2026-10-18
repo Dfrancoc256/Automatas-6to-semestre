@@ -53,16 +53,69 @@
             </v-col>
           </v-row>
           <v-divider class="mb-3" />
-          <div class="d-flex flex-wrap gap-1">
-            <v-chip v-for="t in detalle.palabrasMasFrecuentes?.slice(0,8)" :key="t.token"
-                    size="small" color="accent" variant="tonal">
+          <div class="text-subtitle-2 font-weight-bold mb-2">Palabras más frecuentes</div>
+          <div class="d-flex flex-wrap gap-1 mb-5">
+            <v-chip v-for="t in detalle.palabrasMasFrecuentes?.slice(0, 8)" :key="t.token"
+                    size="small" color="primary" variant="tonal">
               {{ t.token }} ({{ t.frecuencia }})
             </v-chip>
+            <span v-if="!detalle.palabrasMasFrecuentes?.length" class="text-body-2 text-medium-emphasis">
+              Sin palabras registradas.
+            </span>
           </div>
+
+          <div class="d-flex align-center justify-space-between mb-2">
+            <div>
+              <div class="text-subtitle-2 font-weight-bold">Clasificación</div>
+              <div class="text-caption text-medium-emphasis">Selecciona una categoría para consultar sus palabras.</div>
+            </div>
+          </div>
+          <v-list class="border rounded" density="compact" lines="one">
+            <v-list-item
+              v-for="categoria in categorias"
+              :key="categoria.key"
+              :title="categoria.label"
+              :prepend-icon="categoria.icon"
+              :disabled="cantidadCategoria(categoria.key) === 0"
+              @click="abrirCategoria(categoria)"
+            >
+              <template #append>
+                <v-chip size="x-small" color="primary" variant="tonal" class="mr-2">
+                  {{ cantidadCategoria(categoria.key) }}
+                </v-chip>
+                <v-icon size="18">mdi-chevron-right</v-icon>
+              </template>
+            </v-list-item>
+          </v-list>
+          <div class="text-caption text-medium-emphasis mt-2">El número indica las palabras distintas encontradas.</div>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
           <v-btn @click="dialogDetalle = false">Cerrar</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="dialogCategoria" max-width="560">
+      <v-card>
+        <v-card-title class="d-flex align-center pa-5 pb-3">
+          <v-icon color="primary" class="mr-3">{{ categoriaSeleccionada?.icon }}</v-icon>
+          <div>
+            <div class="text-subtitle-1 font-weight-bold">{{ categoriaSeleccionada?.label }}</div>
+            <div class="text-caption text-medium-emphasis">{{ palabrasCategoria.length }} palabras encontradas</div>
+          </div>
+        </v-card-title>
+        <v-card-text>
+          <div v-if="palabrasCategoria.length" class="d-flex flex-wrap gap-1">
+            <v-chip v-for="palabra in palabrasCategoria" :key="palabra" color="primary" variant="tonal">
+              {{ palabra }}
+            </v-chip>
+          </div>
+          <div v-else class="text-body-2 text-medium-emphasis">No se encontraron palabras en esta categoría.</div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn @click="dialogCategoria = false">Cerrar</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -77,7 +130,19 @@ const { api }  = useApi()
 const cargando = ref(true)
 const historial = ref<any[]>([])
 const dialogDetalle = ref(false)
+const dialogCategoria = ref(false)
 const detalle = ref<any>(null)
+const categoriaSeleccionada = ref<any>(null)
+
+const categorias = [
+  { key: 'pronombres', label: 'Pronombres personales', icon: 'mdi-account-voice' },
+  { key: 'verbos', label: 'Verbos', icon: 'mdi-run' },
+  { key: 'sustantivos', label: 'Sustantivos', icon: 'mdi-tag-outline' },
+  { key: 'adjetivos', label: 'Adjetivos', icon: 'mdi-format-color-text' },
+  { key: 'nombresPersonas', label: 'Nombres de personas', icon: 'mdi-account-outline' },
+  { key: 'conectores', label: 'Conectores', icon: 'mdi-link-variant' },
+  { key: 'preposiciones', label: 'Preposiciones', icon: 'mdi-map-marker-outline' }
+]
 
 const headers = [
   { title: 'Archivo',    key: 'nombreArchivo', sortable: true },
@@ -94,6 +159,11 @@ const detalleMet = computed(() => detalle.value ? [
   { l: 'Long. prom',v: detalle.value.promedioLongitudPalabra }
 ] : [])
 
+const palabrasCategoria = computed<string[]>(() => {
+  const key = categoriaSeleccionada.value?.key
+  return key && Array.isArray(detalle.value?.[key]) ? detalle.value[key] : []
+})
+
 onMounted(async () => {
   try {
     const { data } = await api.get('/analisis/historial')
@@ -105,9 +175,20 @@ onMounted(async () => {
 async function verDetalle(id: number) {
   try {
     const { data } = await api.get(`/analisis/${id}`)
-    detalle.value   = data
+    detalle.value = data
+    categoriaSeleccionada.value = null
     dialogDetalle.value = true
   } catch { /* ignore */ }
+}
+
+function cantidadCategoria(key: string) {
+  return Array.isArray(detalle.value?.[key]) ? detalle.value[key].length : 0
+}
+
+function abrirCategoria(categoria: any) {
+  if (!cantidadCategoria(categoria.key)) return
+  categoriaSeleccionada.value = categoria
+  dialogCategoria.value = true
 }
 
 function formatFecha(iso: string) {
