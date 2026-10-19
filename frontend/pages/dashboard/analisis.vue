@@ -40,6 +40,10 @@
             class="mb-4"
           />
 
+          <v-alert type="info" variant="tonal" density="compact" class="mb-4">
+            El idioma seleccionado se valida antes de procesar. Si no coincide con el documento, el análisis no se guardará ni mostrará resultados.
+          </v-alert>
+
           <v-textarea
             v-if="contenido"
             :model-value="contenido.substring(0, 500) + (contenido.length > 500 ? '...' : '')"
@@ -317,6 +321,7 @@ function cargarArchivo(f: File) {
 
 async function procesar() {
   errorMsg.value = ''
+  resultado.value = null
   procesando.value = true
   try {
     const { data } = await api.post('/analisis/procesar', {

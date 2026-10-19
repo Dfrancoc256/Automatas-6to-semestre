@@ -51,6 +51,10 @@ public class AnalisisController : ControllerBase
         if (string.IsNullOrWhiteSpace(dto.Contenido))
             return BadRequest(new { mensaje = "El contenido no puede estar vacío." });
 
+        var validacionIdioma = _analizador.ValidarIdioma(dto.Contenido, dto.Idioma);
+        if (!validacionIdioma.EsValido)
+            return UnprocessableEntity(new { mensaje = validacionIdioma.Mensaje, idiomaDetectado = validacionIdioma.IdiomaDetectado });
+
         var idStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!int.TryParse(idStr, out var usuarioId))
             return Unauthorized();

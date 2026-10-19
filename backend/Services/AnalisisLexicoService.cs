@@ -6,11 +6,20 @@ namespace LenguajesFormalesAPI.Services;
 public interface IAnalisisLexicoService
 {
     AnalisisResultadoDTO Analizar(string contenido, string idioma, string nombreArchivo);
+    ValidacionIdiomaDTO ValidarIdioma(string contenido, string idioma);
 }
 
 public class AnalisisLexicoService : IAnalisisLexicoService
 {
     private static readonly HashSet<string> PalabrasVacias = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly HashSet<string> IndicadoresEspanol = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "de", "la", "el", "los", "las", "y", "en", "que", "por", "para", "con", "una", "un", "del", "se", "es", "como", "más", "su", "al"
+    };
+    private static readonly HashSet<string> IndicadoresIngles = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "the", "of", "and", "to", "in", "is", "for", "that", "with", "on", "this", "as", "are", "be", "by", "from", "or", "an", "it", "at"
+    };
     // ──────────────────────────────────────────────────────────────
     // Listas léxicas por idioma
     // ──────────────────────────────────────────────────────────────
@@ -162,6 +171,82 @@ public class AnalisisLexicoService : IAnalisisLexicoService
 
     private static readonly Regex _patronNumero =
         new(@"\b\d+([.,]\d+)?\b", RegexOptions.Compiled);
+
+    private static readonly Regex _patronCirilico = new(@"[\u0400-\u04FF]", RegexOptions.Compiled);
+    private static readonly Regex _patronChino = new(@"[\u4E00-\u9FFF]", RegexOptions.Compiled);
+    private static readonly Regex _patronArabe = new(@"[\u0600-\u06FF]", RegexOptions.Compiled);
+    private static readonly Regex _patronLetras = new(@"\p{L}", RegexOptions.Compiled);
+
+    public ValidacionIdiomaDTO ValidarIdioma(string contenido, string idioma)
+    {
+        var letras = _patronLetras.Matches(contenido).Count;
+        var palabras = Regex.Matches(contenido.ToLowerInvariant(), @"[\p{L}]+")
+            .Select(coincidencia => coincidencia.Value)
+            .ToList();
+
+        if (letras < 20 || palabras.Count < 6)
+        {
+            return Rechazar("El documento es demasiado corto para validar su idioma. Usa al menos seis palabras con contenido.");
+        }
+
+        var conteosEscritura = new Dictionary<string, int>
+        {
+            ["ruso"] = _patronCirilico.Matches(contenido).Count,
+            ["chino"] = _patronChino.Matches(contenido).Count,
+            ["árabe"] = _patronArabe.Matches(contenido).Count
+        };
+        var idiomaPorEscritura = conteosEscritura.MaxBy(item => item.Value);
+
+        if (idiomaPorEscritura.Value > 0 && idiomaPorEscritura.Value * 100 >= letras * 35)
+        {
+            if (idioma != idiomaPorEscritura.Key)
+                return Rechazar($"El documento parece estar en {NombreIdioma(idiomaPorEscritura.Key)}. Selecciona ese idioma para procesarlo correctamente.", idiomaPorEscritura.Key);
+
+            if (idiomaPorEscritura.Value * 100 < letras * 55)
+                return Rechazar($"No hay suficiente contenido en {NombreIdioma(idioma)} para un análisis confiable.", idioma);
+
+            return Aceptar();
+        }
+
+        if (idioma is "ruso" or "chino" or "árabe")
+            return Rechazar($"No se detectó escritura compatible con {NombreIdioma(idioma)}. Revisa el idioma seleccionado.");
+
+        var puntajeEspanol = palabras.Count(palabra => IndicadoresEspanol.Contains(palabra));
+        var puntajeIngles = palabras.Count(palabra => IndicadoresIngles.Contains(palabra));
+        var puntajeSeleccionado = idioma == "español" ? puntajeEspanol : puntajeIngles;
+        var puntajeAlterno = idioma == "español" ? puntajeIngles : puntajeEspanol;
+        var idiomaAlterno = idioma == "español" ? "inglés" : "español";
+
+        if (puntajeSeleccionado < 2 || puntajeAlterno > puntajeSeleccionado)
+        {
+            var detectado = puntajeAlterno > puntajeSeleccionado ? idiomaAlterno : null;
+            var mensaje = detectado is null
+                ? $"No se encontraron señales suficientes de {NombreIdioma(idioma)}. Revisa el idioma seleccionado o utiliza un documento más extenso."
+                : $"El documento parece estar en {NombreIdioma(detectado)}. Selecciona ese idioma para procesarlo correctamente.";
+            return Rechazar(mensaje, detectado);
+        }
+
+        return Aceptar();
+    }
+
+    private static ValidacionIdiomaDTO Aceptar() => new() { EsValido = true };
+
+    private static ValidacionIdiomaDTO Rechazar(string mensaje, string? idiomaDetectado = null) => new()
+    {
+        EsValido = false,
+        Mensaje = mensaje,
+        IdiomaDetectado = idiomaDetectado
+    };
+
+    private static string NombreIdioma(string idioma) => idioma switch
+    {
+        "español" => "español",
+        "inglés" => "inglés",
+        "ruso" => "ruso",
+        "chino" => "chino",
+        "árabe" => "árabe",
+        _ => idioma
+    };
 
     // ──────────────────────────────────────────────────────────────
     public AnalisisResultadoDTO Analizar(string contenido, string idioma, string nombreArchivo)
