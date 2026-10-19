@@ -9,14 +9,14 @@
       <h1 class="text-h5 font-weight-bold mb-2">Crear cuenta</h1>
       <p class="text-body-2 text-medium-emphasis mb-7">Elige cómo deseas registrarte.</p>
 
-      <v-btn block size="large" variant="outlined" color="primary" class="google-access-button mb-3"
+      <v-btn variant="outlined" color="primary" class="registro-choice__action google-access-button mb-3"
              @click="registrarConGoogle">
         <span class="google-mark" aria-hidden="true">G</span>
         <span>Registrarme con Google</span>
       </v-btn>
       <p class="registro-choice__hint">Usaremos tu cuenta de Google para completar nombre y correo; después solicitaremos los datos necesarios para tu credencial.</p>
       <div class="registro-choice__divider"><span>o</span></div>
-      <v-btn block size="large" color="accent" class="umg-gold-button" @click="crearConCorreo">
+      <v-btn color="accent" class="registro-choice__action umg-gold-button" @click="crearConCorreo">
         Crear cuenta con correo
       </v-btn>
       <p class="text-body-2 text-medium-emphasis mt-6 mb-0">
@@ -671,6 +671,13 @@ async function descargarCredencial() {
 }
 .registro-choice h1 { color: #051B2E; }
 .registro-choice__hint { margin: 0 0 14px; color: #667085; font-size: 12px; line-height: 1.45; }
+.registro-choice__action {
+  width: min(100%, 340px) !important;
+  min-height: 46px !important;
+  height: 46px !important;
+  padding-inline: 18px !important;
+  font-size: 14px !important;
+}
 .registro-choice__divider {
   display: flex;
   align-items: center;
@@ -707,6 +714,8 @@ async function descargarCredencial() {
   .registro-content :deep(.v-stepper-header) { min-height: 64px; }
   .registro-content :deep(.v-stepper-item__title) { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
   .registro-content--captura :deep(.face-scanner) { max-width: 100%; }
+  .registro-choice { width: 100%; padding-inline: 0; }
+  .registro-choice__action { width: 100% !important; }
   .registro-error :deep(.v-alert__content) { min-width: 0; width: 100%; }
   .registro-error :deep(.v-alert__close) { align-self: flex-start; }
   .registro-actions { gap: 8px; }
