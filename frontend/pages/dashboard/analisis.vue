@@ -11,7 +11,27 @@
     <v-row>
       <v-col cols="12" md="4">
         <v-card class="analysis-config-card pa-5">
-          <h2 class="text-subtitle-1 font-weight-bold mb-4">Archivo de texto</h2>
+          <div class="d-flex align-center mb-4">
+            <h2 class="text-subtitle-1 font-weight-bold">Archivo de texto</h2>
+            <v-menu location="bottom start" :close-on-content-click="false">
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  icon="mdi-information-outline"
+                  size="small"
+                  variant="text"
+                  color="primary"
+                  class="ml-1"
+                  aria-label="Información sobre la validación de idioma"
+                />
+              </template>
+              <v-card max-width="320" class="pa-4">
+                <div class="text-body-2">
+                  El idioma seleccionado se valida antes de procesar. Si no coincide con el documento, el análisis no se guardará ni mostrará resultados.
+                </div>
+              </v-card>
+            </v-menu>
+          </div>
 
           <div class="upload-zone mb-4"
                :class="{ 'upload-zone--active': arrastrando }"
@@ -39,10 +59,6 @@
             hide-details
             class="mb-4"
           />
-
-          <v-alert type="info" variant="tonal" density="compact" class="mb-4">
-            El idioma seleccionado se valida antes de procesar. Si no coincide con el documento, el análisis no se guardará ni mostrará resultados.
-          </v-alert>
 
           <v-textarea
             v-if="contenido"
