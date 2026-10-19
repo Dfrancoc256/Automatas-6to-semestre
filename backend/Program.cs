@@ -2,6 +2,7 @@ using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -36,7 +37,9 @@ var jwtSecret = builder.Configuration["Jwt:SecretKey"];
 if (string.IsNullOrWhiteSpace(jwtSecret) || Encoding.UTF8.GetByteCount(jwtSecret) < 32)
     throw new InvalidOperationException("Jwt:SecretKey debe contener al menos 32 bytes");
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+var googleClientId = builder.Configuration["Google:ClientId"];
+var googleClientSecret = builder.Configuration["Google:ClientSecret"];
+var authentication = builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         // Sesión por cookie o encabezado Authorization.
@@ -66,6 +69,28 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ClockSkew                = TimeSpan.Zero
         };
     });
+
+if (!string.IsNullOrWhiteSpace(googleClientId) && !string.IsNullOrWhiteSpace(googleClientSecret))
+{
+    authentication.AddCookie("GoogleExternal")
+        .AddGoogle(GoogleDefaults.AuthenticationScheme, options =>
+        {
+            options.ClientId = googleClientId;
+            options.ClientSecret = googleClientSecret;
+            options.SignInScheme = "GoogleExternal";
+            options.CallbackPath = "/api/auth/google/callback";
+            options.Scope.Add("openid");
+            options.Events.OnCreatingTicket = context =>
+            {
+                if (!context.User.TryGetProperty("email_verified", out var verificado)
+                    || verificado.ValueKind != System.Text.Json.JsonValueKind.True)
+                {
+                    context.Fail("Google no confirmó el correo de la cuenta.");
+                }
+                return Task.CompletedTask;
+            };
+        });
+}
 
 // Los endpoints requieren sesión por defecto.
 builder.Services.AddAuthorization(options =>

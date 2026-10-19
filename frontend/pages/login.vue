@@ -104,6 +104,17 @@
         </v-btn>
       </v-form>
 
+      <v-btn
+        block
+        variant="outlined"
+        color="primary"
+        prepend-icon="mdi-google"
+        class="mt-4"
+        @click="continuarConGoogle"
+      >
+        Continuar con Google
+      </v-btn>
+
       <div class="text-center mt-4">
         <v-divider class="mb-4" />
         <v-btn
@@ -448,6 +459,10 @@ function identificadorValido(valor: string) {
   const identificador = valor.trim()
   if (identificador.includes('@')) return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identificador)
   return /^[a-zA-Z0-9_.-]{3,50}$/.test(identificador)
+}
+
+function continuarConGoogle() {
+  window.location.assign(`${config.public.apiBase}/auth/google/iniciar`)
 }
 </script>
 

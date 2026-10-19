@@ -43,6 +43,8 @@ public class RegisterDTO
     // Token de reCAPTCHA
     [Required(ErrorMessage = "Verificación reCAPTCHA requerida")]
     public string RecaptchaToken { get; set; } = string.Empty;
+
+    public string? GoogleRegistroToken { get; set; }
 }
 
 public class LoginDTO
@@ -110,6 +112,12 @@ public class CambiarPasswordTemporalDTO
     [RegularExpression(@"^(?=.{8,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).*$",
         ErrorMessage = "La contraseña debe tener entre 8 y 128 caracteres, mayúscula, minúscula, número y carácter especial")]
     public string NuevoPassword { get; set; } = string.Empty;
+}
+
+public class GoogleRegistroTokenDTO
+{
+    [Required]
+    public string Token { get; set; } = string.Empty;
 }
 
 public class AuthResponseDTO

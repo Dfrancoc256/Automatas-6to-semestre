@@ -44,6 +44,10 @@ public class Usuario
     [Column("debe_cambiar_password")]
     public bool DebeCambiarPassword { get; set; }
 
+    [MaxLength(100)]
+    [Column("google_subject")]
+    public string? GoogleSubject { get; set; }
+
     // "email", "whatsapp", "ambos"
     [MaxLength(20)]
     [Column("metodo_notificacion")]

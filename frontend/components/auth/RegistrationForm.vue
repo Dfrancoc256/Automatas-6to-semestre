@@ -28,6 +28,7 @@
                   <v-text-field v-model.trim="form.nombre" label="Nombres"
                                 prepend-inner-icon="mdi-account"
                                 autocomplete="given-name"
+                                :readonly="esRegistroGoogle"
                                 :rules="[validarNombre]" class="mb-1" />
                 </v-col>
                 <v-col cols="12" sm="6">
@@ -39,6 +40,7 @@
               </v-row>
               <v-text-field v-model="form.correo" label="Correo electrónico"
                             prepend-inner-icon="mdi-email" type="email"
+                            :readonly="esRegistroGoogle"
                             :rules="[v => !!v || 'Requerido', v => /.+@.+\..+/.test(v) || 'Correo inválido']"
                             class="mb-3" />
               <v-text-field v-model="form.telefono" label="Teléfono"
@@ -50,6 +52,17 @@
               <v-alert type="info" variant="tonal" density="compact" class="mb-3">
                 Tu nickname se generará automáticamente. Recibirás una contraseña temporal en el correo registrado para tu próximo ingreso.
               </v-alert>
+              <v-btn
+                v-if="!esRegistroGoogle"
+                block
+                variant="outlined"
+                color="primary"
+                prepend-icon="mdi-google"
+                class="mb-3"
+                @click="continuarConGoogle"
+              >
+                Continuar con Google
+              </v-btn>
               <v-select v-model="form.metodoNotificacion"
                         label="Método de notificación"
                         prepend-inner-icon="mdi-bell"
@@ -178,7 +191,9 @@
               <v-icon size="80" color="success" class="mb-4">mdi-check-circle</v-icon>
               <h2 class="text-h5 font-weight-bold mb-2">¡Registro exitoso!</h2>
               <p class="text-body-2 text-medium-emphasis mb-6">
-                Tu cuenta ha sido creada. Revisa tu correo para conocer la contraseña temporal. En tu próximo inicio de sesión deberás cambiarla por una contraseña personal.
+                {{ esRegistroGoogle
+                  ? 'Tu cuenta ha sido creada. A partir de ahora podrás ingresar con la cuenta de Google seleccionada.'
+                  : 'Tu cuenta ha sido creada. Revisa tu correo para conocer la contraseña temporal. En tu próximo inicio de sesión deberás cambiarla por una contraseña personal.' }}
               </p>
               <v-btn color="accent" class="umg-gold-button" prepend-icon="mdi-login"
                      @click="navigateTo('/dashboard')">
@@ -207,6 +222,7 @@ const emit = defineEmits<{ cambiarModo: [modo: 'login' | 'registro'] }>()
 const auth    = useAuthStore()
 const { api } = useApi()
 const config = useRuntimeConfig()
+const route = useRoute()
 const { calentar, detectarRostro } = useFacialRecognition()
 
 const paso        = ref(1)
@@ -215,6 +231,8 @@ const error       = ref('')
 const descargando = ref(false)
 const formPaso1   = ref<any>(null)
 const formularioEnEdicion = ref(false)
+const googleRegistroToken = computed(() => typeof route.query.googleRegistro === 'string' ? route.query.googleRegistro : '')
+const esRegistroGoogle = computed(() => googleRegistroToken.value.length > 0)
 
 const form = reactive({
   nombre: '', apellido: '', correo: '', telefono: '', fechaNacimiento: '',
@@ -229,6 +247,21 @@ const validarApellido = (valor: string) =>
 
 function activarEdicion() {
   formularioEnEdicion.value = true
+}
+
+onMounted(async () => {
+  if (!googleRegistroToken.value) return
+  try {
+    const { data } = await api.post('/auth/google-registro', { token: googleRegistroToken.value })
+    form.correo = data.correo
+    form.nombre = data.nombre
+  } catch (e: any) {
+    error.value = e.response?.data?.mensaje || 'No se pudo validar la cuenta de Google.'
+  }
+})
+
+function continuarConGoogle() {
+  window.location.assign(`${config.public.apiBase}/auth/google/iniciar`)
 }
 const recaptchaToken = ref('')
 const recaptcha = ref<{ reiniciar: () => void } | null>(null)
@@ -469,6 +502,7 @@ async function registrar() {
       fotoBase64:         fotoParaCredencial.value || fotoCapturada.value,
       fotoModificadaBase64: await crearFotoPersonalizada(),
       descriptor:         descriptorFacial.value,
+      googleRegistroToken: googleRegistroToken.value || undefined,
       recaptchaToken:     bypassDesarrollo.value ? 'dev-bypass' : recaptchaToken.value
     }
     const { data } = await api.post('/auth/registro', payload)
