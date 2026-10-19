@@ -303,6 +303,11 @@ function cambiarModo(modo: 'login' | 'registro') {
 onMounted(() => {
   calentar()
   auth.restore()
+  if (route.query.error === 'google-existente') {
+    error.value = 'Esta cuenta de Google ya está registrada. Completa reCAPTCHA y usa “Continuar con Google” para iniciar sesión.'
+  } else if (route.query.error === 'google') {
+    error.value = 'No fue posible verificar la cuenta de Google. Intenta nuevamente.'
+  }
   if (auth.isAuthenticated) navigateTo(rutaDestino.value)
 })
 

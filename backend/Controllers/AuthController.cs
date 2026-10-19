@@ -154,6 +154,7 @@ public class AuthController : ControllerBase
 
     [HttpGet("google/iniciar")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth")]
     public IActionResult IniciarGoogle()
     {
         if (string.IsNullOrWhiteSpace(HttpContext.RequestServices.GetRequiredService<IConfiguration>()["Google:ClientId"]))
@@ -175,8 +176,19 @@ public class AuthController : ControllerBase
             IsEssential = true
         });
 
-        var retorno = Url.Action(nameof(CompletarGoogle), "Auth", null, Request.Scheme);
-        return Challenge(new AuthenticationProperties { RedirectUri = retorno }, GoogleDefaults.AuthenticationScheme);
+        return DesafiarGoogle(false);
+    }
+
+    /// <summary>Inicia el alta de una cuenta nueva con Google. No inicia sesión de cuentas existentes.</summary>
+    [HttpGet("google/registrar")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public IActionResult RegistrarConGoogle()
+    {
+        if (string.IsNullOrWhiteSpace(_configuration["Google:ClientId"]))
+            return BadRequest("El acceso con Google no está configurado.");
+
+        return DesafiarGoogle(true);
     }
 
     [HttpGet("google/completar")]
@@ -189,9 +201,23 @@ public class AuthController : ControllerBase
         var correo = externo.Principal?.FindFirst(ClaimTypes.Email)?.Value;
         var nombre = externo.Principal?.FindFirst(ClaimTypes.GivenName)?.Value
             ?? externo.Principal?.FindFirst(ClaimTypes.Name)?.Value;
+        var esRegistro = externo.Properties?.Items.TryGetValue("modo_registro", out var modoRegistro) == true
+            && modoRegistro == "google";
         if (!externo.Succeeded || string.IsNullOrWhiteSpace(subject) || string.IsNullOrWhiteSpace(correo)
             || string.IsNullOrWhiteSpace(nombre))
             return Redirect(RutaPublica("/login?error=google"));
+
+        if (esRegistro)
+        {
+            var correoNormalizado = correo.Trim().ToLowerInvariant();
+            var cuentaExiste = await _db.Usuarios.AsNoTracking().AnyAsync(u => u.Activo
+                && (u.GoogleSubject == subject || u.Correo == correoNormalizado));
+            if (cuentaExiste)
+                return Redirect(RutaPublica("/login?error=google-existente"));
+
+            var tokenRegistroNuevo = _jwt.GenerarTokenRegistroGoogle(subject, correoNormalizado, nombre);
+            return Redirect(RutaPublica($"/login?modo=registro&googleRegistro={Uri.EscapeDataString(tokenRegistroNuevo)}"));
+        }
 
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "desconocido";
         var resultado = await _auth.LoginGoogleAsync(subject, correo, ip, Request.Headers.UserAgent.ToString());
@@ -470,6 +496,16 @@ public class AuthController : ControllerBase
     {
         var baseUrl = _configuration["App:PublicUrl"];
         return $"{(string.IsNullOrWhiteSpace(baseUrl) ? "https://analizador-umg.duckdns.org" : baseUrl.TrimEnd('/'))}{ruta}";
+    }
+
+    private IActionResult DesafiarGoogle(bool esRegistro)
+    {
+        var retorno = Url.Action(nameof(CompletarGoogle), "Auth", null, Request.Scheme);
+        var propiedades = new AuthenticationProperties { RedirectUri = retorno };
+        if (esRegistro)
+            propiedades.Items["modo_registro"] = "google";
+
+        return Challenge(propiedades, GoogleDefaults.AuthenticationScheme);
     }
 
     /// <summary>Actualizar perfil</summary>
