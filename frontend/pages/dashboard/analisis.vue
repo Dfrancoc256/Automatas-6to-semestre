@@ -57,6 +57,7 @@
           <v-alert v-if="errorMsg" type="error" variant="tonal" density="compact" class="mb-4">
             {{ errorMsg }}
           </v-alert>
+          <v-progress-linear v-if="validandoIdioma" indeterminate color="accent" class="mb-4" />
 
           <v-btn
             color="accent"
@@ -64,7 +65,7 @@
             block
             size="large"
             :loading="procesando"
-            :disabled="!contenido"
+            :disabled="!contenido || validandoIdioma || idiomaValidado !== true"
             prepend-icon="mdi-play"
             @click="procesar"
           >
@@ -251,6 +252,8 @@ const procesando = ref(false)
 const errorMsg   = ref('')
 const arrastrando = ref(false)
 const resultado  = ref<any>(null)
+const validandoIdioma = ref(false)
+const idiomaValidado = ref<boolean | null>(null)
 const tabResultado = ref('frecuencia')
 const fileInput  = ref<HTMLInputElement | null>(null)
 const descargandoReporte = ref(false)
@@ -314,14 +317,59 @@ function cargarArchivo(f: File) {
   }
   archivo.value  = f
   errorMsg.value = ''
+  resultado.value = null
+  idiomaValidado.value = null
   const reader = new FileReader()
-  reader.onload = (e) => { contenido.value = e.target?.result as string }
+  reader.onload = async (e) => {
+    contenido.value = e.target?.result as string
+    await validarIdioma()
+  }
   reader.readAsText(f, 'UTF-8')
+}
+
+watch(idioma, async () => {
+  if (!contenido.value) return
+  resultado.value = null
+  await validarIdioma()
+})
+
+async function validarIdioma() {
+  if (!contenido.value) return
+
+  errorMsg.value = ''
+  idiomaValidado.value = null
+  validandoIdioma.value = true
+  const idiomaEvaluado = idioma.value
+  const contenidoEvaluado = contenido.value
+
+  try {
+    const { data } = await api.post('/analisis/validar-idioma', {
+      contenido: contenidoEvaluado,
+      idioma: idiomaEvaluado,
+      nombreArchivo: archivo.value?.name || 'archivo.txt'
+    })
+
+    if (idioma.value !== idiomaEvaluado || contenido.value !== contenidoEvaluado) return
+    idiomaValidado.value = data.esValido
+    if (!data.esValido) errorMsg.value = data.mensaje
+  } catch (e: any) {
+    if (idioma.value !== idiomaEvaluado || contenido.value !== contenidoEvaluado) return
+    idiomaValidado.value = false
+    errorMsg.value = e.response?.data?.mensaje || 'No se pudo validar el idioma del documento.'
+  } finally {
+    if (idioma.value === idiomaEvaluado && contenido.value === contenidoEvaluado) {
+      validandoIdioma.value = false
+    }
+  }
 }
 
 async function procesar() {
   errorMsg.value = ''
   resultado.value = null
+  if (idiomaValidado.value !== true) {
+    errorMsg.value = 'Selecciona un idioma que coincida con el documento para procesarlo.'
+    return
+  }
   procesando.value = true
   try {
     const { data } = await api.post('/analisis/procesar', {
