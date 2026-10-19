@@ -37,6 +37,20 @@ public class AnalisisController : ControllerBase
     }
 
     /// <summary>Procesar análisis léxico de un archivo de texto</summary>
+    [HttpPost("validar-idioma")]
+    public IActionResult ValidarIdioma([FromBody] AnalisisRequestDTO dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(new { errores = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage) });
+
+        if (!IdiomasPermitidos.Contains(dto.Idioma))
+            return BadRequest(new { mensaje = "Idioma no soportado. Use: español, inglés, ruso, chino o árabe." });
+
+        return Ok(_analizador.ValidarIdioma(dto.Contenido, dto.Idioma));
+    }
+
     [HttpPost("procesar")]
     public async Task<IActionResult> Procesar([FromBody] AnalisisRequestDTO dto)
     {
