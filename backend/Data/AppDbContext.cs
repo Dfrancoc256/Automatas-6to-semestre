@@ -10,6 +10,7 @@ public class AppDbContext : DbContext
     public DbSet<Usuario> Usuarios { get; set; }
     public DbSet<BitacoraLogin> BitacoraLogins { get; set; }
     public DbSet<ResultadoAnalisis> ResultadosAnalisis { get; set; }
+    public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -57,6 +58,16 @@ public class AppDbContext : DbContext
                 table.HasCheckConstraint("CK_resultado_archivo", "length(trim(nombre_archivo)) > 0");
                 table.HasCheckConstraint("CK_resultado_totales", "total_palabras >= 0 AND total_tokens >= 0");
             });
+        });
+
+        modelBuilder.Entity<PasswordResetToken>(entity =>
+        {
+            entity.HasIndex(t => t.TokenHash).IsUnique();
+            entity.HasIndex(t => new { t.UsuarioId, t.ExpiraEn });
+            entity.HasOne(t => t.Usuario)
+                  .WithMany(u => u.TokensRestablecimiento)
+                  .HasForeignKey(t => t.UsuarioId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

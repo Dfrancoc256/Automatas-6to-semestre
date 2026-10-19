@@ -77,4 +77,5 @@ public class Usuario
     // Virtual: logs de acceso
     public ICollection<BitacoraLogin> BitacoraLogins { get; set; } = new List<BitacoraLogin>();
     public ICollection<ResultadoAnalisis> ResultadosAnalisis { get; set; } = new List<ResultadoAnalisis>();
+    public ICollection<PasswordResetToken> TokensRestablecimiento { get; set; } = new List<PasswordResetToken>();
 }
