@@ -178,7 +178,7 @@
               <v-icon size="80" color="success" class="mb-4">mdi-check-circle</v-icon>
               <h2 class="text-h5 font-weight-bold mb-2">¡Registro exitoso!</h2>
               <p class="text-body-2 text-medium-emphasis mb-6">
-                Tu cuenta ha sido creada. Revisa tu correo para conocer la contraseña temporal de tu próximo ingreso.
+                Tu cuenta ha sido creada. Revisa tu correo para conocer la contraseña temporal. En tu próximo inicio de sesión deberás cambiarla por una contraseña personal.
               </p>
               <v-btn color="accent" class="umg-gold-button" prepend-icon="mdi-login"
                      @click="navigateTo('/dashboard')">
