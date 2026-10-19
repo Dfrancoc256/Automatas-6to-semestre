@@ -3,11 +3,37 @@
     'registro-content--captura': paso === 2,
     'registro-content--edicion': paso === 1 && formularioEnEdicion,
   }]">
+    <div v-if="mostrarOpcionesRegistro" class="registro-choice text-center">
+      <img class="auth-logo login-logo mx-auto mb-4" src="/images/logo-umg-oficial.png"
+           alt="Universidad Mariano Gálvez de Guatemala" />
+      <h1 class="text-h5 font-weight-bold mb-2">Crear cuenta</h1>
+      <p class="text-body-2 text-medium-emphasis mb-7">Elige cómo deseas registrarte.</p>
+
+      <v-btn block size="large" variant="outlined" color="primary" class="google-access-button mb-3"
+             @click="registrarConGoogle">
+        <span class="google-mark" aria-hidden="true">G</span>
+        <span>Registrarme con Google</span>
+      </v-btn>
+      <p class="registro-choice__hint">Usaremos tu cuenta de Google para completar nombre y correo; después solicitaremos los datos necesarios para tu credencial.</p>
+      <div class="registro-choice__divider"><span>o</span></div>
+      <v-btn block size="large" color="accent" class="umg-gold-button" @click="crearConCorreo">
+        Crear cuenta con correo
+      </v-btn>
+      <p class="text-body-2 text-medium-emphasis mt-6 mb-0">
+        ¿Ya tienes cuenta?
+        <button type="button" class="auth-inline-link" @click="emit('cambiarModo', 'login')">Inicia sesión</button>
+      </p>
+    </div>
+
+    <template v-else>
       <div class="text-center mb-6">
         <img class="auth-logo login-logo mx-auto mb-3" src="/images/logo-umg-oficial.png"
              alt="Universidad Mariano Gálvez de Guatemala" />
         <h1 class="text-h5 font-weight-bold" style="color:#051B2E">Crear cuenta</h1>
         <p class="text-body-2 text-medium-emphasis mt-1">Completa el formulario para registrarte</p>
+        <v-btn v-if="!esRegistroGoogle" variant="text" size="small" color="primary" class="mt-1" @click="mostrarOpcionesRegistro = true">
+          Elegir otro método
+        </v-btn>
       </div>
 
       <v-stepper v-model="paso" alt-labels flat non-linear>
@@ -68,19 +94,6 @@
               <v-alert v-else-if="!bypassDesarrollo" type="warning" variant="tonal" density="compact" class="mb-4">
                 Falta configurar la clave pública de reCAPTCHA.
               </v-alert>
-              <v-btn
-                v-if="!esRegistroGoogle"
-                block
-                variant="outlined"
-                color="primary"
-                class="mb-4 google-access-button"
-                :loading="cargandoGoogle"
-                :disabled="!puedeEnviar || cargandoGoogle"
-                @click="continuarConGoogle"
-              >
-                <span class="google-mark" aria-hidden="true">G</span>
-                <span>Continuar con Google</span>
-              </v-btn>
               <v-alert v-if="error" type="error" variant="tonal" density="compact" class="mb-4">
                 {{ error }}
               </v-alert>
@@ -215,6 +228,7 @@
         <span class="text-body-2 text-medium-emphasis">¿Ya tienes cuenta? </span>
         <button type="button" class="auth-inline-link" @click="emit('cambiarModo', 'login')">Inicia sesión</button>
       </div>
+    </template>
   </div>
 </template>
 
@@ -231,11 +245,11 @@ const paso        = ref(1)
 const cargando    = ref(false)
 const error       = ref('')
 const descargando = ref(false)
-const cargandoGoogle = ref(false)
 const formPaso1   = ref<any>(null)
 const formularioEnEdicion = ref(false)
 const googleRegistroToken = computed(() => typeof route.query.googleRegistro === 'string' ? route.query.googleRegistro : '')
 const esRegistroGoogle = computed(() => googleRegistroToken.value.length > 0)
+const mostrarOpcionesRegistro = ref(!googleRegistroToken.value)
 
 const form = reactive({
   nombre: '', apellido: '', correo: '', telefono: '', fechaNacimiento: '',
@@ -254,6 +268,7 @@ function activarEdicion() {
 
 onMounted(async () => {
   if (!googleRegistroToken.value) return
+  mostrarOpcionesRegistro.value = false
   try {
     const { data } = await api.post('/auth/google-registro', { token: googleRegistroToken.value })
     form.correo = data.correo
@@ -263,25 +278,12 @@ onMounted(async () => {
   }
 })
 
-async function continuarConGoogle() {
-  error.value = ''
-  if (!puedeEnviar.value) {
-    error.value = 'Completa la verificación reCAPTCHA antes de continuar con Google.'
-    return
-  }
+function crearConCorreo() {
+  mostrarOpcionesRegistro.value = false
+}
 
-  cargandoGoogle.value = true
-  try {
-    await api.post('/auth/google/verificar-captcha', {
-      recaptchaToken: bypassDesarrollo.value ? 'dev-bypass' : recaptchaToken.value
-    })
-    window.location.assign(`${config.public.apiBase}/auth/google/iniciar`)
-  } catch (e: any) {
-    error.value = e.response?.data?.mensaje || 'No fue posible validar reCAPTCHA. Intenta nuevamente.'
-    recaptchaToken.value = ''
-    recaptcha.value?.reiniciar()
-    cargandoGoogle.value = false
-  }
+function registrarConGoogle() {
+  window.location.assign(`${config.public.apiBase}/auth/google/registrar`)
 }
 const recaptchaToken = ref('')
 const recaptcha = ref<{ reiniciar: () => void } | null>(null)
@@ -656,6 +658,30 @@ async function descargarCredencial() {
 .registro-error { min-width: 0; }
 .registro-error__message { display: block; min-width: 0; overflow-wrap: anywhere; white-space: normal; }
 .registro-retry { color: #7A5E12 !important; font-weight: 700 !important; }
+.registro-choice {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: min(100%, 430px);
+  margin: 0 auto;
+  padding: 16px 4px;
+}
+.registro-choice h1 { color: #051B2E; }
+.registro-choice__hint { margin: 0 0 14px; color: #667085; font-size: 12px; line-height: 1.45; }
+.registro-choice__divider {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 12px;
+  margin: 2px 0 14px;
+  color: #6B7280;
+  font-size: 12px;
+}
+.registro-choice__divider::before,
+.registro-choice__divider::after { content: ''; flex: 1; height: 1px; background: #E2E4E8; }
 .google-access-button :deep(.v-btn__content) { gap: 10px; justify-content: center; }
 .google-mark {
   display: inline-grid;
