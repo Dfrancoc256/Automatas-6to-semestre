@@ -10,6 +10,8 @@ using LenguajesFormalesAPI.Data;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using Microsoft.Extensions.Caching.Memory;
+using System.Security.Cryptography;
 
 namespace LenguajesFormalesAPI.Controllers;
 
@@ -28,11 +30,13 @@ public class AuthController : ControllerBase
     private readonly IWebHostEnvironment _environment;
     private readonly IConfiguration _configuration;
     private readonly AppDbContext _db;
+    private readonly IMemoryCache _cache;
 
     public AuthController(IAuthService auth, IRecaptchaService recaptcha,
         ICredentialService credential, IJwtService jwt,
         IEmailService email, IWhatsAppService whatsApp,
-        ILogger<AuthController> logger, IWebHostEnvironment environment, AppDbContext db, IConfiguration configuration)
+        ILogger<AuthController> logger, IWebHostEnvironment environment, AppDbContext db, IConfiguration configuration,
+        IMemoryCache cache)
     {
         _email     = email;
         _whatsApp  = whatsApp;
@@ -44,6 +48,7 @@ public class AuthController : ControllerBase
         _environment = environment;
         _configuration = configuration;
         _db = db;
+        _cache = cache;
     }
 
     /// <summary>Registro de nuevo usuario</summary>
@@ -124,12 +129,51 @@ public class AuthController : ControllerBase
         }
     }
 
+    /// <summary>Valida el CAPTCHA y entrega un permiso de un solo uso para iniciar OAuth con Google.</summary>
+    [HttpPost("google/verificar-captcha")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> VerificarCaptchaGoogle([FromBody] RecaptchaTokenDTO dto)
+    {
+        if (!ModelState.IsValid || !await _recaptcha.ValidarAsync(dto.RecaptchaToken))
+            return BadRequest(new { mensaje = "Completa la verificación reCAPTCHA antes de continuar con Google." });
+
+        var permiso = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+        _cache.Set($"google-captcha:{permiso}", true, TimeSpan.FromMinutes(5));
+        Response.Cookies.Append("umg_google_captcha", permiso, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = UsarCookieSegura(),
+            SameSite = SameSiteMode.Lax,
+            Path = "/api/auth/google",
+            MaxAge = TimeSpan.FromMinutes(5),
+            IsEssential = true
+        });
+        return NoContent();
+    }
+
     [HttpGet("google/iniciar")]
     [AllowAnonymous]
     public IActionResult IniciarGoogle()
     {
         if (string.IsNullOrWhiteSpace(HttpContext.RequestServices.GetRequiredService<IConfiguration>()["Google:ClientId"]))
             return BadRequest("El acceso con Google no está configurado.");
+
+        if (!Request.Cookies.TryGetValue("umg_google_captcha", out var permiso)
+            || string.IsNullOrWhiteSpace(permiso)
+            || !_cache.TryGetValue<bool>($"google-captcha:{permiso}", out _))
+        {
+            return BadRequest(new { mensaje = "Completa la verificación reCAPTCHA antes de continuar con Google." });
+        }
+
+        _cache.Remove($"google-captcha:{permiso}");
+        Response.Cookies.Delete("umg_google_captcha", new CookieOptions
+        {
+            Secure = UsarCookieSegura(),
+            SameSite = SameSiteMode.Lax,
+            Path = "/api/auth/google",
+            IsEssential = true
+        });
 
         var retorno = Url.Action(nameof(CompletarGoogle), "Auth", null, Request.Scheme);
         return Challenge(new AuthenticationProperties { RedirectUri = retorno }, GoogleDefaults.AuthenticationScheme);

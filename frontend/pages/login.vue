@@ -108,11 +108,13 @@
         block
         variant="outlined"
         color="primary"
-        prepend-icon="mdi-google"
-        class="mt-4"
+        class="mt-4 google-access-button"
+        :loading="cargandoGoogle"
+        :disabled="!puedeEnviar || cargandoGoogle"
         @click="continuarConGoogle"
       >
-        Continuar con Google
+        <span class="google-mark" aria-hidden="true">G</span>
+        <span>Continuar con Google</span>
       </v-btn>
 
       <div class="text-center mt-4">
@@ -251,6 +253,7 @@ const nuevaPassword = ref('')
 const confirmarNuevaPassword = ref('')
 const errorCambioPassword = ref('')
 const cambiandoPassword = ref(false)
+const cargandoGoogle = ref(false)
 
 // Login facial
 const mostrarFacial     = ref(false)
@@ -461,8 +464,25 @@ function identificadorValido(valor: string) {
   return /^[a-zA-Z0-9_.-]{3,50}$/.test(identificador)
 }
 
-function continuarConGoogle() {
-  window.location.assign(`${config.public.apiBase}/auth/google/iniciar`)
+async function continuarConGoogle() {
+  error.value = ''
+  if (!puedeEnviar.value) {
+    error.value = 'Completa la verificación reCAPTCHA antes de continuar con Google.'
+    return
+  }
+
+  cargandoGoogle.value = true
+  try {
+    await api.post('/auth/google/verificar-captcha', {
+      recaptchaToken: bypassDesarrollo.value ? 'dev-bypass' : recaptchaToken.value
+    })
+    window.location.assign(`${config.public.apiBase}/auth/google/iniciar`)
+  } catch (e: any) {
+    error.value = e.response?.data?.mensaje || 'No fue posible validar reCAPTCHA. Intenta nuevamente.'
+    recaptchaToken.value = ''
+    recaptcha.value?.reiniciar()
+    cargandoGoogle.value = false
+  }
 }
 </script>
 
@@ -579,6 +599,21 @@ function continuarConGoogle() {
 
 .login-register-link { margin: 8px 0 0; color: #6B7280; font-size: 12px; }
 .login-register-link a { color: #7A5E12; font-weight: 700; }
+.google-access-button :deep(.v-btn__content) { gap: 10px; justify-content: center; }
+.google-mark {
+  display: inline-grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  background: conic-gradient(from -42deg, #4285F4 0 25%, #34A853 25% 50%, #FBBC05 50% 75%, #EA4335 75% 100%);
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  font-family: Arial, sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+}
 .auth-access-tabs { position: relative; display: inline-grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; background: #F5F6F7; border: 1px solid #E2E4E8; border-radius: 999px; isolation: isolate; }
 .auth-access-tabs::before { content: ''; position: absolute; z-index: -1; inset: 4px auto 4px 4px; width: calc(50% - 6px); background: #fff; border-radius: 999px; box-shadow: 0 2px 7px rgba(5,27,46,.12); transition: transform .28s cubic-bezier(.22, 1, .36, 1), box-shadow .28s ease; }
 .auth-access-tabs button { padding: 6px 13px; border: 0; background: transparent; color: #6B7280; border-radius: 999px; font-size: 11px; font-weight: 700; cursor: pointer; transition: color .2s ease, transform .2s ease; }

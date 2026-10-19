@@ -120,6 +120,12 @@ public class GoogleRegistroTokenDTO
     public string Token { get; set; } = string.Empty;
 }
 
+public class RecaptchaTokenDTO
+{
+    [Required(ErrorMessage = "Verificación reCAPTCHA requerida")]
+    public string RecaptchaToken { get; set; } = string.Empty;
+}
+
 public class AuthResponseDTO
 {
     public string Token { get; set; } = string.Empty;

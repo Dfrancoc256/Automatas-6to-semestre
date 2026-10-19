@@ -100,6 +100,7 @@ builder.Services.AddAuthorization(options =>
         .Build();
 });
 builder.Services.AddProblemDetails();
+builder.Services.AddMemoryCache();
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;

@@ -52,17 +52,6 @@
               <v-alert type="info" variant="tonal" density="compact" class="mb-3">
                 Tu nickname se generará automáticamente. Recibirás una contraseña temporal en el correo registrado para tu próximo ingreso.
               </v-alert>
-              <v-btn
-                v-if="!esRegistroGoogle"
-                block
-                variant="outlined"
-                color="primary"
-                prepend-icon="mdi-google"
-                class="mb-3"
-                @click="continuarConGoogle"
-              >
-                Continuar con Google
-              </v-btn>
               <v-select v-model="form.metodoNotificacion"
                         label="Método de notificación"
                         prepend-inner-icon="mdi-bell"
@@ -79,6 +68,19 @@
               <v-alert v-else-if="!bypassDesarrollo" type="warning" variant="tonal" density="compact" class="mb-4">
                 Falta configurar la clave pública de reCAPTCHA.
               </v-alert>
+              <v-btn
+                v-if="!esRegistroGoogle"
+                block
+                variant="outlined"
+                color="primary"
+                class="mb-4 google-access-button"
+                :loading="cargandoGoogle"
+                :disabled="!puedeEnviar || cargandoGoogle"
+                @click="continuarConGoogle"
+              >
+                <span class="google-mark" aria-hidden="true">G</span>
+                <span>Continuar con Google</span>
+              </v-btn>
               <v-alert v-if="error" type="error" variant="tonal" density="compact" class="mb-4">
                 {{ error }}
               </v-alert>
@@ -229,6 +231,7 @@ const paso        = ref(1)
 const cargando    = ref(false)
 const error       = ref('')
 const descargando = ref(false)
+const cargandoGoogle = ref(false)
 const formPaso1   = ref<any>(null)
 const formularioEnEdicion = ref(false)
 const googleRegistroToken = computed(() => typeof route.query.googleRegistro === 'string' ? route.query.googleRegistro : '')
@@ -260,8 +263,25 @@ onMounted(async () => {
   }
 })
 
-function continuarConGoogle() {
-  window.location.assign(`${config.public.apiBase}/auth/google/iniciar`)
+async function continuarConGoogle() {
+  error.value = ''
+  if (!puedeEnviar.value) {
+    error.value = 'Completa la verificación reCAPTCHA antes de continuar con Google.'
+    return
+  }
+
+  cargandoGoogle.value = true
+  try {
+    await api.post('/auth/google/verificar-captcha', {
+      recaptchaToken: bypassDesarrollo.value ? 'dev-bypass' : recaptchaToken.value
+    })
+    window.location.assign(`${config.public.apiBase}/auth/google/iniciar`)
+  } catch (e: any) {
+    error.value = e.response?.data?.mensaje || 'No fue posible validar reCAPTCHA. Intenta nuevamente.'
+    recaptchaToken.value = ''
+    recaptcha.value?.reiniciar()
+    cargandoGoogle.value = false
+  }
 }
 const recaptchaToken = ref('')
 const recaptcha = ref<{ reiniciar: () => void } | null>(null)
@@ -636,6 +656,21 @@ async function descargarCredencial() {
 .registro-error { min-width: 0; }
 .registro-error__message { display: block; min-width: 0; overflow-wrap: anywhere; white-space: normal; }
 .registro-retry { color: #7A5E12 !important; font-weight: 700 !important; }
+.google-access-button :deep(.v-btn__content) { gap: 10px; justify-content: center; }
+.google-mark {
+  display: inline-grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  background: conic-gradient(from -42deg, #4285F4 0 25%, #34A853 25% 50%, #FBBC05 50% 75%, #EA4335 75% 100%);
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  font-family: Arial, sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+}
 @media (max-width: 700px) {
   .registro-content { min-width: 0; max-width: 100%; overflow-x: hidden; }
   .registro-content :deep(.v-stepper-header) { overflow: hidden; }
