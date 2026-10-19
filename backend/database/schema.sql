@@ -13,6 +13,7 @@ CREATE TABLE usuarios (
     nickname            varchar(50) NOT NULL,
     password_hash       text NOT NULL,
     debe_cambiar_password boolean NOT NULL DEFAULT false,
+    google_subject      varchar(100) UNIQUE,
     metodo_notificacion varchar(20) NOT NULL DEFAULT 'email',
     foto_original       text,
     foto_modificada     text,
@@ -99,7 +100,7 @@ CREATE TABLE bitacora_login (
     metodo      varchar(20) NOT NULL,
 
     CONSTRAINT ck_bitacora_resultado CHECK (resultado IN ('exitoso', 'fallido')),
-    CONSTRAINT ck_bitacora_metodo CHECK (metodo IN ('password', 'facial', 'qr'))
+    CONSTRAINT ck_bitacora_metodo CHECK (metodo IN ('password', 'facial', 'qr', 'google'))
 );
 
 CREATE TABLE resultado_analisis (

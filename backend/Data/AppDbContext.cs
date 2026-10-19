@@ -19,6 +19,7 @@ public class AppDbContext : DbContext
         {
             entity.HasIndex(u => u.Correo).IsUnique();
             entity.HasIndex(u => u.Nickname).IsUnique();
+            entity.HasIndex(u => u.GoogleSubject).IsUnique();
             entity.ToTable(table =>
             {
                 table.HasCheckConstraint("CK_usuarios_correo", "length(trim(correo)) > 3");
@@ -40,7 +41,7 @@ public class AppDbContext : DbContext
             entity.ToTable(table =>
             {
                 table.HasCheckConstraint("CK_bitacora_resultado", "resultado IN ('exitoso', 'fallido')");
-                table.HasCheckConstraint("CK_bitacora_metodo", "metodo IN ('password', 'facial', 'qr')");
+                table.HasCheckConstraint("CK_bitacora_metodo", "metodo IN ('password', 'facial', 'qr', 'google')");
             });
         });
 

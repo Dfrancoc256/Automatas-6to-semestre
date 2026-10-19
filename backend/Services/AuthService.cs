@@ -20,6 +20,7 @@ public interface IAuthService
     Task<UsuarioPerfilDTO?> ObtenerPerfilAsync(int usuarioId);
     Task<bool> ActualizarPerfilAsync(int usuarioId, ActualizarPerfilDTO dto);
     Task<AuthResponseDTO?> CambiarPasswordTemporalAsync(int usuarioId, string nuevoPassword);
+    Task<AuthResponseDTO?> LoginGoogleAsync(string googleSubject, string correo, string ip, string userAgent);
 }
 
 public class AuthService : IAuthService
@@ -131,6 +132,31 @@ public class AuthService : IAuthService
         return CrearRespuestaSesion(usuario);
     }
 
+    public async Task<AuthResponseDTO?> LoginGoogleAsync(string googleSubject, string correo, string ip, string userAgent)
+    {
+        var correoNormalizado = correo.Trim().ToLowerInvariant();
+        var usuario = await _db.Usuarios.FirstOrDefaultAsync(u => u.Activo
+            && (u.GoogleSubject == googleSubject || u.Correo == correoNormalizado));
+        if (usuario == null) return null;
+
+        if (string.IsNullOrWhiteSpace(usuario.GoogleSubject))
+        {
+            usuario.GoogleSubject = googleSubject;
+            await _db.SaveChangesAsync();
+        }
+
+        _db.BitacoraLogins.Add(new BitacoraLogin
+        {
+            UsuarioId = usuario.Id,
+            IpOrigen = Limitar(ip, 45),
+            UserAgent = Limitar(userAgent, 300),
+            Resultado = "exitoso",
+            Metodo = "google"
+        });
+        await _db.SaveChangesAsync();
+        return CrearRespuestaSesion(usuario);
+    }
+
     public async Task<AuthResponseDTO?> LoginFacialAsync(LoginFacialDTO dto, string ip, string userAgent)
     {
         var (usuario, confianza) = await _facial.BuscarCoincidenciaAsync(dto.Descriptor);
@@ -156,9 +182,23 @@ public class AuthService : IAuthService
         if (_sinBaseDeDatos)
             return RegistrarLocal(dto);
 
+        var googleSubject = string.Empty;
         var correo = dto.Correo.Trim().ToLowerInvariant();
         var nombre = NormalizarNombre(dto.Nombre);
         var apellido = NormalizarNombre(dto.Apellido);
+
+        if (!string.IsNullOrWhiteSpace(dto.GoogleRegistroToken))
+        {
+            var principal = _jwt.ValidarTokenRegistroGoogle(dto.GoogleRegistroToken);
+            googleSubject = principal?.FindFirst("google_subject")?.Value ?? string.Empty;
+            var correoGoogle = principal?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+            var nombreGoogle = principal?.FindFirst(System.Security.Claims.ClaimTypes.GivenName)?.Value;
+            if (string.IsNullOrWhiteSpace(googleSubject) || string.IsNullOrWhiteSpace(correoGoogle) || string.IsNullOrWhiteSpace(nombreGoogle))
+                throw new InvalidOperationException("La verificación de Google venció. Selecciona tu cuenta nuevamente.");
+
+            correo = correoGoogle.Trim().ToLowerInvariant();
+            nombre = NormalizarNombre(nombreGoogle);
+        }
 
         // Verificar unicidad
         if (await _db.Usuarios.AnyAsync(u => u.Correo == correo))
@@ -189,7 +229,7 @@ public class AuthService : IAuthService
             await File.WriteAllBytesAsync(Path.Combine(carpeta, nombreModificado), imagenModificada.Bytes);
         }
 
-        var passwordTemporal = GenerarPasswordTemporal();
+        var passwordTemporal = string.IsNullOrWhiteSpace(googleSubject) ? GenerarPasswordTemporal() : null;
         var usuario = new Usuario
         {
             Correo              = correo,
@@ -198,8 +238,9 @@ public class AuthService : IAuthService
             Telefono            = dto.Telefono.Trim(),
             FechaNacimiento     = DateTime.SpecifyKind(dto.FechaNacimiento, DateTimeKind.Utc),
             Nickname            = nickname,
-            PasswordHash        = BCrypt.Net.BCrypt.HashPassword(passwordTemporal),
-            DebeCambiarPassword = true,
+            PasswordHash        = BCrypt.Net.BCrypt.HashPassword(passwordTemporal ?? GenerarPasswordTemporal()),
+            DebeCambiarPassword = string.IsNullOrWhiteSpace(googleSubject),
+            GoogleSubject       = string.IsNullOrWhiteSpace(googleSubject) ? null : googleSubject,
             MetodoNotificacion  = dto.MetodoNotificacion,
             FotoOriginal        = rutaFotoOriginal,
             FotoModificada      = rutaFotoModificada,
@@ -222,7 +263,7 @@ public class AuthService : IAuthService
     }
 
     /// <summary>Envía las notificaciones del registro.</summary>
-    private async Task NotificarRegistroAsync(Usuario usuario, string codigoQr, string passwordTemporal)
+    private async Task NotificarRegistroAsync(Usuario usuario, string codigoQr, string? passwordTemporal)
     {
         var nombre = WebUtility.HtmlEncode(usuario.NombreCompleto);
         var correo = WebUtility.HtmlEncode(usuario.Correo);
@@ -245,12 +286,15 @@ public class AuthService : IAuthService
             _logger.LogError(ex, "No se pudo generar la credencial inicial del usuario {UsuarioId}", usuario.Id);
         }
 
+        var mensajeAcceso = passwordTemporal is null
+            ? "Tu acceso se realiza con la cuenta de Google que seleccionaste durante el registro."
+            : "Revisa tu correo para obtener la contraseña temporal de acceso.";
         var mensajeWhatsApp =
             $"¡Bienvenido/a, {usuario.NombreCompleto}!\n\n" +
             $"Ingresa en: {urlWeb}\n" +
             $"Correo: {usuario.Correo}\n" +
             $"Nickname: {usuario.Nickname}\n\n" +
-            "Revisa tu correo para obtener la contraseña temporal de acceso.";
+            mensajeAcceso;
 
         try
         {
@@ -262,8 +306,10 @@ public class AuthService : IAuthService
                 $"<ul><li><strong>Enlace:</strong> <a href=\"{urlHtml}\">{urlHtml}</a></li>" +
                 $"<li><strong>Correo:</strong> {correo}</li>" +
                 $"<li><strong>Nickname:</strong> {nickname}</li></ul>" +
-                $"<p><strong>Contraseña temporal:</strong> {WebUtility.HtmlEncode(passwordTemporal)}</p>" +
-                "<p>Úsala para tu próximo ingreso. Después deberás crear una contraseña personal antes de continuar.</p>" +
+                (passwordTemporal is null
+                    ? "<p>Tu acceso se realiza con la cuenta de Google que seleccionaste durante el registro.</p>"
+                    : $"<p><strong>Contraseña temporal:</strong> {WebUtility.HtmlEncode(passwordTemporal)}</p>" +
+                      "<p>Úsala para tu próximo ingreso. Después deberás crear una contraseña personal antes de continuar.</p>") +
                 "<p>Adjuntamos tu credencial PDF con código QR.</p>",
                 credencial,
                 credencial is null ? null : nombreArchivo);

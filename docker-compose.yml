@@ -9,6 +9,8 @@ services:
       ConnectionStrings__DefaultConnection: ${DB_CONNECTION_STRING}
       Jwt__SecretKey: ${JWT_SECRET_KEY}
       Recaptcha__SecretKey: ${RECAPTCHA_SECRET_KEY}
+      Google__ClientId: ${GOOGLE_CLIENT_ID:-}
+      Google__ClientSecret: ${GOOGLE_CLIENT_SECRET:-}
       WhatsApp__BaseUrl: ${WHATSAPP_BASE_URL:-}
       WhatsApp__ApiKey: ${WHATSAPP_API_KEY:-}
       WhatsApp__InstanceName: ${WHATSAPP_INSTANCE_NAME:-umg-lenguajes}

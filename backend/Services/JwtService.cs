@@ -15,6 +15,8 @@ public interface IJwtService
     ClaimsPrincipal? ValidarToken(string token);
     ClaimsPrincipal? ValidarTokenQr(string token);
     ClaimsPrincipal? ValidarCodigoQrCredencial(string token);
+    string GenerarTokenRegistroGoogle(string subject, string correo, string nombre);
+    ClaimsPrincipal? ValidarTokenRegistroGoogle(string token);
 }
 
 public class JwtService : IJwtService
@@ -80,6 +82,21 @@ public class JwtService : IJwtService
         identidad.AddClaim(new Claim("tipo", "verificacion_credencial"));
         return new ClaimsPrincipal(identidad);
     }
+
+    public string GenerarTokenRegistroGoogle(string subject, string correo, string nombre)
+    {
+        var claims = new[]
+        {
+            new Claim("tipo", "registro_google"),
+            new Claim("google_subject", subject),
+            new Claim(ClaimTypes.Email, correo),
+            new Claim(ClaimTypes.GivenName, nombre)
+        };
+        return EscribirToken(claims, DateTime.UtcNow.AddMinutes(10));
+    }
+
+    public ClaimsPrincipal? ValidarTokenRegistroGoogle(string token) =>
+        ValidarTokenInterno(token, "registro_google");
 
     private IEnumerable<Claim> CrearClaimsBase(Usuario usuario) =>
     [

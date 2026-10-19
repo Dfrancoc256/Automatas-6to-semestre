@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Google;
 using LenguajesFormalesAPI.DTOs;
 using LenguajesFormalesAPI.Interfaces;
 using LenguajesFormalesAPI.Services;
@@ -24,12 +26,13 @@ public class AuthController : ControllerBase
     private readonly IWhatsAppService _whatsApp;
     private readonly ILogger<AuthController> _logger;
     private readonly IWebHostEnvironment _environment;
+    private readonly IConfiguration _configuration;
     private readonly AppDbContext _db;
 
     public AuthController(IAuthService auth, IRecaptchaService recaptcha,
         ICredentialService credential, IJwtService jwt,
         IEmailService email, IWhatsAppService whatsApp,
-        ILogger<AuthController> logger, IWebHostEnvironment environment, AppDbContext db)
+        ILogger<AuthController> logger, IWebHostEnvironment environment, AppDbContext db, IConfiguration configuration)
     {
         _email     = email;
         _whatsApp  = whatsApp;
@@ -39,6 +42,7 @@ public class AuthController : ControllerBase
         _jwt = jwt;
         _logger    = logger;
         _environment = environment;
+        _configuration = configuration;
         _db = db;
     }
 
@@ -118,6 +122,56 @@ public class AuthController : ControllerBase
             _logger.LogError(ex, "Error durante el inicio de sesión");
             return StatusCode(500, new { mensaje = "No fue posible iniciar sesión." });
         }
+    }
+
+    [HttpGet("google/iniciar")]
+    [AllowAnonymous]
+    public IActionResult IniciarGoogle()
+    {
+        if (string.IsNullOrWhiteSpace(HttpContext.RequestServices.GetRequiredService<IConfiguration>()["Google:ClientId"]))
+            return BadRequest("El acceso con Google no está configurado.");
+
+        var retorno = Url.Action(nameof(CompletarGoogle), "Auth", null, Request.Scheme);
+        return Challenge(new AuthenticationProperties { RedirectUri = retorno }, GoogleDefaults.AuthenticationScheme);
+    }
+
+    [HttpGet("google/completar")]
+    [AllowAnonymous]
+    public async Task<IActionResult> CompletarGoogle()
+    {
+        var externo = await HttpContext.AuthenticateAsync("GoogleExternal");
+        await HttpContext.SignOutAsync("GoogleExternal");
+        var subject = externo.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var correo = externo.Principal?.FindFirst(ClaimTypes.Email)?.Value;
+        var nombre = externo.Principal?.FindFirst(ClaimTypes.GivenName)?.Value
+            ?? externo.Principal?.FindFirst(ClaimTypes.Name)?.Value;
+        if (!externo.Succeeded || string.IsNullOrWhiteSpace(subject) || string.IsNullOrWhiteSpace(correo)
+            || string.IsNullOrWhiteSpace(nombre))
+            return Redirect(RutaPublica("/login?error=google"));
+
+        var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "desconocido";
+        var resultado = await _auth.LoginGoogleAsync(subject, correo, ip, Request.Headers.UserAgent.ToString());
+        if (resultado != null)
+        {
+            EstablecerCookieSesion(resultado.Token, resultado.Expiracion);
+            return Redirect(RutaPublica("/dashboard"));
+        }
+
+        var tokenRegistro = _jwt.GenerarTokenRegistroGoogle(subject, correo, nombre);
+        return Redirect(RutaPublica($"/login?modo=registro&googleRegistro={Uri.EscapeDataString(tokenRegistro)}"));
+    }
+
+    [HttpPost("google-registro")]
+    [AllowAnonymous]
+    public IActionResult ObtenerDatosRegistroGoogle([FromBody] GoogleRegistroTokenDTO dto)
+    {
+        var principal = _jwt.ValidarTokenRegistroGoogle(dto.Token);
+        var correo = principal?.FindFirst(ClaimTypes.Email)?.Value;
+        var nombre = principal?.FindFirst(ClaimTypes.GivenName)?.Value;
+        if (string.IsNullOrWhiteSpace(correo) || string.IsNullOrWhiteSpace(nombre))
+            return BadRequest(new { mensaje = "La verificación de Google venció. Selecciona tu cuenta nuevamente." });
+
+        return Ok(new { correo, nombre });
     }
 
     [HttpPost("cambiar-password-temporal")]
@@ -366,6 +420,12 @@ public class AuthController : ControllerBase
     {
         var arroba = correo.IndexOf('@');
         return arroba <= 1 ? correo : $"{correo[0]}***{correo[arroba..]}";
+    }
+
+    private string RutaPublica(string ruta)
+    {
+        var baseUrl = _configuration["App:PublicUrl"];
+        return $"{(string.IsNullOrWhiteSpace(baseUrl) ? "https://analizador-umg.duckdns.org" : baseUrl.TrimEnd('/'))}{ruta}";
     }
 
     /// <summary>Actualizar perfil</summary>
