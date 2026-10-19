@@ -9,7 +9,7 @@ namespace LenguajesFormalesAPI.Services;
 
 public interface IJwtService
 {
-    string GenerarToken(Usuario usuario);
+    string GenerarToken(Usuario usuario, bool debeCambiarPassword = false);
     string GenerarTokenQr(Usuario usuario);
     string GenerarCodigoQrCredencial(Usuario usuario);
     ClaimsPrincipal? ValidarToken(string token);
@@ -26,9 +26,11 @@ public class JwtService : IJwtService
         _config = config;
     }
 
-    public string GenerarToken(Usuario usuario)
+    public string GenerarToken(Usuario usuario, bool debeCambiarPassword = false)
     {
-        var claims = CrearClaimsBase(usuario).Append(new Claim("tipo", "sesion"));
+        var claims = CrearClaimsBase(usuario)
+            .Append(new Claim("tipo", "sesion"))
+            .Append(new Claim("debe_cambiar_password", debeCambiarPassword ? "true" : "false"));
         return EscribirToken(claims, DateTime.UtcNow.AddHours(8));
     }
 

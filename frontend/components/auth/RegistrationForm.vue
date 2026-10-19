@@ -48,24 +48,8 @@
                             prepend-inner-icon="mdi-calendar" type="date"
                             :rules="[v => !!v || 'Requerido']" class="mb-3" />
               <v-alert type="info" variant="tonal" density="compact" class="mb-3">
-                Tu nickname se generará automáticamente con tu nombre y apellido. Podrás usarlo o tu correo para ingresar.
+                Tu nickname se generará automáticamente. Recibirás una contraseña temporal en el correo registrado para tu próximo ingreso.
               </v-alert>
-              <v-text-field v-model="form.password" label="Contraseña"
-                            prepend-inner-icon="mdi-lock"
-                            :type="mostrarPass ? 'text' : 'password'"
-                            :append-inner-icon="mostrarPass ? 'mdi-eye-off' : 'mdi-eye'"
-                            @click:append-inner="mostrarPass = !mostrarPass"
-                            autocomplete="new-password"
-                            hint="Mínimo 8 caracteres: mayúscula, minúscula, número y símbolo"
-                            persistent-hint
-                            :rules="[validarPassword]"
-                            class="mb-3" />
-              <v-text-field v-model="form.confirmarPassword" label="Confirmar contraseña"
-                            prepend-inner-icon="mdi-lock-check"
-                            :type="mostrarPass ? 'text' : 'password'"
-                            autocomplete="new-password"
-                            :rules="[validarConfirmacionPassword]"
-                            class="mb-3" />
               <v-select v-model="form.metodoNotificacion"
                         label="Método de notificación"
                         prepend-inner-icon="mdi-bell"
@@ -194,7 +178,7 @@
               <v-icon size="80" color="success" class="mb-4">mdi-check-circle</v-icon>
               <h2 class="text-h5 font-weight-bold mb-2">¡Registro exitoso!</h2>
               <p class="text-body-2 text-medium-emphasis mb-6">
-                Tu cuenta ha sido creada. Serás redirigido al dashboard.
+                Tu cuenta ha sido creada. Revisa tu correo para conocer la contraseña temporal de tu próximo ingreso.
               </p>
               <v-btn color="accent" class="umg-gold-button" prepend-icon="mdi-login"
                      @click="navigateTo('/dashboard')">
@@ -226,7 +210,6 @@ const config = useRuntimeConfig()
 const { calentar, detectarRostro } = useFacialRecognition()
 
 const paso        = ref(1)
-const mostrarPass = ref(false)
 const cargando    = ref(false)
 const error       = ref('')
 const descargando = ref(false)
@@ -235,7 +218,7 @@ const formularioEnEdicion = ref(false)
 
 const form = reactive({
   nombre: '', apellido: '', correo: '', telefono: '', fechaNacimiento: '',
-  password: '', confirmarPassword: '', metodoNotificacion: 'email'
+  metodoNotificacion: 'email'
 })
 
 const patronNombre = /^[\p{L}][\p{L}\s'-]{1,79}$/u
@@ -243,11 +226,6 @@ const validarNombre = (valor: string) =>
   patronNombre.test(valor.trim()) || 'Ingresa nombres válidos (solo letras, espacios, apóstrofes o guiones).'
 const validarApellido = (valor: string) =>
   patronNombre.test(valor.trim()) || 'Ingresa apellidos válidos (solo letras, espacios, apóstrofes o guiones).'
-const validarPassword = (valor: string) =>
-  /^(?=.{8,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).*$/.test(valor)
-    || 'Usa 8 caracteres o más, mayúscula, minúscula, número y símbolo.'
-const validarConfirmacionPassword = (valor: string) =>
-  valor === form.password || 'La confirmación no coincide con la contraseña.'
 
 function activarEdicion() {
   formularioEnEdicion.value = true
@@ -486,8 +464,6 @@ async function registrar() {
       apellido:           form.apellido,
       telefono:           form.telefono,
       fechaNacimiento:    form.fechaNacimiento,
-      password:           form.password,
-      confirmarPassword:  form.confirmarPassword,
       metodoNotificacion: form.metodoNotificacion,
       // Guarda solo el recorte facial.
       fotoBase64:         fotoParaCredencial.value || fotoCapturada.value,

@@ -41,6 +41,9 @@ public class Usuario
     [Column("password_hash")]
     public string PasswordHash { get; set; } = string.Empty;
 
+    [Column("debe_cambiar_password")]
+    public bool DebeCambiarPassword { get; set; }
+
     // "email", "whatsapp", "ambos"
     [MaxLength(20)]
     [Column("metodo_notificacion")]

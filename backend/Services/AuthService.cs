@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Net;
 using System.Globalization;
 using System.Text;
+using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using LenguajesFormalesAPI.Data;
 using LenguajesFormalesAPI.DTOs;
@@ -18,6 +19,7 @@ public interface IAuthService
     Task<AuthResponseDTO> RegistrarAsync(RegisterDTO dto);
     Task<UsuarioPerfilDTO?> ObtenerPerfilAsync(int usuarioId);
     Task<bool> ActualizarPerfilAsync(int usuarioId, ActualizarPerfilDTO dto);
+    Task<AuthResponseDTO?> CambiarPasswordTemporalAsync(int usuarioId, string nuevoPassword);
 }
 
 public class AuthService : IAuthService
@@ -187,6 +189,7 @@ public class AuthService : IAuthService
             await File.WriteAllBytesAsync(Path.Combine(carpeta, nombreModificado), imagenModificada.Bytes);
         }
 
+        var passwordTemporal = GenerarPasswordTemporal();
         var usuario = new Usuario
         {
             Correo              = correo,
@@ -195,7 +198,8 @@ public class AuthService : IAuthService
             Telefono            = dto.Telefono.Trim(),
             FechaNacimiento     = DateTime.SpecifyKind(dto.FechaNacimiento, DateTimeKind.Utc),
             Nickname            = nickname,
-            PasswordHash        = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+            PasswordHash        = BCrypt.Net.BCrypt.HashPassword(passwordTemporal),
+            DebeCambiarPassword = true,
             MetodoNotificacion  = dto.MetodoNotificacion,
             FotoOriginal        = rutaFotoOriginal,
             FotoModificada      = rutaFotoModificada,
@@ -210,15 +214,15 @@ public class AuthService : IAuthService
 
         _logger.LogInformation("Nuevo usuario registrado: {UsuarioId} ({Correo})", usuario.Id, usuario.Correo);
         var codigoQr = _jwt.GenerarCodigoQrCredencial(usuario);
-        await NotificarRegistroAsync(usuario, codigoQr);
+        await NotificarRegistroAsync(usuario, codigoQr, passwordTemporal);
 
-        var respuesta = CrearRespuestaSesion(usuario);
+        var respuesta = CrearRespuestaSesion(usuario, omitirCambioPassword: true);
         respuesta.CodigoQr = codigoQr;
         return respuesta;
     }
 
     /// <summary>Envía las notificaciones del registro.</summary>
-    private async Task NotificarRegistroAsync(Usuario usuario, string codigoQr)
+    private async Task NotificarRegistroAsync(Usuario usuario, string codigoQr, string passwordTemporal)
     {
         var nombre = WebUtility.HtmlEncode(usuario.NombreCompleto);
         var correo = WebUtility.HtmlEncode(usuario.Correo);
@@ -246,28 +250,27 @@ public class AuthService : IAuthService
             $"Ingresa en: {urlWeb}\n" +
             $"Correo: {usuario.Correo}\n" +
             $"Nickname: {usuario.Nickname}\n\n" +
-            "Tu contraseña es la que creaste durante el registro; por seguridad no se envía por este medio.";
+            "Revisa tu correo para obtener la contraseña temporal de acceso.";
 
-        if (usuario.MetodoNotificacion is "email" or "ambos")
+        try
         {
-            try
-            {
-                await _emailService.SendEmailAsync(
-                    usuario.Correo,
-                    "Registro exitoso - Lenguajes Formales",
-                    $"<p>¡Bienvenido, <strong>{nombre}</strong>!</p>" +
-                    "<p>Tu cuenta fue creada correctamente. Estos son tus datos de acceso:</p>" +
-                    $"<ul><li><strong>Enlace:</strong> <a href=\"{urlHtml}\">{urlHtml}</a></li>" +
-                    $"<li><strong>Correo:</strong> {correo}</li>" +
-                    $"<li><strong>Nickname:</strong> {nickname}</li></ul>" +
-                    "<p>Adjuntamos tu credencial PDF con código QR. Tu contraseña es la que creaste durante el registro y nunca se envía por correo.</p>",
-                    credencial,
-                    credencial is null ? null : nombreArchivo);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "No se pudo enviar el correo de registro a {Correo}", usuario.Correo);
-            }
+            await _emailService.SendEmailAsync(
+                usuario.Correo,
+                "Registro exitoso - Lenguajes Formales",
+                $"<p>¡Bienvenido, <strong>{nombre}</strong>!</p>" +
+                "<p>Tu cuenta fue creada correctamente. Estos son tus datos de acceso:</p>" +
+                $"<ul><li><strong>Enlace:</strong> <a href=\"{urlHtml}\">{urlHtml}</a></li>" +
+                $"<li><strong>Correo:</strong> {correo}</li>" +
+                $"<li><strong>Nickname:</strong> {nickname}</li></ul>" +
+                $"<p><strong>Contraseña temporal:</strong> {WebUtility.HtmlEncode(passwordTemporal)}</p>" +
+                "<p>Úsala para tu próximo ingreso. Después deberás crear una contraseña personal antes de continuar.</p>" +
+                "<p>Adjuntamos tu credencial PDF con código QR.</p>",
+                credencial,
+                credencial is null ? null : nombreArchivo);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "No se pudo enviar el correo de registro a {Correo}", usuario.Correo);
         }
 
         if (usuario.MetodoNotificacion is "whatsapp" or "ambos")
@@ -408,6 +411,7 @@ public class AuthService : IAuthService
             if (!BCrypt.Net.BCrypt.Verify(dto.PasswordActual, usuario.PasswordHash))
                 throw new InvalidOperationException("La contraseña actual es incorrecta.");
             usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NuevoPassword);
+            usuario.DebeCambiarPassword = false;
         }
 
         if (!string.IsNullOrEmpty(dto.FotoBase64))
@@ -441,12 +445,45 @@ public class AuthService : IAuthService
     private static string Limitar(string valor, int longitudMaxima) =>
         valor.Length <= longitudMaxima ? valor : valor[..longitudMaxima];
 
-    private AuthResponseDTO CrearRespuestaSesion(Usuario usuario) => new()
+    public async Task<AuthResponseDTO?> CambiarPasswordTemporalAsync(int usuarioId, string nuevoPassword)
     {
-        Token = _jwt.GenerarToken(usuario),
+        var usuario = await _db.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioId && u.Activo);
+        if (usuario == null) return null;
+
+        usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(nuevoPassword);
+        usuario.DebeCambiarPassword = false;
+        await _db.SaveChangesAsync();
+        return CrearRespuestaSesion(usuario);
+    }
+
+    private static string GenerarPasswordTemporal()
+    {
+        const string mayusculas = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+        const string minusculas = "abcdefghijkmnopqrstuvwxyz";
+        const string numeros = "23456789";
+        const string simbolos = "!@#$%*";
+        const string caracteres = mayusculas + minusculas + numeros + simbolos;
+        var password = new List<char>
+        {
+            mayusculas[RandomNumberGenerator.GetInt32(mayusculas.Length)],
+            minusculas[RandomNumberGenerator.GetInt32(minusculas.Length)],
+            numeros[RandomNumberGenerator.GetInt32(numeros.Length)],
+            simbolos[RandomNumberGenerator.GetInt32(simbolos.Length)]
+        };
+
+        while (password.Count < 14)
+            password.Add(caracteres[RandomNumberGenerator.GetInt32(caracteres.Length)]);
+
+        return string.Concat(password.OrderBy(_ => RandomNumberGenerator.GetInt32(int.MaxValue)));
+    }
+
+    private AuthResponseDTO CrearRespuestaSesion(Usuario usuario, bool omitirCambioPassword = false) => new()
+    {
+        Token = _jwt.GenerarToken(usuario, usuario.DebeCambiarPassword && !omitirCambioPassword),
         Rol = usuario.Rol,
         Nickname = usuario.Nickname,
         FotoModificada = usuario.FotoModificada,
-        Expiracion = DateTime.UtcNow.AddHours(8)
+        Expiracion = DateTime.UtcNow.AddHours(8),
+        DebeCambiarPassword = usuario.DebeCambiarPassword && !omitirCambioPassword
     };
 }

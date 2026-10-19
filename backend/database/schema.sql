@@ -12,6 +12,7 @@ CREATE TABLE usuarios (
     fecha_nacimiento    timestamptz NOT NULL,
     nickname            varchar(50) NOT NULL,
     password_hash       text NOT NULL,
+    debe_cambiar_password boolean NOT NULL DEFAULT false,
     metodo_notificacion varchar(20) NOT NULL DEFAULT 'email',
     foto_original       text,
     foto_modificada     text,
