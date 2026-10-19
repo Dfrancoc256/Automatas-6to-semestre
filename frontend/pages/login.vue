@@ -114,7 +114,7 @@
           :disabled="!puedeLoginFacial"
           @click="abrirLoginFacial"
         >
-          {{ intentosFacialesRestantes ? `Ingresar con reconocimiento facial (${intentosFacialesRestantes})` : 'Reconocimiento facial no disponible' }}
+          {{ intentosFacialesRestantes ? 'Ingresar con reconocimiento facial' : 'Reconocimiento facial no disponible' }}
         </v-btn>
       </div>
 
@@ -289,6 +289,10 @@ async function loginPassword() {
     await navigateTo(rutaDestino.value)
   } catch (e: any) {
     error.value = e.response?.data?.mensaje || 'No fue posible iniciar sesión.'
+    if (requiereRecaptcha.value && !bypassDesarrollo.value) {
+      recaptchaToken.value = ''
+      recaptcha.value?.reiniciar()
+    }
   } finally {
     cargando.value = false
   }
