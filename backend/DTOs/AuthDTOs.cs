@@ -95,6 +95,20 @@ public class ResetPasswordDTO
 {
     [Required, EmailAddress]
     public string Correo { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Verificación reCAPTCHA requerida")]
+    public string RecaptchaToken { get; set; } = string.Empty;
+}
+
+public class ConfirmarResetPasswordDTO
+{
+    [Required]
+    public string Token { get; set; } = string.Empty;
+
+    [Required]
+    [RegularExpression(@"^(?=.{8,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).*$",
+        ErrorMessage = "La contraseña debe tener entre 8 y 128 caracteres, mayúscula, minúscula, número y carácter especial")]
+    public string NuevoPassword { get; set; } = string.Empty;
 }
 
 public class CambiarPasswordDTO

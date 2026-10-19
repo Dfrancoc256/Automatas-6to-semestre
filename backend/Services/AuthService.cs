@@ -21,6 +21,8 @@ public interface IAuthService
     Task<bool> ActualizarPerfilAsync(int usuarioId, ActualizarPerfilDTO dto);
     Task<AuthResponseDTO?> CambiarPasswordTemporalAsync(int usuarioId, string nuevoPassword);
     Task<AuthResponseDTO?> LoginGoogleAsync(string googleSubject, string correo, string ip, string userAgent);
+    Task<bool> SolicitarRestablecimientoPasswordAsync(string correo);
+    Task<bool> RestablecerPasswordAsync(string token, string nuevoPassword);
 }
 
 public class AuthService : IAuthService
@@ -155,6 +157,85 @@ public class AuthService : IAuthService
         });
         await _db.SaveChangesAsync();
         return CrearRespuestaSesion(usuario);
+    }
+
+    public async Task<bool> SolicitarRestablecimientoPasswordAsync(string correo)
+    {
+        if (_sinBaseDeDatos)
+            return true;
+
+        var correoNormalizado = correo.Trim().ToLowerInvariant();
+        var usuario = await _db.Usuarios.FirstOrDefaultAsync(u => u.Activo && u.Correo == correoNormalizado);
+
+        // No se revela si una dirección está registrada.
+        if (usuario == null)
+            return true;
+
+        var ahora = DateTime.UtcNow;
+        var tokensPrevios = await _db.PasswordResetTokens
+            .Where(t => t.UsuarioId == usuario.Id && t.UsadoEn == null)
+            .ToListAsync();
+        foreach (var previo in tokensPrevios)
+            previo.UsadoEn = ahora;
+
+        var token = CrearTokenSeguro();
+        _db.PasswordResetTokens.Add(new PasswordResetToken
+        {
+            UsuarioId = usuario.Id,
+            TokenHash = HashToken(token),
+            ExpiraEn = ahora.AddMinutes(30),
+            CreadoEn = ahora
+        });
+        await _db.SaveChangesAsync();
+
+        var urlBase = (_configuration["App:PublicUrl"] ?? "https://analizador-umg.duckdns.org").TrimEnd('/');
+        var enlace = $"{urlBase}/restablecer-password?token={Uri.EscapeDataString(token)}";
+        var nombre = WebUtility.HtmlEncode(usuario.NombreCompleto);
+        var enlaceHtml = WebUtility.HtmlEncode(enlace);
+
+        try
+        {
+            await _emailService.SendEmailAsync(
+                usuario.Correo,
+                "Restablece tu contraseña - Lenguajes Formales",
+                $"<p>Hola, <strong>{nombre}</strong>.</p>" +
+                "<p>Recibimos una solicitud para restablecer la contraseña de tu cuenta.</p>" +
+                $"<p><a href=\"{enlaceHtml}\">Restablecer contraseña</a></p>" +
+                "<p>El enlace vence en 30 minutos y solo puede utilizarse una vez. Si no solicitaste este cambio, ignora este correo.</p>");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "No se pudo enviar el correo de restablecimiento a {Correo}", usuario.Correo);
+            return false;
+        }
+    }
+
+    public async Task<bool> RestablecerPasswordAsync(string token, string nuevoPassword)
+    {
+        if (_sinBaseDeDatos || string.IsNullOrWhiteSpace(token))
+            return false;
+
+        var ahora = DateTime.UtcNow;
+        var tokenHash = HashToken(token);
+        var registro = await _db.PasswordResetTokens
+            .Include(t => t.Usuario)
+            .FirstOrDefaultAsync(t => t.TokenHash == tokenHash && t.UsadoEn == null && t.ExpiraEn > ahora);
+        if (registro?.Usuario is not { Activo: true } usuario)
+            return false;
+
+        usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(nuevoPassword);
+        usuario.DebeCambiarPassword = false;
+        registro.UsadoEn = ahora;
+
+        var otrosTokens = await _db.PasswordResetTokens
+            .Where(t => t.UsuarioId == usuario.Id && t.Id != registro.Id && t.UsadoEn == null)
+            .ToListAsync();
+        foreach (var otro in otrosTokens)
+            otro.UsadoEn = ahora;
+
+        await _db.SaveChangesAsync();
+        return true;
     }
 
     public async Task<AuthResponseDTO?> LoginFacialAsync(LoginFacialDTO dto, string ip, string userAgent)
@@ -522,6 +603,18 @@ public class AuthService : IAuthService
 
         return string.Concat(password.OrderBy(_ => RandomNumberGenerator.GetInt32(int.MaxValue)));
     }
+
+    private static string CrearTokenSeguro()
+    {
+        var bytes = RandomNumberGenerator.GetBytes(32);
+        return Convert.ToBase64String(bytes)
+            .TrimEnd('=')
+            .Replace('+', '-')
+            .Replace('/', '_');
+    }
+
+    private static string HashToken(string token) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 
     private AuthResponseDTO CrearRespuestaSesion(Usuario usuario, bool omitirCambioPassword = false) => new()
     {

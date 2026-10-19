@@ -132,7 +132,7 @@
       </div>
 
       <div class="text-center mt-5">
-        <v-btn variant="text" color="primary" size="small" @click="mostrarReset = true">
+        <v-btn variant="text" color="primary" size="small" @click="abrirRecuperacion">
           ¿Olvidaste tu contraseña?
         </v-btn>
         <p class="login-register-link">¿Aún no tienes cuenta? <button type="button" @click="cambiarModo('registro')">Regístrate aquí</button></p>
@@ -180,11 +180,38 @@
     <v-dialog v-model="mostrarReset" max-width="420">
       <v-card class="pa-6">
         <v-card-title class="px-0 text-h6">Restablecer contraseña</v-card-title>
-        <v-card-text class="px-0">
-          Ingresa el correo de tu cuenta para recibir las instrucciones de recuperación.
+        <v-card-text class="px-0 pb-2">
+          <p class="text-body-2 text-medium-emphasis mb-4">
+            Te enviaremos un enlace de un solo uso para definir una nueva contraseña.
+          </p>
+          <v-text-field
+            v-model.trim="correoReset"
+            label="Correo electrónico"
+            type="email"
+            autocomplete="email"
+            prepend-inner-icon="mdi-email-outline"
+            :disabled="enviandoReset || !!mensajeReset"
+          />
+          <RecaptchaV2
+            v-if="requiereRecaptcha && !mensajeReset"
+            ref="recaptchaReset"
+            v-model:token="recaptchaResetToken"
+            :site-key="recaptchaSiteKey"
+            class="mt-3"
+          />
+          <v-alert v-if="errorReset" type="error" variant="tonal" density="compact" class="mt-4">
+            {{ errorReset }}
+          </v-alert>
+          <v-alert v-if="mensajeReset" type="success" variant="tonal" density="compact" class="mt-4">
+            {{ mensajeReset }}
+          </v-alert>
         </v-card-text>
         <v-card-actions class="px-0 justify-end">
-          <v-btn class="umg-gold-button" color="accent" @click="mostrarReset = false">Entendido</v-btn>
+          <v-btn variant="text" @click="mostrarReset = false">Cerrar</v-btn>
+          <v-btn v-if="!mensajeReset" class="umg-gold-button" color="accent"
+                 :loading="enviandoReset" :disabled="!puedeSolicitarReset" @click="solicitarRestablecimiento">
+            Enviar enlace
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -247,6 +274,12 @@ const mostrarPass  = ref(false)
 const cargando     = ref(false)
 const error        = ref('')
 const mostrarReset = ref(false)
+const correoReset = ref('')
+const recaptchaResetToken = ref('')
+const recaptchaReset = ref<{ reiniciar: () => void } | null>(null)
+const enviandoReset = ref(false)
+const errorReset = ref('')
+const mensajeReset = ref('')
 const accesoExitoso = ref(false)
 const mostrarCambioPassword = ref(false)
 const nuevaPassword = ref('')
@@ -272,6 +305,10 @@ const recaptchaSiteKey = computed(() => config.public.recaptchaSiteKey.trim())
 const requiereRecaptcha = computed(() => recaptchaSiteKey.value.length > 0)
 const bypassDesarrollo = computed(() => import.meta.dev && !requiereRecaptcha.value)
 const puedeEnviar = computed(() => bypassDesarrollo.value || recaptchaToken.value.length > 0)
+const puedeSolicitarReset = computed(() =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoReset.value)
+  && (bypassDesarrollo.value || recaptchaResetToken.value.length > 0)
+)
 const intentosFacialesRestantes = computed(() => Math.max(0, maxIntentosFaciales - intentosFaciales.value))
 const puedeLoginFacial = computed(() => puedeEnviar.value && intentosFacialesRestantes.value > 0)
 // El acceso y el registro comparten esta vista.
@@ -434,6 +471,39 @@ function abrirCambioPassword() {
   confirmarNuevaPassword.value = ''
   errorCambioPassword.value = ''
   mostrarCambioPassword.value = true
+}
+
+function abrirRecuperacion() {
+  correoReset.value = ''
+  recaptchaResetToken.value = ''
+  errorReset.value = ''
+  mensajeReset.value = ''
+  mostrarReset.value = true
+  nextTick(() => recaptchaReset.value?.reiniciar())
+}
+
+async function solicitarRestablecimiento() {
+  errorReset.value = ''
+  mensajeReset.value = ''
+  if (!puedeSolicitarReset.value) {
+    errorReset.value = 'Ingresa un correo válido y completa reCAPTCHA.'
+    return
+  }
+
+  enviandoReset.value = true
+  try {
+    const { data } = await api.post('/auth/solicitar-restablecimiento', {
+      correo: correoReset.value,
+      recaptchaToken: bypassDesarrollo.value ? 'dev-bypass' : recaptchaResetToken.value
+    })
+    mensajeReset.value = data.mensaje
+  } catch (e: any) {
+    errorReset.value = e.response?.data?.mensaje || 'No fue posible enviar el enlace. Intenta nuevamente.'
+    recaptchaResetToken.value = ''
+    recaptchaReset.value?.reiniciar()
+  } finally {
+    enviandoReset.value = false
+  }
 }
 
 async function cambiarPasswordTemporal() {

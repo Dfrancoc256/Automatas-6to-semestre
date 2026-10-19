@@ -264,6 +264,43 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>Solicita un enlace de un solo uso para restablecer la contraseña.</summary>
+    [HttpPost("solicitar-restablecimiento")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> SolicitarRestablecimiento([FromBody] ResetPasswordDTO dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(new { errores = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage) });
+
+        if (!await _recaptcha.ValidarAsync(dto.RecaptchaToken))
+            return BadRequest(new { mensaje = "Verificación reCAPTCHA inválida." });
+
+        var enviado = await _auth.SolicitarRestablecimientoPasswordAsync(dto.Correo);
+        if (!enviado)
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                new { mensaje = "No fue posible enviar el correo en este momento. Intenta nuevamente más tarde." });
+
+        // Respuesta neutral: evita confirmar si un correo tiene cuenta.
+        return Ok(new { mensaje = "Si el correo está registrado, recibirás un enlace para restablecer tu contraseña." });
+    }
+
+    /// <summary>Aplica una nueva contraseña usando el token recibido por correo.</summary>
+    [HttpPost("restablecer-password")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> RestablecerPassword([FromBody] ConfirmarResetPasswordDTO dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(new { errores = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage) });
+
+        var actualizado = await _auth.RestablecerPasswordAsync(dto.Token, dto.NuevoPassword);
+        if (!actualizado)
+            return BadRequest(new { mensaje = "El enlace no es válido, ya fue utilizado o venció. Solicita uno nuevo." });
+
+        return Ok(new { mensaje = "Tu contraseña fue actualizada. Ya puedes iniciar sesión." });
+    }
+
     /// <summary>Login mediante el código QR firmado de la credencial</summary>
     [HttpPost("login-qr")]
     [AllowAnonymous]
