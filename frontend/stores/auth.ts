@@ -7,6 +7,7 @@ export interface AuthUser {
   fotoModificada: string | null
   expiracion: string
   codigoQr?: string
+  debeCambiarPassword?: boolean
 }
 
 export const useAuthStore = defineStore('auth', {

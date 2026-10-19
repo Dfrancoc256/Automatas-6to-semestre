@@ -25,15 +25,6 @@ public class RegisterDTO
     [Required(ErrorMessage = "La fecha de nacimiento es obligatoria")]
     public DateTime FechaNacimiento { get; set; }
 
-    [Required(ErrorMessage = "La contraseña es obligatoria")]
-    [RegularExpression(@"^(?=.{8,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).*$",
-        ErrorMessage = "La contraseña debe tener entre 8 y 128 caracteres, mayúscula, minúscula, número y carácter especial")]
-    public string Password { get; set; } = string.Empty;
-
-    [Required(ErrorMessage = "Confirma la contraseña")]
-    [Compare(nameof(Password), ErrorMessage = "La confirmación de contraseña no coincide")]
-    public string ConfirmarPassword { get; set; } = string.Empty;
-
     [Required(ErrorMessage = "El método de notificación es obligatorio")]
     [RegularExpression("^(email|whatsapp|ambos)$", ErrorMessage = "Método de notificación inválido")]
     public string MetodoNotificacion { get; set; } = "email"; // "email", "whatsapp", "ambos"
@@ -113,6 +104,14 @@ public class CambiarPasswordDTO
     public string NuevoPassword { get; set; } = string.Empty;
 }
 
+public class CambiarPasswordTemporalDTO
+{
+    [Required]
+    [RegularExpression(@"^(?=.{8,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).*$",
+        ErrorMessage = "La contraseña debe tener entre 8 y 128 caracteres, mayúscula, minúscula, número y carácter especial")]
+    public string NuevoPassword { get; set; } = string.Empty;
+}
+
 public class AuthResponseDTO
 {
     public string Token { get; set; } = string.Empty;
@@ -121,6 +120,7 @@ public class AuthResponseDTO
     public string? FotoModificada { get; set; }
     public DateTime Expiracion { get; set; }
     public string? CodigoQr { get; set; }
+    public bool DebeCambiarPassword { get; set; }
 }
 
 /// <summary>Datos mínimos de una sesión ya validada por la cookie HttpOnly.</summary>

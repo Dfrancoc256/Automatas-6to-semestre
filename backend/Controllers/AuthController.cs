@@ -120,6 +120,26 @@ public class AuthController : ControllerBase
         }
     }
 
+    [HttpPost("cambiar-password-temporal")]
+    [Authorize]
+    public async Task<IActionResult> CambiarPasswordTemporal([FromBody] CambiarPasswordTemporalDTO dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(new { errores = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage) });
+
+        var idStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(idStr, out var usuarioId))
+            return Unauthorized();
+
+        var result = await _auth.CambiarPasswordTemporalAsync(usuarioId, dto.NuevoPassword);
+        if (result == null) return Unauthorized();
+
+        EstablecerCookieSesion(result.Token, result.Expiracion);
+        return Ok(result);
+    }
+
     /// <summary>Login mediante el código QR firmado de la credencial</summary>
     [HttpPost("login-qr")]
     [AllowAnonymous]

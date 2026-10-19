@@ -181,6 +181,7 @@ else
 app.UseCors("FrontendPolicy");
 app.UseRateLimiter();
 app.UseAuthentication();
+app.UseMiddleware<PasswordChangeRequiredMiddleware>();
 app.UseAuthorization();
 
 // Servir archivos estáticos (uploads de fotos, incluida la foto de enrolamiento facial)

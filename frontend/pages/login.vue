@@ -175,6 +175,40 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <v-dialog v-model="mostrarCambioPassword" max-width="440" persistent>
+      <v-card class="pa-6">
+        <v-card-title class="px-0 text-h6">Crea tu contraseña personal</v-card-title>
+        <v-card-text class="px-0">
+          <p class="text-body-2 text-medium-emphasis mb-4">
+            Tu contraseña temporal ya fue validada. Define una contraseña personal para continuar.
+          </p>
+          <v-text-field
+            v-model="nuevaPassword"
+            label="Nueva contraseña"
+            type="password"
+            autocomplete="new-password"
+            hint="Mínimo 8 caracteres, mayúscula, minúscula, número y símbolo"
+            persistent-hint
+            class="mb-3"
+          />
+          <v-text-field
+            v-model="confirmarNuevaPassword"
+            label="Confirmar nueva contraseña"
+            type="password"
+            autocomplete="new-password"
+          />
+          <v-alert v-if="errorCambioPassword" type="error" variant="tonal" density="compact" class="mt-3">
+            {{ errorCambioPassword }}
+          </v-alert>
+        </v-card-text>
+        <v-card-actions class="px-0 justify-end">
+          <v-btn color="accent" class="umg-gold-button" :loading="cambiandoPassword" @click="cambiarPasswordTemporal">
+            Guardar y continuar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -201,6 +235,11 @@ const cargando     = ref(false)
 const error        = ref('')
 const mostrarReset = ref(false)
 const accesoExitoso = ref(false)
+const mostrarCambioPassword = ref(false)
+const nuevaPassword = ref('')
+const confirmarNuevaPassword = ref('')
+const errorCambioPassword = ref('')
+const cambiandoPassword = ref(false)
 
 // Login facial
 const mostrarFacial     = ref(false)
@@ -283,6 +322,10 @@ async function loginPassword() {
       password: form.password,
       recaptchaToken: bypassDesarrollo.value ? 'dev-bypass' : recaptchaToken.value
     })
+    if (data.debeCambiarPassword) {
+      abrirCambioPassword()
+      return
+    }
     accesoExitoso.value = true
     auth.login(data)
     await new Promise(resolve => setTimeout(resolve, 650))
@@ -329,6 +372,12 @@ async function verificarRostro(captura: { descriptor: number[] | null, fotoRecor
       recaptchaToken: bypassDesarrollo.value ? 'dev-bypass' : recaptchaToken.value
     })
 
+    if (data.debeCambiarPassword) {
+      mostrarFacial.value = false
+      abrirCambioPassword()
+      return
+    }
+
     auth.login(data)
     fotoLoginRecortada.value = captura.fotoRecortada
     rostroValidado.value = true
@@ -358,6 +407,40 @@ async function verificarRostro(captura: { descriptor: number[] | null, fotoRecor
     }, 2200)
   } finally {
     verificandoFacial.value = false
+  }
+}
+
+function abrirCambioPassword() {
+  nuevaPassword.value = ''
+  confirmarNuevaPassword.value = ''
+  errorCambioPassword.value = ''
+  mostrarCambioPassword.value = true
+}
+
+async function cambiarPasswordTemporal() {
+  errorCambioPassword.value = ''
+  const cumpleRegla = /^(?=.{8,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).*$/.test(nuevaPassword.value)
+  if (!cumpleRegla) {
+    errorCambioPassword.value = 'Usa entre 8 y 128 caracteres, con mayúscula, minúscula, número y símbolo.'
+    return
+  }
+  if (nuevaPassword.value !== confirmarNuevaPassword.value) {
+    errorCambioPassword.value = 'La confirmación no coincide con la nueva contraseña.'
+    return
+  }
+
+  cambiandoPassword.value = true
+  try {
+    const { data } = await api.post('/auth/cambiar-password-temporal', {
+      nuevoPassword: nuevaPassword.value
+    })
+    auth.login(data)
+    mostrarCambioPassword.value = false
+    await navigateTo(rutaDestino.value)
+  } catch (e: any) {
+    errorCambioPassword.value = e.response?.data?.mensaje || 'No se pudo actualizar la contraseña.'
+  } finally {
+    cambiandoPassword.value = false
   }
 }
 
