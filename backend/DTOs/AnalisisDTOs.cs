@@ -56,6 +56,13 @@ public class AnalisisResultadoDTO
     public int AnalisisId { get; set; }
 }
 
+public class ValidacionIdiomaDTO
+{
+    public bool EsValido { get; set; }
+    public string Mensaje { get; set; } = string.Empty;
+    public string? IdiomaDetectado { get; set; }
+}
+
 public class HistorialAnalisisDTO
 {
     public int Id { get; set; }
