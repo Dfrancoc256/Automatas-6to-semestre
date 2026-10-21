@@ -11,8 +11,24 @@
     <v-card>
       <v-alert v-if="error" type="error" variant="tonal" density="compact" class="ma-4 mb-0">{{ error }}</v-alert>
       <v-card-text>
+        <v-text-field v-model="busqueda" label="Buscar usuario (nickname, correo, rol...)"
+                      prepend-inner-icon="mdi-magnify" variant="outlined" density="compact"
+                      clearable hide-details class="mb-4" style="max-width:420px" />
         <v-data-table :headers="headers" :items="usuarios" :loading="cargando"
-                      no-data-text="Sin usuarios" density="comfortable">
+                      :search="busqueda"
+                      no-data-text="Sin usuarios" no-results-text="Sin resultados para la búsqueda"
+                      density="comfortable">
+          <template #item.nickname="{ item }">
+            <div class="d-flex align-center">
+              <v-avatar size="36" color="accent" class="mr-3">
+                <v-img v-if="fotoDe(item)" :src="fotoDe(item)" cover />
+                <span v-else class="text-white text-caption font-weight-bold">
+                  {{ item.nickname?.charAt(0).toUpperCase() }}
+                </span>
+              </v-avatar>
+              <span>{{ item.nickname }}</span>
+            </div>
+          </template>
           <template #item.rol="{ item }">
             <v-chip :color="colRol(item.rol)" size="small" variant="tonal">{{ item.rol }}</v-chip>
           </template>
@@ -58,6 +74,13 @@ const { api }   = useApi()
 const cargando  = ref(true)
 const usuarios  = ref<any[]>([])
 const error = ref('')
+const busqueda = ref('')
+const { fotoUrl } = useMediaUrl()
+
+// Foto actual: la modificada (la de perfil); si no existe, la original.
+function fotoDe(u: any) {
+  return fotoUrl(u.fotoModificada || u.fotoOriginal)
+}
 
 const headers = [
   { title: 'Nickname', key: 'nickname', sortable: true },
@@ -68,12 +91,20 @@ const headers = [
   { title: 'Acciones', key: 'acciones', sortable: false }
 ]
 
-onMounted(async () => {
+async function cargarUsuarios() {
   try {
     const { data } = await api.get('/dashboard/usuarios')
     usuarios.value = data
   } catch (e: any) { error.value = e.response?.data?.mensaje || 'No fue posible cargar los usuarios.' } finally { cargando.value = false }
+}
+
+// Se recarga al entrar y cada vez que la pestaña vuelve a estar activa,
+// así la foto siempre es la más reciente.
+onMounted(() => {
+  cargarUsuarios()
+  window.addEventListener('focus', cargarUsuarios)
 })
+onBeforeUnmount(() => window.removeEventListener('focus', cargarUsuarios))
 
 async function toggleUsuario(u: any) {
   try {
