@@ -93,7 +93,9 @@ public class DashboardController : ControllerBase
                 b.IpOrigen,
                 b.Resultado,
                 b.Metodo,
-                Usuario = b.Usuario != null ? b.Usuario.Nickname : "—"
+                Usuario = b.Usuario != null ? b.Usuario.Nickname : "—",
+                FotoModificada = b.Usuario != null ? b.Usuario.FotoModificada : null,
+                FotoOriginal   = b.Usuario != null ? b.Usuario.FotoOriginal : null
             })
             .ToListAsync();
 
@@ -118,7 +120,9 @@ public class DashboardController : ControllerBase
                 u.MetodoNotificacion,
                 u.Rol,
                 u.Activo,
-                u.FechaRegistro
+                u.FechaRegistro,
+                u.FotoModificada,
+                u.FotoOriginal
             })
             .ToListAsync();
 
