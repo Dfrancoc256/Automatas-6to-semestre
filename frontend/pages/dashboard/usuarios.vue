@@ -14,9 +14,20 @@
     <v-card class="users-card">
       <v-alert v-if="error" type="error" variant="tonal" density="compact" class="ma-4 mb-0" closable @click:close="error = ''">{{ error }}</v-alert>
       <v-card-text class="pa-0">
-        <v-data-table :headers="headers" :items="usuarios" :loading="cargando" no-data-text="Sin usuarios registrados" density="comfortable" class="users-table">
+        <div class="pa-4 pb-0">
+          <v-text-field v-model="busqueda" label="Buscar usuario (nombre, nickname, correo, rol...)"
+                        prepend-inner-icon="mdi-magnify" variant="outlined" density="compact"
+                        clearable hide-details style="max-width:420px" />
+        </div>
+        <v-data-table :headers="headers" :items="usuariosFiltrados" :loading="cargando" no-data-text="Sin usuarios registrados" no-results-text="Sin resultados para la búsqueda" density="comfortable" class="users-table">
           <template #item.usuario="{ item }">
-            <div class="py-2"><div class="font-weight-bold">{{ item.nombre }} {{ item.apellido }}</div><div class="text-caption text-medium-emphasis">@{{ item.nickname }}</div></div>
+            <div class="d-flex align-center py-2">
+              <v-avatar size="40" color="accent" class="mr-3">
+                <v-img v-if="fotoDe(item)" :src="fotoDe(item)" cover />
+                <span v-else class="text-white text-caption font-weight-bold">{{ item.nickname?.charAt(0).toUpperCase() }}</span>
+              </v-avatar>
+              <div><div class="font-weight-bold">{{ item.nombre }} {{ item.apellido }}</div><div class="text-caption text-medium-emphasis">@{{ item.nickname }}</div></div>
+            </div>
           </template>
           <template #item.rol="{ item }">
             <v-menu><template #activator="{ props }"><v-btn size="small" variant="tonal" :color="colRol(item.rol)" v-bind="props" append-icon="mdi-chevron-down">{{ item.rol }}</v-btn></template><v-list density="compact"><v-list-item v-for="rol in roles" :key="rol" :title="rol" @click="cambiarRol(item, rol)" /></v-list></v-menu>
@@ -52,6 +63,8 @@ const cargando = ref(false)
 const guardando = ref(false)
 const usuarios = ref<any[]>([])
 const error = ref('')
+const busqueda = ref('')
+const { fotoUrl } = useMediaUrl()
 const mensaje = ref('')
 const mensajeVisible = ref(false)
 const dialogoEdicion = ref(false)
@@ -65,7 +78,24 @@ const headers = [
   { title: 'Usuario', key: 'usuario', sortable: false }, { title: 'Correo', key: 'correo', sortable: true }, { title: 'Teléfono', key: 'telefono', sortable: false }, { title: 'Rol', key: 'rol', sortable: true }, { title: 'Estado', key: 'activo', sortable: true }, { title: 'Registro', key: 'fechaRegistro', sortable: true }, { title: 'Acciones', key: 'acciones', sortable: false, align: 'end' as const }
 ]
 
-onMounted(cargarUsuarios)
+// Foto actual: la modificada (la de perfil); si no existe, la original.
+function fotoDe(u: any) { return fotoUrl(u.fotoModificada || u.fotoOriginal) }
+
+const usuariosFiltrados = computed(() => {
+  const q = (busqueda.value || '').toLowerCase().trim()
+  if (!q) return usuarios.value
+  return usuarios.value.filter((u: any) =>
+    [u.nombre, u.apellido, u.nickname, u.correo, u.telefono, u.rol]
+      .some((v) => String(v ?? '').toLowerCase().includes(q)))
+})
+
+// Se recarga al entrar y cada vez que la pestaña vuelve a estar activa,
+// así la foto siempre es la más reciente.
+onMounted(() => {
+  cargarUsuarios()
+  window.addEventListener('focus', cargarUsuarios)
+})
+onBeforeUnmount(() => window.removeEventListener('focus', cargarUsuarios))
 
 async function cargarUsuarios() {
   cargando.value = true; error.value = ''
