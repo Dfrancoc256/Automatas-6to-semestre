@@ -13,6 +13,17 @@
       <v-card-text>
         <v-data-table :headers="headers" :items="registros" :loading="cargando"
                       no-data-text="Sin registros" density="comfortable">
+          <template #item.usuario="{ item }">
+            <div class="d-flex align-center">
+              <v-avatar size="32" color="accent" class="mr-3">
+                <v-img v-if="fotoDe(item)" :src="fotoDe(item)" cover />
+                <span v-else class="text-white text-caption font-weight-bold">
+                  {{ item.usuario?.charAt(0).toUpperCase() }}
+                </span>
+              </v-avatar>
+              <span>{{ item.usuario }}</span>
+            </div>
+          </template>
           <template #item.resultado="{ item }">
             <v-chip :color="item.resultado === 'exitoso' ? 'success' : 'error'"
                     size="x-small" variant="tonal">
@@ -39,6 +50,11 @@ const { api }  = useApi()
 const cargando = ref(true)
 const registros = ref<any[]>([])
 const error = ref('')
+const { fotoUrl } = useMediaUrl()
+
+function fotoDe(r: any) {
+  return fotoUrl(r.fotoModificada || r.fotoOriginal)
+}
 
 const headers = [
   { title: 'Usuario',  key: 'usuario',   sortable: true },
@@ -48,10 +64,16 @@ const headers = [
   { title: 'Fecha',    key: 'fechaHora', sortable: true }
 ]
 
-onMounted(async () => {
+async function cargarBitacora() {
   try {
     const { data } = await api.get('/dashboard/bitacora')
     registros.value = data.registros
   } catch (e: any) { error.value = e.response?.data?.mensaje || 'No fue posible cargar la bitácora.' } finally { cargando.value = false }
+}
+
+onMounted(() => {
+  cargarBitacora()
+  window.addEventListener('focus', cargarBitacora)
 })
+onBeforeUnmount(() => window.removeEventListener('focus', cargarBitacora))
 </script>
