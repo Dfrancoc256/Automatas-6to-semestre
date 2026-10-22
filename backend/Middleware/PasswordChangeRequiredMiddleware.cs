@@ -15,7 +15,13 @@ public class PasswordChangeRequiredMiddleware
         var ruta = context.Request.Path;
 
         if (requiereCambio
+            && !ruta.StartsWithSegments("/api/auth/login")
             && !ruta.StartsWithSegments("/api/auth/cambiar-password-temporal")
+            && !ruta.StartsWithSegments("/api/auth/validar-enlace-inicial")
+            && !ruta.StartsWithSegments("/api/auth/cambiar-password-inicial")
+            && !ruta.StartsWithSegments("/api/auth/solicitar-restablecimiento")
+            && !ruta.StartsWithSegments("/api/auth/restablecer-password")
+            && !ruta.StartsWithSegments("/api/auth/credencial")
             && !ruta.StartsWithSegments("/api/auth/logout"))
         {
             context.Response.StatusCode = StatusCodes.Status403Forbidden;

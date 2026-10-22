@@ -216,39 +216,6 @@
       </v-card>
     </v-dialog>
 
-    <v-dialog v-model="mostrarCambioPassword" max-width="440" persistent>
-      <v-card class="pa-6">
-        <v-card-title class="px-0 text-h6">Crea tu contraseña personal</v-card-title>
-        <v-card-text class="px-0">
-          <p class="text-body-2 text-medium-emphasis mb-4">
-            Tu contraseña temporal ya fue validada. Define una contraseña personal para continuar.
-          </p>
-          <v-text-field
-            v-model="nuevaPassword"
-            label="Nueva contraseña"
-            type="password"
-            autocomplete="new-password"
-            hint="Mínimo 8 caracteres, mayúscula, minúscula, número y símbolo"
-            persistent-hint
-            class="mb-3"
-          />
-          <v-text-field
-            v-model="confirmarNuevaPassword"
-            label="Confirmar nueva contraseña"
-            type="password"
-            autocomplete="new-password"
-          />
-          <v-alert v-if="errorCambioPassword" type="error" variant="tonal" density="compact" class="mt-3">
-            {{ errorCambioPassword }}
-          </v-alert>
-        </v-card-text>
-        <v-card-actions class="px-0 justify-end">
-          <v-btn color="accent" class="umg-gold-button" :loading="cambiandoPassword" @click="cambiarPasswordTemporal">
-            Guardar y continuar
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
   </div>
 </template>
 
@@ -281,11 +248,6 @@ const enviandoReset = ref(false)
 const errorReset = ref('')
 const mensajeReset = ref('')
 const accesoExitoso = ref(false)
-const mostrarCambioPassword = ref(false)
-const nuevaPassword = ref('')
-const confirmarNuevaPassword = ref('')
-const errorCambioPassword = ref('')
-const cambiandoPassword = ref(false)
 const cargandoGoogle = ref(false)
 
 // Login facial
@@ -379,7 +341,7 @@ async function loginPassword() {
       recaptchaToken: bypassDesarrollo.value ? 'dev-bypass' : recaptchaToken.value
     })
     if (data.debeCambiarPassword) {
-      abrirCambioPassword()
+      await informarActivacionPendiente()
       return
     }
     accesoExitoso.value = true
@@ -430,7 +392,7 @@ async function verificarRostro(captura: { descriptor: number[] | null, fotoRecor
 
     if (data.debeCambiarPassword) {
       mostrarFacial.value = false
-      abrirCambioPassword()
+      await informarActivacionPendiente()
       return
     }
 
@@ -466,11 +428,14 @@ async function verificarRostro(captura: { descriptor: number[] | null, fotoRecor
   }
 }
 
-function abrirCambioPassword() {
-  nuevaPassword.value = ''
-  confirmarNuevaPassword.value = ''
-  errorCambioPassword.value = ''
-  mostrarCambioPassword.value = true
+async function informarActivacionPendiente() {
+  try {
+    await api.post('/auth/logout')
+  } catch {
+    // La sesión limitada no da acceso a la aplicación.
+  }
+  auth.logout()
+  error.value = 'Antes de ingresar, crea tu contraseña con el enlace enviado a tu correo. Si venció, usa «¿Olvidaste tu contraseña?» para solicitar otro.'
 }
 
 function abrirRecuperacion() {
@@ -503,33 +468,6 @@ async function solicitarRestablecimiento() {
     recaptchaReset.value?.reiniciar()
   } finally {
     enviandoReset.value = false
-  }
-}
-
-async function cambiarPasswordTemporal() {
-  errorCambioPassword.value = ''
-  const cumpleRegla = /^(?=.{8,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).*$/.test(nuevaPassword.value)
-  if (!cumpleRegla) {
-    errorCambioPassword.value = 'Usa entre 8 y 128 caracteres, con mayúscula, minúscula, número y símbolo.'
-    return
-  }
-  if (nuevaPassword.value !== confirmarNuevaPassword.value) {
-    errorCambioPassword.value = 'La confirmación no coincide con la nueva contraseña.'
-    return
-  }
-
-  cambiandoPassword.value = true
-  try {
-    const { data } = await api.post('/auth/cambiar-password-temporal', {
-      nuevoPassword: nuevaPassword.value
-    })
-    auth.login(data)
-    mostrarCambioPassword.value = false
-    await navigateTo(rutaDestino.value)
-  } catch (e: any) {
-    errorCambioPassword.value = e.response?.data?.mensaje || 'No se pudo actualizar la contraseña.'
-  } finally {
-    cambiandoPassword.value = false
   }
 }
 

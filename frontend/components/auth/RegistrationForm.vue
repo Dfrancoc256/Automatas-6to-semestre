@@ -76,7 +76,10 @@
                             prepend-inner-icon="mdi-calendar" type="date"
                             :rules="[v => !!v || 'Requerido']" class="mb-3" />
               <v-alert type="info" variant="tonal" density="compact" class="mb-3">
-                Tu nickname se generará automáticamente. Recibirás una contraseña temporal en el correo registrado para tu próximo ingreso.
+                Tu nickname se generará automáticamente.
+                {{ esRegistroGoogle
+                  ? 'Podrás ingresar con la cuenta de Google que seleccionaste.'
+                  : 'Recibirás por correo un enlace para crear tu contraseña antes de ingresar.' }}
               </v-alert>
               <v-select v-model="form.metodoNotificacion"
                         label="Método de notificación"
@@ -208,11 +211,15 @@
               <p class="text-body-2 text-medium-emphasis mb-6">
                 {{ esRegistroGoogle
                   ? 'Tu cuenta ha sido creada. A partir de ahora podrás ingresar con la cuenta de Google seleccionada.'
-                  : 'Tu cuenta ha sido creada. Revisa tu correo para conocer la contraseña temporal. En tu próximo inicio de sesión deberás cambiarla por una contraseña personal.' }}
+                  : 'Tu cuenta ha sido creada. Revisa tu correo y abre el enlace para crear tu contraseña antes del primer acceso.' }}
               </p>
-              <v-btn color="accent" class="umg-gold-button" prepend-icon="mdi-login"
+              <v-btn v-if="esRegistroGoogle" color="accent" class="umg-gold-button" prepend-icon="mdi-login"
                      @click="navigateTo('/dashboard')">
                 Ingresar
+              </v-btn>
+              <v-btn v-else color="accent" class="umg-gold-button" prepend-icon="mdi-email-outline"
+                     @click="navigateTo('/')">
+                Entendido, ir al inicio
               </v-btn>
               <v-btn class="mt-3" variant="outlined" color="secondary"
                      prepend-icon="mdi-file-pdf-box" :loading="descargando"
@@ -528,7 +535,8 @@ async function registrar() {
       recaptchaToken:     bypassDesarrollo.value ? 'dev-bypass' : recaptchaToken.value
     }
     const { data } = await api.post('/auth/registro', payload)
-    auth.login(data)
+    if (esRegistroGoogle.value) auth.login(data)
+    else auth.logout()
     paso.value = 3
   } catch (e: any) {
     error.value = obtenerMensajeErrorRegistro(e)

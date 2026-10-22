@@ -257,11 +257,40 @@ public class AuthController : ControllerBase
         if (!int.TryParse(idStr, out var usuarioId))
             return Unauthorized();
 
-        var result = await _auth.CambiarPasswordTemporalAsync(usuarioId, dto.NuevoPassword);
-        if (result == null) return Unauthorized();
+        var result = await _auth.CambiarPasswordTemporalAsync(
+            usuarioId, dto.PasswordTemporal, dto.NuevoPassword);
+        if (result == null)
+            return BadRequest(new { mensaje = "La contraseña temporal no es correcta o ya fue cambiada." });
 
         EstablecerCookieSesion(result.Token, result.Expiracion);
         return Ok(result);
+    }
+
+    [HttpGet("validar-enlace-inicial")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> ValidarEnlaceInicial([FromQuery] string token)
+    {
+        var valido = await _auth.EnlaceCambioInicialValidoAsync(token);
+        return valido
+            ? Ok(new { valido = true })
+            : BadRequest(new { mensaje = "El enlace expiró o ya fue utilizado." });
+    }
+
+    [HttpPost("cambiar-password-inicial")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> CambiarPasswordInicial([FromBody] CambiarPasswordInicialDTO dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(new { errores = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage) });
+
+        var sesion = await _auth.CambiarPasswordInicialAsync(dto.Token, dto.NuevoPassword);
+        if (sesion is null)
+            return BadRequest(new { mensaje = "El enlace expiró o ya fue utilizado." });
+
+        EstablecerCookieSesion(sesion.Token, sesion.Expiracion);
+        return Ok(sesion);
     }
 
     /// <summary>Solicita un enlace de un solo uso para restablecer la contraseña.</summary>
