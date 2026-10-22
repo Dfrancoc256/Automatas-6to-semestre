@@ -94,7 +94,7 @@ useHead({ title: 'Dashboard' })
 const auth    = useAuthStore()
 const { api } = useApi()
 const stats   = ref<any>(null)
-const nombreUsuario = computed(() => auth.user?.nickname || 'usuario')
+const nombreUsuario = computed(() => auth.user?.nombre || auth.user?.nickname || 'usuario')
 const fechaActual = computed(() => new Intl.DateTimeFormat('es-GT', {
   day: '2-digit', month: 'long', year: 'numeric'
 }).format(new Date()))
@@ -170,7 +170,7 @@ function formatFecha(iso: string) {
 .executive-dashboard {
   max-width: 1480px;
   margin: 0 auto;
-  padding: clamp(1.1rem, 2.4vw, 2.25rem);
+  padding: clamp(.7rem, 1.2vw, 1.15rem) clamp(1.1rem, 2.4vw, 2.25rem) clamp(1.1rem, 2.4vw, 2.25rem);
 }
 
 .executive-hero {
@@ -197,7 +197,7 @@ function formatFecha(iso: string) {
 }
 
 .executive-hero__eyebrow { color: #e1b22a; }
-.executive-hero h1 { margin: 0; font-size: clamp(1.7rem, 3vw, 2.25rem); line-height: 1.1; }
+.executive-hero h1 { margin: 0; font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif; font-size: clamp(1.7rem, 3vw, 2.25rem); line-height: 1.1; }
 .executive-hero > div > p:not(.executive-hero__eyebrow) { max-width: 630px; margin: .7rem 0 0; color: #d9e5ec; }
 .executive-hero__actions { display: flex; flex-direction: column; align-items: flex-end; gap: .8rem; flex-shrink: 0; }
 .executive-hero__date { display: inline-flex; gap: .4rem; align-items: center; color: #d9e5ec; font-size: .84rem; text-transform: capitalize; }

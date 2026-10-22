@@ -75,9 +75,6 @@
               <v-text-field v-model="form.fechaNacimiento" label="Fecha de nacimiento"
                             prepend-inner-icon="mdi-calendar" type="date"
                             :rules="[v => !!v || 'Requerido']" class="mb-3" />
-              <v-alert type="info" variant="tonal" density="compact" class="mb-3">
-                Tu nickname se generará automáticamente. Recibirás una contraseña temporal en el correo registrado para tu próximo ingreso.
-              </v-alert>
               <v-select v-model="form.metodoNotificacion"
                         label="Método de notificación"
                         prepend-inner-icon="mdi-bell"
@@ -715,6 +712,11 @@ async function descargarCredencial() {
   .registro-content :deep(.v-stepper-window) { padding-right: 2px; }
   .registro-content :deep(.v-stepper-window-item),
   .registro-content :deep(.v-row) { min-width: 0; max-width: 100%; }
+  .registro-content :deep(.v-stepper-window-item) { padding-inline: 0; }
+  .registro-content :deep(.v-row) { margin-inline: 0; }
+  .registro-content :deep(.v-col) { min-width: 0; padding-inline: 4px; }
+  .registro-content :deep(.v-input),
+  .registro-content :deep(.v-field) { max-width: 100%; }
   .registro-content :deep(.v-stepper-header) { min-height: 64px; }
   .registro-content :deep(.v-stepper-item__title) { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
   .registro-content--captura :deep(.face-scanner) { max-width: 100%; }
@@ -724,5 +726,11 @@ async function descargarCredencial() {
   .registro-error :deep(.v-alert__close) { align-self: flex-start; }
   .registro-actions { gap: 8px; }
   .registro-actions .v-btn { min-width: 0; }
+}
+
+@media (max-width: 420px) {
+  .registro-content :deep(.v-stepper-item__title) { font-size: 10px; }
+  .registro-actions { flex-direction: column-reverse; }
+  .registro-actions .v-btn { width: 100%; max-width: none; }
 }
 </style>

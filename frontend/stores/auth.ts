@@ -4,6 +4,7 @@ export interface AuthUser {
   token?: string
   rol: string
   nickname: string
+  nombre?: string
   fotoModificada: string | null
   expiracion: string
   codigoQr?: string

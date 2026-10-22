@@ -444,6 +444,7 @@ public class AuthController : ControllerBase
         {
             Rol = perfil.Rol,
             Nickname = perfil.Nickname,
+            Nombre = perfil.Nombre,
             FotoModificada = perfil.FotoModificada,
             Expiracion = expiracion,
             DebeCambiarPassword = User.FindFirst("debe_cambiar_password")?.Value == "true"

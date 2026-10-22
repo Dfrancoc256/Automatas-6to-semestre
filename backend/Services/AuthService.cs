@@ -621,6 +621,7 @@ public class AuthService : IAuthService
         Token = _jwt.GenerarToken(usuario, usuario.DebeCambiarPassword && !omitirCambioPassword),
         Rol = usuario.Rol,
         Nickname = usuario.Nickname,
+        Nombre = usuario.Nombre,
         FotoModificada = usuario.FotoModificada,
         Expiracion = DateTime.UtcNow.AddHours(8),
         DebeCambiarPassword = usuario.DebeCambiarPassword && !omitirCambioPassword
