@@ -19,7 +19,9 @@ public interface IAuthService
     Task<AuthResponseDTO> RegistrarAsync(RegisterDTO dto);
     Task<UsuarioPerfilDTO?> ObtenerPerfilAsync(int usuarioId);
     Task<bool> ActualizarPerfilAsync(int usuarioId, ActualizarPerfilDTO dto);
-    Task<AuthResponseDTO?> CambiarPasswordTemporalAsync(int usuarioId, string nuevoPassword);
+    Task<AuthResponseDTO?> CambiarPasswordTemporalAsync(int usuarioId, string passwordTemporal, string nuevoPassword);
+    Task<bool> EnlaceCambioInicialValidoAsync(string token);
+    Task<AuthResponseDTO?> CambiarPasswordInicialAsync(string token, string nuevoPassword);
     Task<AuthResponseDTO?> LoginGoogleAsync(string googleSubject, string correo, string ip, string userAgent);
     Task<bool> SolicitarRestablecimientoPasswordAsync(string correo);
     Task<bool> RestablecerPasswordAsync(string token, string nuevoPassword);
@@ -310,7 +312,8 @@ public class AuthService : IAuthService
             await File.WriteAllBytesAsync(Path.Combine(carpeta, nombreModificado), imagenModificada.Bytes);
         }
 
-        var passwordTemporal = string.IsNullOrWhiteSpace(googleSubject) ? GenerarPasswordTemporal() : null;
+        var requiereCrearPassword = string.IsNullOrWhiteSpace(googleSubject);
+        var passwordInicialAleatoria = GenerarPasswordTemporal();
         var usuario = new Usuario
         {
             Correo              = correo,
@@ -319,8 +322,8 @@ public class AuthService : IAuthService
             Telefono            = dto.Telefono.Trim(),
             FechaNacimiento     = DateTime.SpecifyKind(dto.FechaNacimiento, DateTimeKind.Utc),
             Nickname            = nickname,
-            PasswordHash        = BCrypt.Net.BCrypt.HashPassword(passwordTemporal ?? GenerarPasswordTemporal()),
-            DebeCambiarPassword = string.IsNullOrWhiteSpace(googleSubject),
+            PasswordHash        = BCrypt.Net.BCrypt.HashPassword(passwordInicialAleatoria),
+            DebeCambiarPassword = requiereCrearPassword,
             GoogleSubject       = string.IsNullOrWhiteSpace(googleSubject) ? null : googleSubject,
             MetodoNotificacion  = dto.MetodoNotificacion,
             FotoOriginal        = rutaFotoOriginal,
@@ -336,15 +339,16 @@ public class AuthService : IAuthService
 
         _logger.LogInformation("Nuevo usuario registrado: {UsuarioId} ({Correo})", usuario.Id, usuario.Correo);
         var codigoQr = _jwt.GenerarCodigoQrCredencial(usuario);
-        await NotificarRegistroAsync(usuario, codigoQr, passwordTemporal);
+        var tokenCambioInicial = requiereCrearPassword ? _jwt.GenerarEnlaceCambioInicial(usuario) : null;
+        await NotificarRegistroAsync(usuario, codigoQr, tokenCambioInicial);
 
-        var respuesta = CrearRespuestaSesion(usuario, omitirCambioPassword: true);
+        var respuesta = CrearRespuestaSesion(usuario);
         respuesta.CodigoQr = codigoQr;
         return respuesta;
     }
 
     /// <summary>Envía las notificaciones del registro.</summary>
-    private async Task NotificarRegistroAsync(Usuario usuario, string codigoQr, string? passwordTemporal)
+    private async Task NotificarRegistroAsync(Usuario usuario, string codigoQr, string? tokenCambioInicial)
     {
         var nombre = WebUtility.HtmlEncode(usuario.NombreCompleto);
         var correo = WebUtility.HtmlEncode(usuario.Correo);
@@ -354,6 +358,10 @@ public class AuthService : IAuthService
             ? "https://analizador-umg.duckdns.org"
             : urlConfigurada).TrimEnd('/');
         var urlHtml = WebUtility.HtmlEncode(urlWeb);
+        var enlaceCambioInicial = tokenCambioInicial is null
+            ? null
+            : $"{urlWeb}/crear-password?token={Uri.EscapeDataString(tokenCambioInicial)}";
+        var enlaceCambioHtml = enlaceCambioInicial is null ? null : WebUtility.HtmlEncode(enlaceCambioInicial);
         var nombreArchivo = $"credencial-{usuario.Nickname}.pdf";
         byte[]? credencial = null;
 
@@ -367,9 +375,9 @@ public class AuthService : IAuthService
             _logger.LogError(ex, "No se pudo generar la credencial inicial del usuario {UsuarioId}", usuario.Id);
         }
 
-        var mensajeAcceso = passwordTemporal is null
+        var mensajeAcceso = tokenCambioInicial is null
             ? "Tu acceso se realiza con la cuenta de Google que seleccionaste durante el registro."
-            : "Revisa tu correo para obtener la contraseña temporal de acceso.";
+            : $"Antes de tu primer acceso, crea tu contraseña personal con este enlace válido por 15 minutos: {enlaceCambioInicial}";
         var mensajeWhatsApp =
             $"¡Bienvenido/a, {usuario.NombreCompleto}!\n\n" +
             $"Ingresa en: {urlWeb}\n" +
@@ -384,13 +392,17 @@ public class AuthService : IAuthService
                 "Registro exitoso - Lenguajes Formales",
                 $"<p>¡Bienvenido, <strong>{nombre}</strong>!</p>" +
                 "<p>Tu cuenta fue creada correctamente. Estos son tus datos de acceso:</p>" +
-                $"<ul><li><strong>Enlace:</strong> <a href=\"{urlHtml}\">{urlHtml}</a></li>" +
+                "<ul>" +
+                (tokenCambioInicial is null
+                    ? $"<li><strong>Enlace:</strong> <a href=\"{urlHtml}\">{urlHtml}</a></li>"
+                    : string.Empty) +
                 $"<li><strong>Correo:</strong> {correo}</li>" +
                 $"<li><strong>Nickname:</strong> {nickname}</li></ul>" +
-                (passwordTemporal is null
+                (tokenCambioInicial is null
                     ? "<p>Tu acceso se realiza con la cuenta de Google que seleccionaste durante el registro.</p>"
-                    : $"<p><strong>Contraseña temporal:</strong> {WebUtility.HtmlEncode(passwordTemporal)}</p>" +
-                      "<p>Úsala para tu próximo ingreso. Después deberás crear una contraseña personal antes de continuar.</p>") +
+                    : "<p>Antes de tu primer acceso, crea tu contraseña personal con este enlace:</p>" +
+                      $"<p><a href=\"{enlaceCambioHtml}\">Crear mi contraseña personal</a></p>" +
+                      "<p>El enlace vence en 15 minutos y solo puede utilizarse una vez. Si vence, solicita otro desde «¿Olvidaste tu contraseña?» en la página de acceso.</p>") +
                 "<p>Adjuntamos tu credencial PDF con código QR.</p>",
                 credencial,
                 credencial is null ? null : nombreArchivo);
@@ -572,15 +584,61 @@ public class AuthService : IAuthService
     private static string Limitar(string valor, int longitudMaxima) =>
         valor.Length <= longitudMaxima ? valor : valor[..longitudMaxima];
 
-    public async Task<AuthResponseDTO?> CambiarPasswordTemporalAsync(int usuarioId, string nuevoPassword)
+    public async Task<AuthResponseDTO?> CambiarPasswordTemporalAsync(
+        int usuarioId, string passwordTemporal, string nuevoPassword)
     {
         var usuario = await _db.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioId && u.Activo);
-        if (usuario == null) return null;
+        if (usuario == null || !usuario.DebeCambiarPassword) return null;
+        if (!BCrypt.Net.BCrypt.Verify(passwordTemporal, usuario.PasswordHash)
+            || passwordTemporal == nuevoPassword) return null;
 
-        usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(nuevoPassword);
+        var nuevoHash = BCrypt.Net.BCrypt.HashPassword(nuevoPassword);
+        var actualizado = await _db.Usuarios
+            .Where(u => u.Id == usuarioId && u.Activo && u.DebeCambiarPassword
+                && u.PasswordHash == usuario.PasswordHash)
+            .ExecuteUpdateAsync(cambios => cambios
+                .SetProperty(u => u.PasswordHash, nuevoHash)
+                .SetProperty(u => u.DebeCambiarPassword, false));
+        if (actualizado != 1) return null;
+        usuario.PasswordHash = nuevoHash;
         usuario.DebeCambiarPassword = false;
-        await _db.SaveChangesAsync();
         return CrearRespuestaSesion(usuario);
+    }
+
+    public async Task<bool> EnlaceCambioInicialValidoAsync(string token) =>
+        await ObtenerUsuarioCambioInicialAsync(token) is not null;
+
+    public async Task<AuthResponseDTO?> CambiarPasswordInicialAsync(string token, string nuevoPassword)
+    {
+        var usuario = await ObtenerUsuarioCambioInicialAsync(token);
+        if (usuario is null) return null;
+
+        var nuevoHash = BCrypt.Net.BCrypt.HashPassword(nuevoPassword);
+        var actualizado = await _db.Usuarios
+            .Where(u => u.Id == usuario.Id && u.Activo && u.DebeCambiarPassword
+                && u.PasswordHash == usuario.PasswordHash)
+            .ExecuteUpdateAsync(cambios => cambios
+                .SetProperty(u => u.PasswordHash, nuevoHash)
+                .SetProperty(u => u.DebeCambiarPassword, false));
+        if (actualizado != 1) return null;
+
+        usuario.PasswordHash = nuevoHash;
+        usuario.DebeCambiarPassword = false;
+        return CrearRespuestaSesion(usuario);
+    }
+
+    private async Task<Usuario?> ObtenerUsuarioCambioInicialAsync(string token)
+    {
+        if (_sinBaseDeDatos || string.IsNullOrWhiteSpace(token) || token.Length > 300)
+            return null;
+        var partes = token.Split('.');
+        if (partes.Length != 4 || !int.TryParse(partes[1], out var usuarioId))
+            return null;
+
+        var usuario = await _db.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioId && u.Activo);
+        return usuario is not null && _jwt.ValidarEnlaceCambioInicial(token, usuario)
+            ? usuario
+            : null;
     }
 
     private static string GenerarPasswordTemporal()
@@ -616,13 +674,13 @@ public class AuthService : IAuthService
     private static string HashToken(string token) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 
-    private AuthResponseDTO CrearRespuestaSesion(Usuario usuario, bool omitirCambioPassword = false) => new()
+    private AuthResponseDTO CrearRespuestaSesion(Usuario usuario) => new()
     {
-        Token = _jwt.GenerarToken(usuario, usuario.DebeCambiarPassword && !omitirCambioPassword),
+        Token = _jwt.GenerarToken(usuario, usuario.DebeCambiarPassword),
         Rol = usuario.Rol,
         Nickname = usuario.Nickname,
         FotoModificada = usuario.FotoModificada,
         Expiracion = DateTime.UtcNow.AddHours(8),
-        DebeCambiarPassword = usuario.DebeCambiarPassword && !omitirCambioPassword
+        DebeCambiarPassword = usuario.DebeCambiarPassword
     };
 }
