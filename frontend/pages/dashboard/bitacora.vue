@@ -11,8 +11,9 @@
     <v-card>
       <v-alert v-if="error" type="error" variant="tonal" density="compact" class="ma-4 mb-0">{{ error }}</v-alert>
       <v-card-text>
-        <v-data-table :headers="headers" :items="registros" :loading="cargando"
-                      no-data-text="Sin registros" density="comfortable">
+        <v-text-field v-model.trim="busqueda" class="mb-4" density="compact" variant="outlined" hide-details clearable prepend-inner-icon="mdi-magnify" label="Buscar accesos" placeholder="Usuario, IP, método o resultado" />
+        <v-data-table :headers="headers" :items="registrosFiltrados" :loading="cargando"
+                      no-data-text="No se encontraron accesos" density="comfortable">
           <template #item.resultado="{ item }">
             <v-chip :color="item.resultado === 'exitoso' ? 'success' : 'error'"
                     size="x-small" variant="tonal">
@@ -38,6 +39,7 @@ useHead({ title: 'Bitácora' })
 const { api }  = useApi()
 const cargando = ref(true)
 const registros = ref<any[]>([])
+const busqueda = ref('')
 const error = ref('')
 
 const headers = [
@@ -47,6 +49,13 @@ const headers = [
   { title: 'Resultado',key: 'resultado', sortable: true },
   { title: 'Fecha',    key: 'fechaHora', sortable: true }
 ]
+
+const registrosFiltrados = computed(() => {
+  const termino = busqueda.value.trim().toLocaleLowerCase('es-GT')
+  if (!termino) return registros.value
+  return registros.value.filter((registro) => [registro.usuario, registro.ipOrigen, registro.metodo, registro.resultado]
+    .some((valor) => String(valor || '').toLocaleLowerCase('es-GT').includes(termino)))
+})
 
 onMounted(async () => {
   try {

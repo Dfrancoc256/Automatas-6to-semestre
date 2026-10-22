@@ -300,7 +300,7 @@ img, video, canvas { max-width: 100%; }
   border-radius: 12px;
 }
 .sidebar.collapsed .nav-item__label { display: none; }
-.sidebar.collapsed .nav-tree { margin-left: 0; padding-left: 0; border-left: 0; }
+.sidebar.collapsed .nav-tree { margin-left: 0; padding-left: 0; }
 .sidebar.collapsed .nav-group { margin-top: 8px; }
 
 .sidebar.collapsed .nav-item.active {
@@ -371,21 +371,21 @@ img, video, canvas { max-width: 100%; }
 
 .sidebar-nav { flex: 1; padding: 18px 12px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.22) transparent; }
 
-.nav-root { margin-bottom: 12px; }
-.nav-group { margin-top: 9px; }
-.nav-tree { position: relative; display: grid; gap: 2px; margin-left: 20px; padding-left: 10px; border-left: 1px solid rgba(179,206,225,.20); }
-.nav-tree .nav-item::before { content: ''; position: absolute; left: -11px; width: 10px; height: 1px; background: rgba(179,206,225,.24); }
-.nav-tree .nav-item:last-child::after { content: ''; position: absolute; z-index: 1; top: 22px; bottom: -5px; left: -12px; width: 2px; background: #071e31; }
+.nav-root { margin-bottom: 14px; }
+.nav-group { margin-top: 7px; }
+.nav-tree { display: grid; gap: 2px; margin: 2px 0 8px; padding-left: 8px; }
+.nav-tree .nav-item { min-height: 40px; color: rgba(241,246,250,.66); font-size: 12.5px; }
 
 .nav-section {
-  padding: 17px 10px 8px;
-  font-size: 9px; font-weight: 750;
-  text-transform: uppercase; letter-spacing: .13em;
-  color: rgba(255,255,255,.42);
+  padding: 13px 10px 7px;
+  font-size: 10px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .11em;
+  color: rgba(211,226,237,.56);
 }
-.nav-section--toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; cursor: pointer; background: transparent; border: 0; font-family: inherit; text-align: left; }
-.nav-section--toggle .v-icon { color: rgba(255,255,255,.42); transition: transform .16s ease; }
-.nav-section--toggle:hover, .nav-section--toggle:hover .v-icon { color: #D9E7F1; }
+.nav-section--toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; cursor: pointer; background: transparent; border: 0; border-radius: 8px; font-family: inherit; text-align: left; transition: background .16s ease, color .16s ease; }
+.nav-section--toggle .v-icon { color: rgba(211,226,237,.48); transition: transform .16s ease, color .16s ease; }
+.nav-section--toggle:hover { background: rgba(255,255,255,.045); }
+.nav-section--toggle:hover, .nav-section--toggle:hover .v-icon { color: #E2ECF3; }
 
 .nav-item {
   position: relative;

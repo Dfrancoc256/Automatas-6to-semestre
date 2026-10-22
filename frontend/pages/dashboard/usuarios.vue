@@ -13,8 +13,11 @@
 
     <v-card class="users-card">
       <v-alert v-if="error" type="error" variant="tonal" density="compact" class="ma-4 mb-0" closable @click:close="error = ''">{{ error }}</v-alert>
+      <div class="table-search px-4 pt-4">
+        <v-text-field v-model.trim="busqueda" density="compact" variant="outlined" hide-details clearable prepend-inner-icon="mdi-magnify" label="Buscar usuarios" placeholder="Nombre, correo, teléfono o rol" />
+      </div>
       <v-card-text class="pa-0">
-        <v-data-table :headers="headers" :items="usuarios" :loading="cargando" no-data-text="Sin usuarios registrados" density="comfortable" class="users-table">
+        <v-data-table :headers="headers" :items="usuariosFiltrados" :loading="cargando" no-data-text="No se encontraron usuarios" density="comfortable" class="users-table">
           <template #item.usuario="{ item }">
             <div class="user-identity py-2">
               <v-avatar size="38" color="primary" class="user-identity__avatar">
@@ -77,6 +80,7 @@ const { fotoUrl } = useMediaUrl()
 const cargando = ref(false)
 const guardando = ref(false)
 const usuarios = ref<any[]>([])
+const busqueda = ref('')
 const error = ref('')
 const mensaje = ref('')
 const mensajeVisible = ref(false)
@@ -95,6 +99,15 @@ const formEdicion = reactive({ nombre: '', apellido: '', correo: '', telefono: '
 const headers = [
   { title: 'Usuario', key: 'usuario', sortable: false }, { title: 'Correo', key: 'correo', sortable: true }, { title: 'Teléfono', key: 'telefono', sortable: false }, { title: 'Rol', key: 'rol', sortable: true }, { title: 'Estado', key: 'activo', sortable: true }, { title: 'Registro', key: 'fechaRegistro', sortable: true }, { title: 'Acciones', key: 'acciones', sortable: false, align: 'end' as const }
 ]
+
+const usuariosFiltrados = computed(() => {
+  const termino = busqueda.value.trim().toLocaleLowerCase('es-GT')
+  if (!termino) return usuarios.value
+  return usuarios.value.filter((usuario) => [
+    usuario.nombre, usuario.apellido, usuario.nickname, usuario.correo,
+    usuario.telefono, usuario.rol, usuario.activo ? 'activo' : 'inactivo'
+  ].some((valor) => String(valor || '').toLocaleLowerCase('es-GT').includes(termino)))
+})
 
 onMounted(cargarUsuarios)
 
@@ -162,11 +175,13 @@ function ocultarFoto(usuario: any) { usuario.fotoModificada = null }
 
 <style scoped>
 .users-card { overflow: hidden; border: 1px solid #E2E8F0 !important; box-shadow: none !important; }
+.table-search { max-width: 430px; }
 .users-table :deep(th) { color: #405064; font-size: 12px; font-weight: 700; white-space: nowrap; }
 .users-table :deep(td) { white-space: nowrap; }
 .user-identity, .notification-recipient { display: flex; align-items: center; gap: .7rem; }
 .user-identity__avatar { color: #fff; font-size: .75rem; font-weight: 800; }
 .notification-recipient { padding: .8rem; border: 1px solid #dce5eb; border-radius: 10px; background: #f7fafc; }
+.notification-recipient .v-avatar { color: #fff; font-size: .85rem; font-weight: 800; }
 .notification-recipient > div { display: grid; min-width: 0; }
 .notification-recipient strong { color: #05233d; }
 .notification-recipient span { overflow: hidden; color: #65788a; font-size: .82rem; text-overflow: ellipsis; white-space: nowrap; }

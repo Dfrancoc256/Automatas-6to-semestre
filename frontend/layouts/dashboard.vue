@@ -157,7 +157,7 @@ const fotoSidebarError = ref(false)
 
 const sidebarOpen = ref(false)
 const sidebarCollapsed = ref(false)
-const gruposAbiertos = reactive({ analisis: true, supervision: true, administracion: true, cuenta: true })
+const gruposAbiertos = reactive({ analisis: false, supervision: false, administracion: false, cuenta: false })
 const paginaActual = computed(() => ({
   '/dashboard': 'Resumen',
   '/dashboard/analisis': 'Análisis léxico',
@@ -185,7 +185,11 @@ function alternarSidebar() {
 }
 
 function alternarGrupo(grupo: keyof typeof gruposAbiertos) {
-  gruposAbiertos[grupo] = !gruposAbiertos[grupo]
+  const abrir = !gruposAbiertos[grupo]
+  for (const clave of Object.keys(gruposAbiertos) as Array<keyof typeof gruposAbiertos>) {
+    gruposAbiertos[clave] = false
+  }
+  gruposAbiertos[grupo] = abrir
 }
 
 async function cerrarSesion() {

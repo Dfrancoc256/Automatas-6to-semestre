@@ -125,7 +125,8 @@ public class DashboardController : ControllerBase
                 u.Apellido,
                 u.Correo,
                 u.Telefono,
-                u.FotoModificada,
+                // Algunas cuentas antiguas solo tienen foto original.
+                FotoModificada = u.FotoModificada ?? u.FotoOriginal,
                 u.MetodoNotificacion,
                 u.Rol,
                 u.Activo,

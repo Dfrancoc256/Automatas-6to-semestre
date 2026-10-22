@@ -10,11 +10,12 @@
 
     <v-card>
       <v-card-text>
+        <v-text-field v-model.trim="busqueda" class="mb-4" density="compact" variant="outlined" hide-details clearable prepend-inner-icon="mdi-magnify" label="Buscar análisis" placeholder="Archivo o idioma" />
         <v-data-table
           :headers="headers"
-          :items="historial"
+          :items="historialFiltrado"
           :loading="cargando"
-          no-data-text="Sin análisis registrados aún"
+          no-data-text="No se encontraron análisis"
           density="comfortable"
         >
           <template #item.idioma="{ item }">
@@ -129,6 +130,7 @@ useHead({ title: 'Historial' })
 const { api }  = useApi()
 const cargando = ref(true)
 const historial = ref<any[]>([])
+const busqueda = ref('')
 const dialogDetalle = ref(false)
 const dialogCategoria = ref(false)
 const detalle = ref<any>(null)
@@ -151,6 +153,13 @@ const headers = [
   { title: 'Fecha',      key: 'fechaAnalisis', sortable: true },
   { title: 'Ver',        key: 'acciones',      sortable: false }
 ]
+
+const historialFiltrado = computed(() => {
+  const termino = busqueda.value.trim().toLocaleLowerCase('es-GT')
+  if (!termino) return historial.value
+  return historial.value.filter((analisis) => [analisis.nombreArchivo, analisis.idioma]
+    .some((valor) => String(valor || '').toLocaleLowerCase('es-GT').includes(termino)))
+})
 
 const detalleMet = computed(() => detalle.value ? [
   { l: 'Palabras',  v: detalle.value.totalPalabras?.toLocaleString() },
