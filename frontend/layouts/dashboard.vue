@@ -8,28 +8,8 @@
           <img src="/images/logo-umg-oficial.png" alt="Logo UMG" />
         </div>
         <div>
-          <div class="sidebar-title">Universidad Mariano Gálvez</div>
-          <div class="sidebar-subtitle">Lenguajes formales y autómatas</div>
-        </div>
-      </div>
-
-      <div class="sidebar-user px-4 py-3 flex items-center gap-3">
-        <v-avatar size="36" color="accent">
-          <span v-if="!fotoSidebarCargada" class="text-white text-sm font-bold">
-            {{ auth.user?.nickname?.charAt(0).toUpperCase() }}
-          </span>
-          <img
-            v-if="fotoSidebarUrl"
-            :src="fotoSidebarUrl"
-            class="sidebar-user-photo"
-            alt=""
-            @load="fotoSidebarCargada = true"
-            @error="fotoSidebarCargada = false"
-          >
-        </v-avatar>
-        <div>
-          <div class="sidebar-user-name">{{ auth.user?.nickname || 'Usuario UMG' }}</div>
-          <div class="sidebar-user-role">{{ auth.user?.rol || 'USUARIO' }}</div>
+          <div class="sidebar-title">UMG · Académico</div>
+          <div class="sidebar-subtitle">Lenguajes y autómatas</div>
         </div>
       </div>
 
@@ -37,28 +17,28 @@
         <div class="nav-section">Espacio de trabajo</div>
 
         <NuxtLink to="/dashboard" class="nav-item" title="Dashboard" :class="{ active: route.path === '/dashboard' }">
-          <v-icon size="18">mdi-view-dashboard</v-icon>
-          Dashboard
+          <span class="nav-item__icon"><v-icon size="18">mdi-view-dashboard-outline</v-icon></span>
+          <span class="nav-item__label">Resumen</span>
         </NuxtLink>
 
         <NuxtLink to="/dashboard/analisis" class="nav-item" title="Análisis léxico"
                   :class="{ active: route.path === '/dashboard/analisis' }">
-          <v-icon size="18">mdi-text-search</v-icon>
-          Análisis Léxico
+          <span class="nav-item__icon"><v-icon size="18">mdi-text-search</v-icon></span>
+          <span class="nav-item__label">Análisis léxico</span>
         </NuxtLink>
 
         <NuxtLink to="/dashboard/historial" class="nav-item" title="Historial de análisis"
                   :class="{ active: route.path === '/dashboard/historial' }">
-          <v-icon size="18">mdi-history</v-icon>
-          Historial
+          <span class="nav-item__icon"><v-icon size="18">mdi-history</v-icon></span>
+          <span class="nav-item__label">Historial</span>
         </NuxtLink>
 
         <template v-if="auth.isSupervisor">
           <div class="nav-section">Reportes</div>
           <NuxtLink to="/dashboard/reportes" class="nav-item" title="Estadísticas y reportes"
                     :class="{ active: route.path === '/dashboard/reportes' }">
-            <v-icon size="18">mdi-chart-bar</v-icon>
-            Estadísticas
+            <span class="nav-item__icon"><v-icon size="18">mdi-chart-box-outline</v-icon></span>
+            <span class="nav-item__label">Estadísticas</span>
           </NuxtLink>
         </template>
 
@@ -66,34 +46,54 @@
           <div class="nav-section">Administración</div>
           <NuxtLink to="/dashboard/usuarios" class="nav-item" title="Usuarios y roles"
                     :class="{ active: route.path === '/dashboard/usuarios' }">
-            <v-icon size="18">mdi-account-group</v-icon>
-            Usuarios
+            <span class="nav-item__icon"><v-icon size="18">mdi-account-group-outline</v-icon></span>
+            <span class="nav-item__label">Usuarios</span>
           </NuxtLink>
           <NuxtLink to="/dashboard/bitacora" class="nav-item" title="Bitácora de accesos"
                     :class="{ active: route.path === '/dashboard/bitacora' }">
-            <v-icon size="18">mdi-shield-check</v-icon>
-            Bitácora
+            <span class="nav-item__icon"><v-icon size="18">mdi-shield-check-outline</v-icon></span>
+            <span class="nav-item__label">Bitácora</span>
           </NuxtLink>
         </template>
 
         <div class="nav-section">Cuenta</div>
         <NuxtLink to="/dashboard/perfil" class="nav-item" title="Mi perfil"
                   :class="{ active: route.path === '/dashboard/perfil' }">
-          <v-icon size="18">mdi-account-edit</v-icon>
-          Mi Perfil
+          <span class="nav-item__icon"><v-icon size="18">mdi-account-cog-outline</v-icon></span>
+          <span class="nav-item__label">Mi perfil</span>
         </NuxtLink>
       </nav>
 
-      <div style="padding:16px;border-top:1px solid rgba(255,255,255,.12)">
-        <v-btn block variant="outlined" color="white" size="small" title="Cerrar sesión" aria-label="Cerrar sesión"
+      <div class="sidebar-account">
+        <NuxtLink to="/dashboard/perfil" class="sidebar-user" title="Abrir mi perfil" @click="sidebarOpen = false">
+          <v-avatar size="38" color="accent">
+            <span v-if="!fotoSidebarCargada" class="text-white text-sm font-bold">
+              {{ auth.user?.nickname?.charAt(0).toUpperCase() }}
+            </span>
+            <img
+              v-if="fotoSidebarUrl"
+              :src="fotoSidebarUrl"
+              class="sidebar-user-photo"
+              alt=""
+              @load="fotoSidebarCargada = true"
+              @error="fotoSidebarCargada = false"
+            >
+          </v-avatar>
+          <span class="sidebar-user__copy">
+            <span class="sidebar-user-name">{{ auth.user?.nombre || auth.user?.nickname || 'Usuario UMG' }}</span>
+            <span class="sidebar-user-role">{{ auth.user?.rol || 'USUARIO' }}</span>
+          </span>
+          <v-icon class="sidebar-user__arrow" size="17">mdi-chevron-right</v-icon>
+        </NuxtLink>
+        <v-btn class="sidebar-logout" variant="text" color="white" size="small" title="Cerrar sesión" aria-label="Cerrar sesión"
                prepend-icon="mdi-logout" @click="cerrarSesion">
-          Cerrar sesión
+          <span>Cerrar sesión</span>
         </v-btn>
       </div>
     </aside>
 
     <main :class="['page-content', { 'sidebar-collapsed': sidebarCollapsed }]">
-      <div class="dashboard-topbar d-flex align-center mb-4">
+      <header class="dashboard-topbar">
         <button
           type="button"
           class="mobile-hamburger"
@@ -105,9 +105,18 @@
           <span />
           <span />
         </button>
-        <span class="dashboard-topbar__brand">Universidad Mariano Gálvez</span>
-        <span class="dashboard-topbar__context">Analizador léxico</span>
-      </div>
+        <div class="dashboard-topbar__page">
+          <span>Espacio académico</span>
+          <strong>{{ paginaActual }}</strong>
+        </div>
+        <NuxtLink to="/dashboard/perfil" class="dashboard-topbar__profile" title="Abrir mi perfil">
+          <v-avatar size="30" color="accent">
+            <img v-if="fotoSidebarUrl" :src="fotoSidebarUrl" class="sidebar-user-photo" alt="" @error="fotoSidebarCargada = false">
+            <span v-else>{{ auth.user?.nickname?.charAt(0).toUpperCase() }}</span>
+          </v-avatar>
+          <span>{{ auth.user?.nombre || auth.user?.nickname || 'Mi perfil' }}</span>
+        </NuxtLink>
+      </header>
 
       <slot />
     </main>
@@ -123,6 +132,15 @@ const fotoSidebarCargada = ref(false)
 
 const sidebarOpen = ref(false)
 const sidebarCollapsed = ref(false)
+const paginaActual = computed(() => ({
+  '/dashboard': 'Resumen',
+  '/dashboard/analisis': 'Análisis léxico',
+  '/dashboard/historial': 'Historial',
+  '/dashboard/reportes': 'Estadísticas',
+  '/dashboard/usuarios': 'Usuarios',
+  '/dashboard/bitacora': 'Bitácora',
+  '/dashboard/perfil': 'Mi perfil'
+}[route.path] || 'Panel académico'))
 
 watch(fotoSidebarUrl, () => {
   fotoSidebarCargada.value = false
@@ -184,14 +202,12 @@ async function cerrarSesion() {
 }
 
 .dashboard-topbar { min-height: 48px; }
-.dashboard-topbar__brand { margin-left: 12px; font-size: 15px; font-weight: 700; color: #051B2E; }
-.dashboard-topbar__context { margin-left: 10px; padding-left: 10px; border-left: 1px solid #D9E0E6; font-size: 12px; color: #64748B; }
 
 @media (max-width: 768px) {
   .mobile-hamburger[aria-expanded='true'] span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
   .mobile-hamburger[aria-expanded='true'] span:nth-child(2) { opacity: 0; }
   .mobile-hamburger[aria-expanded='true'] span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
-  .dashboard-topbar__context { display: none; }
+  .dashboard-topbar__profile > span { display: none; }
 }
 
 .items-center { align-items: center; }

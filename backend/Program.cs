@@ -123,7 +123,9 @@ builder.Services.AddRateLimiter(options =>
         context.Connection.RemoteIpAddress?.ToString() ?? "desconocido",
         _ => new FixedWindowRateLimiterOptions
         {
-            PermitLimit = 3,
+            // Cada CAPTCHA habilita un máximo de tres intentos faciales.
+            // Este límite adicional frena reintentos masivos desde una IP.
+            PermitLimit = 9,
             Window = TimeSpan.FromMinutes(10),
             QueueLimit = 0,
             AutoReplenishment = true

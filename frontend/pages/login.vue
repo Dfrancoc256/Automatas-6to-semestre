@@ -124,7 +124,8 @@
           color="primary"
           block
           prepend-icon="mdi-face-recognition"
-          :disabled="!puedeLoginFacial"
+          :loading="preparandoFacial"
+          :disabled="!puedeLoginFacial || preparandoFacial"
           @click="abrirLoginFacial"
         >
           {{ intentosFacialesRestantes ? 'Ingresar con reconocimiento facial' : 'Reconocimiento facial no disponible' }}
@@ -291,6 +292,7 @@ const cargandoGoogle = ref(false)
 // Login facial
 const mostrarFacial     = ref(false)
 const verificandoFacial = ref(false)
+const preparandoFacial  = ref(false)
 const errorFacial       = ref('')
 const rostroValidado    = ref(false)
 const fotoLoginRecortada = ref<string | null>(null)
@@ -298,6 +300,7 @@ const escanerLogin      = ref<{ reiniciar: () => void } | null>(null)
 const recaptcha = ref<{ reiniciar: () => void } | null>(null)
 const intentosFaciales = ref(0)
 const maxIntentosFaciales = 3
+const permisoFacialActivo = ref(false)
 
 const form = reactive({ identificador: '', password: '' })
 const recaptchaToken = ref('')
@@ -310,7 +313,9 @@ const puedeSolicitarReset = computed(() =>
   && (bypassDesarrollo.value || recaptchaResetToken.value.length > 0)
 )
 const intentosFacialesRestantes = computed(() => Math.max(0, maxIntentosFaciales - intentosFaciales.value))
-const puedeLoginFacial = computed(() => puedeEnviar.value && intentosFacialesRestantes.value > 0)
+const puedeLoginFacial = computed(() =>
+  (permisoFacialActivo.value || puedeEnviar.value) && intentosFacialesRestantes.value > 0
+)
 // El acceso y el registro comparten esta vista.
 const modoRegistro = ref(route.query.modo === 'registro')
 
@@ -404,10 +409,10 @@ async function loginPassword() {
   }
 }
 
-function abrirLoginFacial() {
+async function abrirLoginFacial() {
   if (!puedeLoginFacial.value) {
     error.value = intentosFacialesRestantes.value === 0
-      ? 'Se agotaron los tres intentos de reconocimiento facial. Espera diez minutos antes de volver a intentarlo.'
+      ? 'Se agotaron los tres intentos. Completa reCAPTCHA para iniciar nuevos intentos.'
       : 'Completa la verificación reCAPTCHA para continuar.'
     return
   }
@@ -416,13 +421,36 @@ function abrirLoginFacial() {
   errorFacial.value = ''
   rostroValidado.value = false
   fotoLoginRecortada.value = null
+
+  if (!permisoFacialActivo.value) {
+    preparandoFacial.value = true
+    try {
+      const { data } = await api.post('/auth/facial/verificar-captcha', {
+        recaptchaToken: bypassDesarrollo.value ? 'dev-bypass' : recaptchaToken.value
+      })
+      permisoFacialActivo.value = true
+      intentosFaciales.value = Math.max(0, maxIntentosFaciales - Number(data.intentosRestantes || maxIntentosFaciales))
+      // El token se consumió al crear el permiso; no se solicitará de nuevo
+      // hasta agotar los tres intentos o vencer los cinco minutos.
+      recaptchaToken.value = ''
+      recaptcha.value?.reiniciar()
+    } catch (e: any) {
+      error.value = e.response?.data?.mensaje || 'No fue posible habilitar el reconocimiento facial.'
+      recaptchaToken.value = ''
+      recaptcha.value?.reiniciar()
+      return
+    } finally {
+      preparandoFacial.value = false
+    }
+  }
+
   mostrarFacial.value = true
 }
 
 async function verificarRostro(captura: { descriptor: number[] | null, fotoRecortada: string | null }) {
   if (!captura.descriptor || !captura.fotoRecortada || verificandoFacial.value) return
-  if (!puedeLoginFacial.value) {
-    errorFacial.value = 'Completa nuevamente la verificación reCAPTCHA antes de escanear el rostro.'
+  if (!permisoFacialActivo.value || intentosFacialesRestantes.value === 0) {
+    errorFacial.value = 'El permiso de reconocimiento facial venció. Completa reCAPTCHA para iniciar nuevos intentos.'
     return
   }
 
@@ -431,8 +459,7 @@ async function verificarRostro(captura: { descriptor: number[] | null, fotoRecor
 
   try {
     const { data } = await api.post('/auth/login-facial', {
-      descriptor: captura.descriptor,
-      recaptchaToken: bypassDesarrollo.value ? 'dev-bypass' : recaptchaToken.value
+      descriptor: captura.descriptor
     })
 
     if (data.debeCambiarPassword) {
@@ -443,6 +470,7 @@ async function verificarRostro(captura: { descriptor: number[] | null, fotoRecor
     }
 
     auth.login(data)
+    permisoFacialActivo.value = false
     fotoLoginRecortada.value = captura.fotoRecortada
     rostroValidado.value = true
     // Muestra la validación antes de redirigir.
@@ -451,17 +479,26 @@ async function verificarRostro(captura: { descriptor: number[] | null, fotoRecor
     await navigateTo(rutaDestino.value)
   } catch (e: any) {
     const estado = e.response?.status
-    if (estado === 401) intentosFaciales.value += 1
-
-    recaptchaToken.value = ''
-    recaptcha.value?.reiniciar()
+    const restantes = Number(e.response?.data?.intentosRestantes)
+    if (Number.isFinite(restantes)) {
+      intentosFaciales.value = Math.max(0, maxIntentosFaciales - restantes)
+    }
 
     if (estado === 429 || intentosFacialesRestantes.value === 0) {
-      errorFacial.value = 'Se agotaron los tres intentos de reconocimiento facial. Espera diez minutos antes de volver a intentarlo.'
+      permisoFacialActivo.value = false
+      recaptchaToken.value = ''
+      recaptcha.value?.reiniciar()
+      errorFacial.value = 'Se agotaron los tres intentos. Completa reCAPTCHA para iniciar nuevos intentos.'
     } else {
       errorFacial.value = estado === 401
-        ? `Rostro no reconocido. Te quedan ${intentosFacialesRestantes.value} intento(s). reCAPTCHA se reinició para el siguiente intento.`
-        : e.response?.data?.mensaje || 'No fue posible validar el rostro. reCAPTCHA se reinició para reintentar.'
+        ? `Rostro no reconocido. Te quedan ${intentosFacialesRestantes.value} intento(s).`
+        : e.response?.data?.mensaje || 'No fue posible validar el rostro. Intenta nuevamente.'
+
+      if (estado === 400) {
+        permisoFacialActivo.value = false
+        recaptchaToken.value = ''
+        recaptcha.value?.reiniciar()
+      }
     }
 
     window.setTimeout(() => {

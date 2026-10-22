@@ -18,7 +18,7 @@
           <template #item.usuario="{ item }">
             <div class="user-identity py-2">
               <v-avatar size="38" color="primary" class="user-identity__avatar">
-                <v-img v-if="item.fotoModificada" :src="item.fotoModificada" :alt="`Fotografía de ${item.nombre}`" cover />
+                <v-img v-if="item.fotoModificada" :src="fotoUrl(item.fotoModificada)" :alt="`Fotografía de ${item.nombre}`" cover />
                 <span v-else>{{ iniciales(item) }}</span>
               </v-avatar>
               <div><div class="font-weight-bold">{{ item.nombre }} {{ item.apellido }}</div><div class="text-caption text-medium-emphasis">@{{ item.nickname }}</div></div>
@@ -31,8 +31,8 @@
           <template #item.fechaRegistro="{ item }">{{ fecha(item.fechaRegistro) }}</template>
           <template #item.acciones="{ item }">
             <div class="d-flex align-center justify-end ga-1">
-              <v-tooltip text="Enviar correo"><template #activator="{ props }"><v-btn v-bind="props" icon="mdi-email-outline" size="small" variant="text" color="primary" @click="abrirNotificacion(item, 'email')" /></template></v-tooltip>
-              <v-tooltip text="Enviar WhatsApp"><template #activator="{ props }"><v-btn v-bind="props" icon="mdi-whatsapp" size="small" variant="text" color="success" @click="abrirNotificacion(item, 'whatsapp')" /></template></v-tooltip>
+              <v-tooltip text="Enviar carnet PDF por correo"><template #activator="{ props }"><v-btn v-bind="props" icon="mdi-email-outline" size="small" variant="text" color="primary" @click="abrirEnvioCredencial(item, 'email')" /></template></v-tooltip>
+              <v-tooltip text="Enviar carnet PDF por WhatsApp"><template #activator="{ props }"><v-btn v-bind="props" icon="mdi-whatsapp" size="small" variant="text" color="success" @click="abrirEnvioCredencial(item, 'whatsapp')" /></template></v-tooltip>
               <v-tooltip text="Editar usuario"><template #activator="{ props }"><v-btn v-bind="props" icon="mdi-pencil-outline" size="small" variant="text" @click="abrirEdicion(item)" /></template></v-tooltip>
               <v-tooltip :text="item.activo ? 'Desactivar usuario' : 'Activar usuario'"><template #activator="{ props }"><v-btn v-bind="props" :icon="item.activo ? 'mdi-account-off-outline' : 'mdi-account-check-outline'" size="small" variant="text" :color="item.activo ? 'error' : 'success'" @click="item.activo ? pedirDesactivacion(item) : toggleUsuario(item)" /></template></v-tooltip>
             </div>
@@ -45,19 +45,22 @@
 
     <v-dialog v-model="dialogoDesactivar" max-width="430"><v-card><v-card-title class="pt-5 px-6">Desactivar usuario</v-card-title><v-card-text class="px-6">La cuenta de <strong>{{ usuarioSeleccionado?.nombre }} {{ usuarioSeleccionado?.apellido }}</strong> dejará de poder iniciar sesión. Sus registros se conservarán.</v-card-text><v-card-actions class="px-6 pb-5"><v-spacer /><v-btn variant="text" @click="dialogoDesactivar = false">Cancelar</v-btn><v-btn color="error" variant="flat" :loading="guardando" @click="desactivarUsuario">Desactivar</v-btn></v-card-actions></v-card></v-dialog>
 
-    <v-dialog v-model="dialogoNotificacion" max-width="520">
+    <v-dialog v-model="dialogoCredencial" max-width="520">
       <v-card class="notification-dialog">
-        <v-card-title class="pt-5 px-6">Enviar {{ canalNotificacion === 'email' ? 'correo' : 'WhatsApp' }}</v-card-title>
+        <v-card-title class="pt-5 px-6">Enviar carnet PDF</v-card-title>
         <v-card-text class="px-6 pb-2">
-          <div v-if="usuarioNotificacion" class="notification-recipient mb-5">
-            <v-avatar size="48" color="primary"><v-img v-if="usuarioNotificacion.fotoModificada" :src="usuarioNotificacion.fotoModificada" cover /><span v-else>{{ iniciales(usuarioNotificacion) }}</span></v-avatar>
-            <div><strong>{{ usuarioNotificacion.nombre }} {{ usuarioNotificacion.apellido }}</strong><span>{{ destinoNotificacion }}</span></div>
+          <div v-if="usuarioCredencial" class="notification-recipient mb-5">
+            <v-avatar size="48" color="primary"><v-img v-if="usuarioCredencial.fotoModificada" :src="fotoUrl(usuarioCredencial.fotoModificada)" cover /><span v-else>{{ iniciales(usuarioCredencial) }}</span></v-avatar>
+            <div><strong>{{ usuarioCredencial.nombre }} {{ usuarioCredencial.apellido }}</strong><span>{{ destinoCredencial }}</span></div>
           </div>
-          <v-text-field v-if="canalNotificacion === 'email'" v-model.trim="asuntoNotificacion" label="Asunto" counter="150" maxlength="150" />
-          <v-textarea v-model.trim="mensajeNotificacion" label="Mensaje" auto-grow rows="4" counter="1000" maxlength="1000" :hint="canalNotificacion === 'email' ? 'El saludo se agrega automáticamente al correo.' : 'El mensaje se enviará directamente al WhatsApp registrado.'" persistent-hint />
-          <v-alert v-if="errorNotificacion" type="error" variant="tonal" density="compact" class="mt-4">{{ errorNotificacion }}</v-alert>
+          <v-btn-toggle v-model="canalCredencial" mandatory divided color="primary" class="mb-5 w-100">
+            <v-btn value="email" class="flex-grow-1" prepend-icon="mdi-email-outline">Correo</v-btn>
+            <v-btn value="whatsapp" class="flex-grow-1" prepend-icon="mdi-whatsapp">WhatsApp</v-btn>
+          </v-btn-toggle>
+          <p class="text-body-1 mb-0">¿Estás seguro de enviar el carnet PDF a <strong>{{ usuarioCredencial?.nombre }} {{ usuarioCredencial?.apellido }}</strong> al {{ canalCredencial === 'email' ? 'correo' : 'número' }} <strong>{{ destinoCredencial }}</strong>?</p>
+          <v-alert v-if="errorCredencial" type="error" variant="tonal" density="compact" class="mt-4">{{ errorCredencial }}</v-alert>
         </v-card-text>
-        <v-card-actions class="px-6 pb-5"><v-spacer /><v-btn variant="text" :disabled="enviandoNotificacion" @click="dialogoNotificacion = false">Cancelar</v-btn><v-btn color="accent" class="umg-gold-button" :loading="enviandoNotificacion" :disabled="mensajeNotificacion.trim().length < 3" @click="enviarNotificacion">Enviar</v-btn></v-card-actions>
+        <v-card-actions class="px-6 pb-5"><v-spacer /><v-btn variant="text" :disabled="enviandoCredencial" @click="dialogoCredencial = false">Cancelar</v-btn><v-btn color="accent" class="umg-gold-button" :loading="enviandoCredencial" @click="enviarCredencial">Enviar carnet</v-btn></v-card-actions>
       </v-card>
     </v-dialog>
 
@@ -70,6 +73,7 @@ definePageMeta({ layout: 'dashboard', middleware: ['auth', 'role'], roles: ['ADM
 useHead({ title: 'Usuarios' })
 
 const { api } = useApi()
+const { fotoUrl } = useMediaUrl()
 const cargando = ref(false)
 const guardando = ref(false)
 const usuarios = ref<any[]>([])
@@ -78,14 +82,12 @@ const mensaje = ref('')
 const mensajeVisible = ref(false)
 const dialogoEdicion = ref(false)
 const dialogoDesactivar = ref(false)
-const dialogoNotificacion = ref(false)
+const dialogoCredencial = ref(false)
 const usuarioSeleccionado = ref<any>(null)
-const usuarioNotificacion = ref<any>(null)
-const canalNotificacion = ref<'email' | 'whatsapp'>('email')
-const asuntoNotificacion = ref('Mensaje del Analizador Léxico UMG')
-const mensajeNotificacion = ref('')
-const enviandoNotificacion = ref(false)
-const errorNotificacion = ref('')
+const usuarioCredencial = ref<any>(null)
+const canalCredencial = ref<'email' | 'whatsapp'>('email')
+const enviandoCredencial = ref(false)
+const errorCredencial = ref('')
 const roles = ['ADMIN', 'SUPERVISOR', 'ANALISTA']
 const canales = ['email', 'whatsapp', 'ambos']
 const formEdicion = reactive({ nombre: '', apellido: '', correo: '', telefono: '', rol: 'ANALISTA', metodoNotificacion: 'email' })
@@ -131,29 +133,25 @@ async function desactivarUsuario() {
   catch (e: any) { error.value = e.response?.data?.mensaje || 'No fue posible desactivar el usuario.' }
   finally { guardando.value = false }
 }
-const destinoNotificacion = computed(() => {
-  if (!usuarioNotificacion.value) return ''
-  return canalNotificacion.value === 'email' ? usuarioNotificacion.value.correo : usuarioNotificacion.value.telefono
+const destinoCredencial = computed(() => {
+  if (!usuarioCredencial.value) return ''
+  return canalCredencial.value === 'email' ? usuarioCredencial.value.correo : usuarioCredencial.value.telefono
 })
-function abrirNotificacion(usuario: any, canal: 'email' | 'whatsapp') {
-  usuarioNotificacion.value = usuario
-  canalNotificacion.value = canal
-  asuntoNotificacion.value = 'Mensaje del Analizador Léxico UMG'
-  mensajeNotificacion.value = ''
-  errorNotificacion.value = ''
-  dialogoNotificacion.value = true
+function abrirEnvioCredencial(usuario: any, canal: 'email' | 'whatsapp') {
+  usuarioCredencial.value = usuario
+  canalCredencial.value = canal
+  errorCredencial.value = ''
+  dialogoCredencial.value = true
 }
-async function enviarNotificacion() {
-  if (!usuarioNotificacion.value || mensajeNotificacion.value.trim().length < 3) return
-  enviandoNotificacion.value = true; errorNotificacion.value = ''
+async function enviarCredencial() {
+  if (!usuarioCredencial.value) return
+  enviandoCredencial.value = true; errorCredencial.value = ''
   try {
-    const { data } = await api.post(`/dashboard/usuarios/${usuarioNotificacion.value.id}/notificacion`, {
-      canal: canalNotificacion.value, mensaje: mensajeNotificacion.value, asunto: asuntoNotificacion.value
-    })
-    dialogoNotificacion.value = false
-    confirmar(data.mensaje || 'Notificación enviada.')
-  } catch (e: any) { errorNotificacion.value = e.response?.data?.mensaje || 'No fue posible enviar la notificación.' }
-  finally { enviandoNotificacion.value = false }
+    const { data } = await api.post(`/dashboard/usuarios/${usuarioCredencial.value.id}/credencial/enviar`, { canal: canalCredencial.value })
+    dialogoCredencial.value = false
+    confirmar(data.mensaje || 'Carnet PDF enviado.')
+  } catch (e: any) { errorCredencial.value = e.response?.data?.mensaje || 'No fue posible enviar el carnet PDF.' }
+  finally { enviandoCredencial.value = false }
 }
 function confirmar(texto: string) { mensaje.value = texto; mensajeVisible.value = true }
 function fecha(valor: string) { return new Date(valor).toLocaleDateString('es-GT') }

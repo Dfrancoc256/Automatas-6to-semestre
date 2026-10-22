@@ -376,6 +376,30 @@ public class AuthController : ControllerBase
         });
     }
 
+    /// <summary>Valida reCAPTCHA y habilita hasta tres intentos faciales durante cinco minutos.</summary>
+    [HttpPost("facial/verificar-captcha")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> VerificarCaptchaFacial([FromBody] RecaptchaTokenDTO dto)
+    {
+        if (!ModelState.IsValid || !await _recaptcha.ValidarAsync(dto.RecaptchaToken))
+            return BadRequest(new { mensaje = "Completa la verificación reCAPTCHA antes de usar el reconocimiento facial." });
+
+        var permiso = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+        _cache.Set($"facial-captcha:{permiso}", new FacialLoginPermit(), TimeSpan.FromMinutes(5));
+        Response.Cookies.Append("umg_facial_captcha", permiso, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = UsarCookieSegura(),
+            SameSite = SameSiteMode.Lax,
+            Path = "/api/auth/login-facial",
+            MaxAge = TimeSpan.FromMinutes(5),
+            IsEssential = true
+        });
+
+        return Ok(new { intentosRestantes = 3 });
+    }
+
     /// <summary>Login mediante reconocimiento facial (descriptor calculado en el navegador)</summary>
     [HttpPost("login-facial")]
     [AllowAnonymous]
@@ -387,8 +411,27 @@ public class AuthController : ControllerBase
                 .SelectMany(v => v.Errors)
                 .Select(e => e.ErrorMessage) });
 
-        if (!await _recaptcha.ValidarAsync(dto.RecaptchaToken))
-            return BadRequest(new { mensaje = "Verificación reCAPTCHA inválida." });
+        if (!Request.Cookies.TryGetValue("umg_facial_captcha", out var permiso)
+            || string.IsNullOrWhiteSpace(permiso)
+            || !_cache.TryGetValue<FacialLoginPermit>($"facial-captcha:{permiso}", out var intento)
+            || intento is null)
+        {
+            return BadRequest(new { mensaje = "Completa reCAPTCHA para iniciar los tres intentos de reconocimiento facial." });
+        }
+
+        int intentosRestantes;
+        lock (intento.Sync)
+        {
+            if (intento.IntentosRestantes <= 0)
+                return StatusCode(StatusCodes.Status429TooManyRequests,
+                    new { mensaje = "Se agotaron los tres intentos. Completa reCAPTCHA para iniciar nuevos intentos.", intentosRestantes = 0 });
+
+            intento.IntentosRestantes--;
+            intentosRestantes = intento.IntentosRestantes;
+        }
+
+        if (intentosRestantes == 0)
+            _cache.Remove($"facial-captcha:{permiso}");
 
         var ip        = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "desconocido";
         var userAgent = Request.Headers.UserAgent.ToString();
@@ -397,8 +440,20 @@ public class AuthController : ControllerBase
         {
             var result = await _auth.LoginFacialAsync(dto, ip, userAgent);
             if (result == null)
-                return Unauthorized(new { mensaje = "Rostro no reconocido." });
+            {
+                if (intentosRestantes == 0)
+                    return StatusCode(StatusCodes.Status429TooManyRequests,
+                        new { mensaje = "Se agotaron los tres intentos. Completa reCAPTCHA para iniciar nuevos intentos.", intentosRestantes });
 
+                return Unauthorized(new { mensaje = "Rostro no reconocido.", intentosRestantes });
+            }
+
+            _cache.Remove($"facial-captcha:{permiso}");
+            Response.Cookies.Delete("umg_facial_captcha", new CookieOptions
+            {
+                Secure = UsarCookieSegura(), SameSite = SameSiteMode.Lax,
+                Path = "/api/auth/login-facial", IsEssential = true
+            });
             EstablecerCookieSesion(result.Token, result.Expiracion);
             return Ok(result);
         }
@@ -618,4 +673,10 @@ public class AuthController : ControllerBase
 
     // HTTPS en producción.
     private bool UsarCookieSegura() => !_environment.IsDevelopment() || Request.IsHttps;
+}
+
+internal sealed class FacialLoginPermit
+{
+    public object Sync { get; } = new();
+    public int IntentosRestantes { get; set; } = 3;
 }

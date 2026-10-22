@@ -6,6 +6,7 @@ using System.Security.Claims;
 using LenguajesFormalesAPI.Data;
 using LenguajesFormalesAPI.Interfaces;
 using LenguajesFormalesAPI.Models;
+using LenguajesFormalesAPI.Services;
 
 namespace LenguajesFormalesAPI.Controllers;
 
@@ -18,12 +19,21 @@ public class DashboardController : ControllerBase
     private readonly AppDbContext _db;
     private readonly IEmailService _email;
     private readonly IWhatsAppService _whatsApp;
+    private readonly ICredentialService _credential;
+    private readonly IJwtService _jwt;
 
-    public DashboardController(AppDbContext db, IEmailService email, IWhatsAppService whatsApp)
+    public DashboardController(
+        AppDbContext db,
+        IEmailService email,
+        IWhatsAppService whatsApp,
+        ICredentialService credential,
+        IJwtService jwt)
     {
         _db = db;
         _email = email;
         _whatsApp = whatsApp;
+        _credential = credential;
+        _jwt = jwt;
     }
 
     /// <summary>Estadísticas generales — solo Admin/Supervisor</summary>
@@ -197,39 +207,50 @@ public class DashboardController : ControllerBase
         return Ok(new { usuario.Id, usuario.Activo });
     }
 
-    [HttpPost("usuarios/{id:int}/notificacion")]
+    /// <summary>Envía el carnet PDF de un usuario por correo o WhatsApp — solo Admin</summary>
+    [HttpPost("usuarios/{id:int}/credencial/enviar")]
     [Authorize(Roles = "ADMIN")]
-    public async Task<IActionResult> NotificarUsuario(int id, [FromBody] NotificarUsuarioDTO dto)
+    public async Task<IActionResult> EnviarCredencialUsuario(int id, [FromBody] EnviarCredencialUsuarioDTO dto)
     {
         var usuario = await _db.Usuarios.FindAsync(id);
         if (usuario == null) return NotFound();
 
         if (!ModelState.IsValid)
-            return BadRequest(new { mensaje = "Revisa el canal y el mensaje antes de enviar." });
+            return BadRequest(new { mensaje = "Canal inválido. Usa correo o WhatsApp." });
 
-        var mensaje = dto.Mensaje.Trim();
         var nombre = WebUtility.HtmlEncode(usuario.NombreCompleto);
+        var codigoQr = _jwt.GenerarCodigoQrCredencial(usuario);
+        var pdf = _credential.GenerarPdf(usuario, codigoQr);
+        var nombreArchivo = $"credencial-{usuario.Nickname}.pdf";
 
-        if (dto.Canal == "email")
+        try
         {
-            var mensajeHtml = WebUtility.HtmlEncode(mensaje).Replace("\n", "<br />");
-            await _email.SendEmailAsync(
-                usuario.Correo,
-                string.IsNullOrWhiteSpace(dto.Asunto) ? "Mensaje del Analizador Léxico UMG" : dto.Asunto.Trim(),
-                $"<p>Hola {nombre},</p><p>{mensajeHtml}</p>");
-        }
-        else if (dto.Canal == "whatsapp")
-        {
-            var enviado = await _whatsApp.SendTextAsync(usuario.Telefono, mensaje);
-            if (!enviado)
-                return StatusCode(502, new { mensaje = "No se pudo enviar el mensaje por WhatsApp." });
-        }
-        else
-        {
-            return BadRequest(new { mensaje = "Canal inválido." });
-        }
+            if (dto.Canal == "email")
+            {
+                await _email.SendEmailAsync(
+                    usuario.Correo,
+                    "Tu carnet - Lenguajes Formales",
+                    $"<p>Hola {nombre},</p><p>Adjuntamos tu carnet de la plataforma de Lenguajes Formales y Autómatas.</p><p>El código QR permite verificar su autenticidad.</p>",
+                    pdf,
+                    nombreArchivo);
 
-        return Ok(new { mensaje = "Notificación enviada." });
+                return Ok(new { mensaje = "Carnet PDF enviado por correo." });
+            }
+
+            var enviado = await _whatsApp.SendPdfAsync(
+                usuario.Telefono,
+                pdf,
+                nombreArchivo,
+                $"Hola {usuario.NombreCompleto}, adjuntamos tu carnet. El código QR permite verificar su autenticidad.");
+
+            return enviado
+                ? Ok(new { mensaje = "Carnet PDF enviado por WhatsApp." })
+                : StatusCode(502, new { mensaje = "No se pudo enviar el carnet por WhatsApp. Inténtalo de nuevo o usa el correo." });
+        }
+        catch (Exception)
+        {
+            return StatusCode(502, new { mensaje = "No se pudo enviar el carnet PDF en este momento." });
+        }
     }
 }
 
@@ -251,16 +272,9 @@ public class ActualizarUsuarioAdminDTO
     public string Rol { get; set; } = "ANALISTA";
 }
 
-public class NotificarUsuarioDTO
+public class EnviarCredencialUsuarioDTO
 {
     [System.ComponentModel.DataAnnotations.Required]
     [System.ComponentModel.DataAnnotations.RegularExpression("^(email|whatsapp)$")]
     public string Canal { get; set; } = string.Empty;
-
-    [System.ComponentModel.DataAnnotations.Required]
-    [System.ComponentModel.DataAnnotations.StringLength(1000, MinimumLength = 3)]
-    public string Mensaje { get; set; } = string.Empty;
-
-    [System.ComponentModel.DataAnnotations.StringLength(150)]
-    public string? Asunto { get; set; }
 }

@@ -71,8 +71,6 @@ public class LoginFacialDTO
     [MinLength(1)]
     public List<double> Descriptor { get; set; } = new();
 
-    [Required]
-    public string RecaptchaToken { get; set; } = string.Empty;
 }
 
 public class EnrolarFacialDTO
