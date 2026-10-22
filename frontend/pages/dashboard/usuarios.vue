@@ -13,18 +13,16 @@
 
     <v-card class="users-card">
       <v-alert v-if="error" type="error" variant="tonal" density="compact" class="ma-4 mb-0" closable @click:close="error = ''">{{ error }}</v-alert>
+      <div class="table-search px-4 pt-4">
+        <v-text-field v-model.trim="busqueda" density="compact" variant="outlined" hide-details clearable prepend-inner-icon="mdi-magnify" label="Buscar usuarios" placeholder="Nombre, correo, teléfono o rol" />
+      </div>
       <v-card-text class="pa-0">
-        <div class="pa-4 pb-0">
-          <v-text-field v-model="busqueda" label="Buscar usuario (nombre, nickname, correo, rol...)"
-                        prepend-inner-icon="mdi-magnify" variant="outlined" density="compact"
-                        clearable hide-details style="max-width:420px" />
-        </div>
-        <v-data-table :headers="headers" :items="usuariosFiltrados" :loading="cargando" no-data-text="Sin usuarios registrados" no-results-text="Sin resultados para la búsqueda" density="comfortable" class="users-table">
+        <v-data-table :headers="headers" :items="usuariosFiltrados" :loading="cargando" no-data-text="No se encontraron usuarios" density="comfortable" class="users-table">
           <template #item.usuario="{ item }">
-            <div class="d-flex align-center py-2">
-              <v-avatar size="40" color="accent" class="mr-3">
-                <v-img v-if="fotoDe(item)" :src="fotoDe(item)" cover />
-                <span v-else class="text-white text-caption font-weight-bold">{{ item.nickname?.charAt(0).toUpperCase() }}</span>
+            <div class="user-identity py-2">
+              <v-avatar size="38" color="primary" class="user-identity__avatar">
+                <v-img v-if="fotoUrl(item.fotoModificada)" :src="fotoUrl(item.fotoModificada)" :alt="`Fotografía de ${item.nombre}`" cover @error="ocultarFoto(item)" />
+                <span v-else>{{ iniciales(item) }}</span>
               </v-avatar>
               <div><div class="font-weight-bold">{{ item.nombre }} {{ item.apellido }}</div><div class="text-caption text-medium-emphasis">@{{ item.nickname }}</div></div>
             </div>
@@ -36,8 +34,8 @@
           <template #item.fechaRegistro="{ item }">{{ fecha(item.fechaRegistro) }}</template>
           <template #item.acciones="{ item }">
             <div class="d-flex align-center justify-end ga-1">
-              <v-tooltip text="Enviar correo"><template #activator="{ props }"><v-btn v-bind="props" icon="mdi-email-outline" size="small" variant="text" color="primary" @click="notificar(item, 'email')" /></template></v-tooltip>
-              <v-tooltip text="Enviar WhatsApp"><template #activator="{ props }"><v-btn v-bind="props" icon="mdi-whatsapp" size="small" variant="text" color="success" @click="notificar(item, 'whatsapp')" /></template></v-tooltip>
+              <v-tooltip text="Enviar carnet PDF por correo"><template #activator="{ props }"><v-btn v-bind="props" icon="mdi-email-outline" size="small" variant="text" color="primary" @click="abrirEnvioCredencial(item, 'email')" /></template></v-tooltip>
+              <v-tooltip text="Enviar carnet PDF por WhatsApp"><template #activator="{ props }"><v-btn v-bind="props" icon="mdi-whatsapp" size="small" variant="text" color="success" @click="abrirEnvioCredencial(item, 'whatsapp')" /></template></v-tooltip>
               <v-tooltip text="Editar usuario"><template #activator="{ props }"><v-btn v-bind="props" icon="mdi-pencil-outline" size="small" variant="text" @click="abrirEdicion(item)" /></template></v-tooltip>
               <v-tooltip :text="item.activo ? 'Desactivar usuario' : 'Activar usuario'"><template #activator="{ props }"><v-btn v-bind="props" :icon="item.activo ? 'mdi-account-off-outline' : 'mdi-account-check-outline'" size="small" variant="text" :color="item.activo ? 'error' : 'success'" @click="item.activo ? pedirDesactivacion(item) : toggleUsuario(item)" /></template></v-tooltip>
             </div>
@@ -50,6 +48,25 @@
 
     <v-dialog v-model="dialogoDesactivar" max-width="430"><v-card><v-card-title class="pt-5 px-6">Desactivar usuario</v-card-title><v-card-text class="px-6">La cuenta de <strong>{{ usuarioSeleccionado?.nombre }} {{ usuarioSeleccionado?.apellido }}</strong> dejará de poder iniciar sesión. Sus registros se conservarán.</v-card-text><v-card-actions class="px-6 pb-5"><v-spacer /><v-btn variant="text" @click="dialogoDesactivar = false">Cancelar</v-btn><v-btn color="error" variant="flat" :loading="guardando" @click="desactivarUsuario">Desactivar</v-btn></v-card-actions></v-card></v-dialog>
 
+    <v-dialog v-model="dialogoCredencial" max-width="520">
+      <v-card class="notification-dialog">
+        <v-card-title class="pt-5 px-6">Enviar carnet PDF</v-card-title>
+        <v-card-text class="px-6 pb-2">
+          <div v-if="usuarioCredencial" class="notification-recipient mb-5">
+            <v-avatar size="48" color="primary"><v-img v-if="fotoUrl(usuarioCredencial.fotoModificada)" :src="fotoUrl(usuarioCredencial.fotoModificada)" cover @error="ocultarFoto(usuarioCredencial)" /><span v-else>{{ iniciales(usuarioCredencial) }}</span></v-avatar>
+            <div><strong>{{ usuarioCredencial.nombre }} {{ usuarioCredencial.apellido }}</strong><span>{{ destinoCredencial }}</span></div>
+          </div>
+          <v-btn-toggle v-model="canalCredencial" mandatory divided color="primary" class="mb-5 w-100">
+            <v-btn value="email" class="flex-grow-1" prepend-icon="mdi-email-outline">Correo</v-btn>
+            <v-btn value="whatsapp" class="flex-grow-1" prepend-icon="mdi-whatsapp">WhatsApp</v-btn>
+          </v-btn-toggle>
+          <p class="text-body-1 mb-0">¿Estás seguro de enviar el carnet PDF a <strong>{{ usuarioCredencial?.nombre }} {{ usuarioCredencial?.apellido }}</strong> al {{ canalCredencial === 'email' ? 'correo' : 'número' }} <strong>{{ destinoCredencial }}</strong>?</p>
+          <v-alert v-if="errorCredencial" type="error" variant="tonal" density="compact" class="mt-4">{{ errorCredencial }}</v-alert>
+        </v-card-text>
+        <v-card-actions class="px-6 pb-5"><v-spacer /><v-btn variant="text" :disabled="enviandoCredencial" @click="dialogoCredencial = false">Cancelar</v-btn><v-btn color="accent" class="umg-gold-button" :loading="enviandoCredencial" @click="enviarCredencial">Enviar carnet</v-btn></v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <v-snackbar v-model="mensajeVisible" color="success" timeout="3200">{{ mensaje }}</v-snackbar>
   </div>
 </template>
@@ -59,17 +76,22 @@ definePageMeta({ layout: 'dashboard', middleware: ['auth', 'role'], roles: ['ADM
 useHead({ title: 'Usuarios' })
 
 const { api } = useApi()
+const { fotoUrl } = useMediaUrl()
 const cargando = ref(false)
 const guardando = ref(false)
 const usuarios = ref<any[]>([])
-const error = ref('')
 const busqueda = ref('')
-const { fotoUrl } = useMediaUrl()
+const error = ref('')
 const mensaje = ref('')
 const mensajeVisible = ref(false)
 const dialogoEdicion = ref(false)
 const dialogoDesactivar = ref(false)
+const dialogoCredencial = ref(false)
 const usuarioSeleccionado = ref<any>(null)
+const usuarioCredencial = ref<any>(null)
+const canalCredencial = ref<'email' | 'whatsapp'>('email')
+const enviandoCredencial = ref(false)
+const errorCredencial = ref('')
 const roles = ['ADMIN', 'SUPERVISOR', 'ANALISTA']
 const canales = ['email', 'whatsapp', 'ambos']
 const formEdicion = reactive({ nombre: '', apellido: '', correo: '', telefono: '', rol: 'ANALISTA', metodoNotificacion: 'email' })
@@ -78,24 +100,16 @@ const headers = [
   { title: 'Usuario', key: 'usuario', sortable: false }, { title: 'Correo', key: 'correo', sortable: true }, { title: 'Teléfono', key: 'telefono', sortable: false }, { title: 'Rol', key: 'rol', sortable: true }, { title: 'Estado', key: 'activo', sortable: true }, { title: 'Registro', key: 'fechaRegistro', sortable: true }, { title: 'Acciones', key: 'acciones', sortable: false, align: 'end' as const }
 ]
 
-// Foto actual: la modificada (la de perfil); si no existe, la original.
-function fotoDe(u: any) { return fotoUrl(u.fotoModificada || u.fotoOriginal) }
-
 const usuariosFiltrados = computed(() => {
-  const q = (busqueda.value || '').toLowerCase().trim()
-  if (!q) return usuarios.value
-  return usuarios.value.filter((u: any) =>
-    [u.nombre, u.apellido, u.nickname, u.correo, u.telefono, u.rol]
-      .some((v) => String(v ?? '').toLowerCase().includes(q)))
+  const termino = busqueda.value.trim().toLocaleLowerCase('es-GT')
+  if (!termino) return usuarios.value
+  return usuarios.value.filter((usuario) => [
+    usuario.nombre, usuario.apellido, usuario.nickname, usuario.correo,
+    usuario.telefono, usuario.rol, usuario.activo ? 'activo' : 'inactivo'
+  ].some((valor) => String(valor || '').toLocaleLowerCase('es-GT').includes(termino)))
 })
 
-// Se recarga al entrar y cada vez que la pestaña vuelve a estar activa,
-// así la foto siempre es la más reciente.
-onMounted(() => {
-  cargarUsuarios()
-  window.addEventListener('focus', cargarUsuarios)
-})
-onBeforeUnmount(() => window.removeEventListener('focus', cargarUsuarios))
+onMounted(cargarUsuarios)
 
 async function cargarUsuarios() {
   cargando.value = true; error.value = ''
@@ -132,18 +146,44 @@ async function desactivarUsuario() {
   catch (e: any) { error.value = e.response?.data?.mensaje || 'No fue posible desactivar el usuario.' }
   finally { guardando.value = false }
 }
-async function notificar(usuario: any, canal: 'email' | 'whatsapp') {
-  try { const { data } = await api.post(`/dashboard/usuarios/${usuario.id}/notificacion`, { canal }); confirmar(data.mensaje || 'Notificación enviada.') }
-  catch (e: any) { error.value = e.response?.data?.mensaje || 'No fue posible enviar la notificación.' }
+const destinoCredencial = computed(() => {
+  if (!usuarioCredencial.value) return ''
+  return canalCredencial.value === 'email' ? usuarioCredencial.value.correo : usuarioCredencial.value.telefono
+})
+function abrirEnvioCredencial(usuario: any, canal: 'email' | 'whatsapp') {
+  usuarioCredencial.value = usuario
+  canalCredencial.value = canal
+  errorCredencial.value = ''
+  dialogoCredencial.value = true
+}
+async function enviarCredencial() {
+  if (!usuarioCredencial.value) return
+  enviandoCredencial.value = true; errorCredencial.value = ''
+  try {
+    const { data } = await api.post(`/dashboard/usuarios/${usuarioCredencial.value.id}/credencial/enviar`, { canal: canalCredencial.value })
+    dialogoCredencial.value = false
+    confirmar(data.mensaje || 'Carnet PDF enviado.')
+  } catch (e: any) { errorCredencial.value = e.response?.data?.mensaje || 'No fue posible enviar el carnet PDF.' }
+  finally { enviandoCredencial.value = false }
 }
 function confirmar(texto: string) { mensaje.value = texto; mensajeVisible.value = true }
 function fecha(valor: string) { return new Date(valor).toLocaleDateString('es-GT') }
 function colRol(rol: string) { return rol === 'ADMIN' ? 'error' : rol === 'SUPERVISOR' ? 'warning' : 'accent' }
+function iniciales(usuario: any) { return `${usuario.nombre?.[0] || ''}${usuario.apellido?.[0] || ''}`.toUpperCase() || '?' }
+function ocultarFoto(usuario: any) { usuario.fotoModificada = null }
 </script>
 
 <style scoped>
 .users-card { overflow: hidden; border: 1px solid #E2E8F0 !important; box-shadow: none !important; }
+.table-search { max-width: 430px; }
 .users-table :deep(th) { color: #405064; font-size: 12px; font-weight: 700; white-space: nowrap; }
 .users-table :deep(td) { white-space: nowrap; }
+.user-identity, .notification-recipient { display: flex; align-items: center; gap: .7rem; }
+.user-identity__avatar { color: #fff; font-size: .75rem; font-weight: 800; }
+.notification-recipient { padding: .8rem; border: 1px solid #dce5eb; border-radius: 10px; background: #f7fafc; }
+.notification-recipient .v-avatar { color: #fff; font-size: .85rem; font-weight: 800; }
+.notification-recipient > div { display: grid; min-width: 0; }
+.notification-recipient strong { color: #05233d; }
+.notification-recipient span { overflow: hidden; color: #65788a; font-size: .82rem; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 760px) { .users-card { overflow-x: auto; } .users-table { min-width: 780px; } }
 </style>
