@@ -22,8 +22,10 @@
         </div>
 
         <section class="nav-group">
-          <div class="nav-section">Análisis</div>
-          <div class="nav-tree">
+          <button type="button" class="nav-section nav-section--toggle" :aria-expanded="gruposAbiertos.analisis" aria-controls="grupo-analisis" @click.stop="alternarGrupo('analisis')">
+            <span>Análisis</span><v-icon size="15">{{ gruposAbiertos.analisis ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
+          </button>
+          <div id="grupo-analisis" v-show="gruposAbiertos.analisis" class="nav-tree">
             <NuxtLink to="/dashboard/analisis" class="nav-item" title="Análisis léxico"
                       :class="{ active: route.path === '/dashboard/analisis' }">
               <span class="nav-item__icon"><v-icon size="18">mdi-text-search</v-icon></span>
@@ -39,8 +41,10 @@
 
         <template v-if="auth.isSupervisor">
           <section class="nav-group">
-            <div class="nav-section">Supervisión</div>
-            <div class="nav-tree">
+            <button type="button" class="nav-section nav-section--toggle" :aria-expanded="gruposAbiertos.supervision" aria-controls="grupo-supervision" @click.stop="alternarGrupo('supervision')">
+              <span>Supervisión</span><v-icon size="15">{{ gruposAbiertos.supervision ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
+            </button>
+            <div id="grupo-supervision" v-show="gruposAbiertos.supervision" class="nav-tree">
               <NuxtLink to="/dashboard/reportes" class="nav-item" title="Estadísticas y reportes"
                         :class="{ active: route.path === '/dashboard/reportes' }">
                 <span class="nav-item__icon"><v-icon size="18">mdi-chart-box-outline</v-icon></span>
@@ -52,8 +56,10 @@
 
         <template v-if="auth.isAdmin">
           <section class="nav-group">
-            <div class="nav-section">Administración</div>
-            <div class="nav-tree">
+            <button type="button" class="nav-section nav-section--toggle" :aria-expanded="gruposAbiertos.administracion" aria-controls="grupo-administracion" @click.stop="alternarGrupo('administracion')">
+              <span>Administración</span><v-icon size="15">{{ gruposAbiertos.administracion ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
+            </button>
+            <div id="grupo-administracion" v-show="gruposAbiertos.administracion" class="nav-tree">
               <NuxtLink to="/dashboard/usuarios" class="nav-item" title="Usuarios y roles"
                         :class="{ active: route.path === '/dashboard/usuarios' }">
                 <span class="nav-item__icon"><v-icon size="18">mdi-account-group-outline</v-icon></span>
@@ -69,8 +75,10 @@
         </template>
 
         <section class="nav-group">
-          <div class="nav-section">Cuenta</div>
-          <div class="nav-tree">
+          <button type="button" class="nav-section nav-section--toggle" :aria-expanded="gruposAbiertos.cuenta" aria-controls="grupo-cuenta" @click.stop="alternarGrupo('cuenta')">
+            <span>Cuenta</span><v-icon size="15">{{ gruposAbiertos.cuenta ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
+          </button>
+          <div id="grupo-cuenta" v-show="gruposAbiertos.cuenta" class="nav-tree">
             <NuxtLink to="/dashboard/perfil" class="nav-item" title="Mi perfil"
                       :class="{ active: route.path === '/dashboard/perfil' }">
               <span class="nav-item__icon"><v-icon size="18">mdi-account-cog-outline</v-icon></span>
@@ -149,6 +157,7 @@ const fotoSidebarError = ref(false)
 
 const sidebarOpen = ref(false)
 const sidebarCollapsed = ref(false)
+const gruposAbiertos = reactive({ analisis: true, supervision: true, administracion: true, cuenta: true })
 const paginaActual = computed(() => ({
   '/dashboard': 'Resumen',
   '/dashboard/analisis': 'Análisis léxico',
@@ -173,6 +182,10 @@ function alternarSidebar() {
   }
 
   sidebarCollapsed.value = !sidebarCollapsed.value
+}
+
+function alternarGrupo(grupo: keyof typeof gruposAbiertos) {
+  gruposAbiertos[grupo] = !gruposAbiertos[grupo]
 }
 
 async function cerrarSesion() {

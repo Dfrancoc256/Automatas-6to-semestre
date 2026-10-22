@@ -383,6 +383,9 @@ img, video, canvas { max-width: 100%; }
   text-transform: uppercase; letter-spacing: .13em;
   color: rgba(255,255,255,.42);
 }
+.nav-section--toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; cursor: pointer; background: transparent; border: 0; font-family: inherit; text-align: left; }
+.nav-section--toggle .v-icon { color: rgba(255,255,255,.42); transition: transform .16s ease; }
+.nav-section--toggle:hover, .nav-section--toggle:hover .v-icon { color: #D9E7F1; }
 
 .nav-item {
   position: relative;
