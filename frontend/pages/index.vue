@@ -104,7 +104,12 @@
 
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
-useHead({ title: 'Analizador Léxico | Universidad Mariano Gálvez' })
+useHead({
+  title: 'Analizador Léxico | Universidad Mariano Gálvez',
+  meta: [
+    { name: 'google-site-verification', content: 'BbBOZkQW2lhz7F8f1x20Ac43gSxIjy2AzOpSjgJi4s8' }
+  ]
+})
 
 let revealObserver: IntersectionObserver | undefined
 
