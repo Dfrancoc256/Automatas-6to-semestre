@@ -115,6 +115,7 @@ public class DashboardController : ControllerBase
                 u.Apellido,
                 u.Correo,
                 u.Telefono,
+                u.FotoModificada,
                 u.MetodoNotificacion,
                 u.Rol,
                 u.Activo,
@@ -203,15 +204,19 @@ public class DashboardController : ControllerBase
         var usuario = await _db.Usuarios.FindAsync(id);
         if (usuario == null) return NotFound();
 
+        if (!ModelState.IsValid)
+            return BadRequest(new { mensaje = "Revisa el canal y el mensaje antes de enviar." });
+
+        var mensaje = dto.Mensaje.Trim();
         var nombre = WebUtility.HtmlEncode(usuario.NombreCompleto);
-        var mensaje = $"Hola {usuario.NombreCompleto}, un administrador actualizó la información de tu cuenta en el Analizador Léxico UMG.";
 
         if (dto.Canal == "email")
         {
+            var mensajeHtml = WebUtility.HtmlEncode(mensaje).Replace("\n", "<br />");
             await _email.SendEmailAsync(
                 usuario.Correo,
-                "Actualización de cuenta - Analizador Léxico UMG",
-                $"<p>Hola {nombre},</p><p>Un administrador actualizó la información de tu cuenta en el Analizador Léxico UMG.</p>");
+                string.IsNullOrWhiteSpace(dto.Asunto) ? "Mensaje del Analizador Léxico UMG" : dto.Asunto.Trim(),
+                $"<p>Hola {nombre},</p><p>{mensajeHtml}</p>");
         }
         else if (dto.Canal == "whatsapp")
         {
@@ -246,4 +251,16 @@ public class ActualizarUsuarioAdminDTO
     public string Rol { get; set; } = "ANALISTA";
 }
 
-public record NotificarUsuarioDTO(string Canal);
+public class NotificarUsuarioDTO
+{
+    [System.ComponentModel.DataAnnotations.Required]
+    [System.ComponentModel.DataAnnotations.RegularExpression("^(email|whatsapp)$")]
+    public string Canal { get; set; } = string.Empty;
+
+    [System.ComponentModel.DataAnnotations.Required]
+    [System.ComponentModel.DataAnnotations.StringLength(1000, MinimumLength = 3)]
+    public string Mensaje { get; set; } = string.Empty;
+
+    [System.ComponentModel.DataAnnotations.StringLength(150)]
+    public string? Asunto { get; set; }
+}

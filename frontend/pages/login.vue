@@ -345,6 +345,10 @@ onMounted(() => {
   } else if (route.query.error === 'google') {
     error.value = 'No fue posible verificar la cuenta de Google. Intenta nuevamente.'
   }
+  if (auth.user?.debeCambiarPassword) {
+    abrirCambioPassword()
+    return
+  }
   if (auth.isAuthenticated) navigateTo(rutaDestino.value)
 })
 
@@ -379,6 +383,9 @@ async function loginPassword() {
       recaptchaToken: bypassDesarrollo.value ? 'dev-bypass' : recaptchaToken.value
     })
     if (data.debeCambiarPassword) {
+      // Conserva el estado pendiente en la cookie de metadatos. De esta forma,
+      // si se actualiza la página, el formulario obligatorio se vuelve a abrir.
+      auth.login(data)
       abrirCambioPassword()
       return
     }
@@ -430,6 +437,7 @@ async function verificarRostro(captura: { descriptor: number[] | null, fotoRecor
 
     if (data.debeCambiarPassword) {
       mostrarFacial.value = false
+      auth.login(data)
       abrirCambioPassword()
       return
     }
@@ -467,6 +475,8 @@ async function verificarRostro(captura: { descriptor: number[] | null, fotoRecor
 }
 
 function abrirCambioPassword() {
+  // No se restaura ni almacena una contraseña escrita. Al refrescar, los
+  // campos quedan vacíos, pero el diálogo obligatorio vuelve a mostrarse.
   nuevaPassword.value = ''
   confirmarNuevaPassword.value = ''
   errorCambioPassword.value = ''

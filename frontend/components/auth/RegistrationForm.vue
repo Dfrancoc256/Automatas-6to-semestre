@@ -84,21 +84,11 @@
                         :items="['email','whatsapp','ambos']"
                         class="mb-4" />
 
-              <RecaptchaV2
-                v-if="requiereRecaptcha"
-                ref="recaptcha"
-                v-model:token="recaptchaToken"
-                :site-key="recaptchaSiteKey"
-                class="mb-4"
-              />
-              <v-alert v-else-if="!bypassDesarrollo" type="warning" variant="tonal" density="compact" class="mb-4">
-                Falta configurar la clave pública de reCAPTCHA.
-              </v-alert>
               <v-alert v-if="error" type="error" variant="tonal" density="compact" class="mb-4">
                 {{ error }}
               </v-alert>
 
-              <v-btn color="accent" class="umg-gold-button" block size="large" type="submit" :disabled="!puedeEnviar">
+              <v-btn color="accent" class="umg-gold-button" block size="large" type="submit">
                 Siguiente <v-icon end>mdi-arrow-right</v-icon>
               </v-btn>
             </v-form>
@@ -181,9 +171,19 @@
             <v-alert v-if="error" type="error" variant="tonal" class="registro-error mb-3" density="compact" closable @click:close="error = ''">
               <span class="registro-error__message">{{ error }}</span>
             </v-alert>
-            <v-alert v-else-if="fotoCapturada && !bypassDesarrollo && !recaptchaToken" type="warning" variant="tonal" density="compact" class="mb-3">
-              La verificación reCAPTCHA venció. Selecciona el paso <strong>Datos</strong> para validarla nuevamente.
-            </v-alert>
+            <template v-if="fotoCapturada">
+              <p class="text-body-2 text-medium-emphasis text-center mb-2">Confirma la verificación de seguridad antes de crear la cuenta.</p>
+              <RecaptchaV2
+                v-if="requiereRecaptcha"
+                ref="recaptcha"
+                v-model:token="recaptchaToken"
+                :site-key="recaptchaSiteKey"
+                class="mb-3"
+              />
+              <v-alert v-else-if="!bypassDesarrollo" type="warning" variant="tonal" density="compact" class="mb-3">
+                Falta configurar la clave pública de reCAPTCHA.
+              </v-alert>
+            </template>
             <v-btn v-if="error && fotoCapturada" class="registro-retry mb-4" size="small" variant="text" prepend-icon="mdi-refresh" @click="registrar">
               Reintentar registro
             </v-btn>
@@ -351,15 +351,19 @@ function terminarArrastreSticker() {
 
 async function siguientePaso() {
   error.value = ''
-  if (!puedeEnviar.value) {
-    error.value = 'Completa la verificación reCAPTCHA para continuar.'
-    return
-  }
   const { valid } = await formPaso1.value?.validate()
   if (!valid) return
   paso.value = 2
   calentar()
 }
+
+watch(paso, (pasoActual) => {
+  // Al volver a Datos se descarta un token viejo; se solicitará uno nuevo al final.
+  if (pasoActual !== 2) {
+    recaptchaToken.value = ''
+    recaptcha.value?.reiniciar()
+  }
+})
 
 async function capturarFoto() {
   error.value = ''

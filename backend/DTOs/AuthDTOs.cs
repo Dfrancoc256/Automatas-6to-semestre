@@ -158,6 +158,7 @@ public class SesionActualDTO
     public string Nickname { get; set; } = string.Empty;
     public string? FotoModificada { get; set; }
     public DateTime Expiracion { get; set; }
+    public bool DebeCambiarPassword { get; set; }
 }
 
 public class UsuarioPerfilDTO

@@ -276,7 +276,17 @@ public class AuthController : ControllerBase
         if (!await _recaptcha.ValidarAsync(dto.RecaptchaToken))
             return BadRequest(new { mensaje = "Verificación reCAPTCHA inválida." });
 
-        var enviado = await _auth.SolicitarRestablecimientoPasswordAsync(dto.Correo);
+        bool enviado;
+        try
+        {
+            enviado = await _auth.SolicitarRestablecimientoPasswordAsync(dto.Correo);
+        }
+        catch (PostgresException ex) when (ex.SqlState == "42P01")
+        {
+            _logger.LogError(ex, "Falta la tabla de tokens de restablecimiento de contraseña.");
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                new { mensaje = "El módulo de recuperación requiere una actualización de base de datos. Contacta al administrador." });
+        }
         if (!enviado)
             return StatusCode(StatusCodes.Status503ServiceUnavailable,
                 new { mensaje = "No fue posible enviar el correo en este momento. Intenta nuevamente más tarde." });
@@ -294,7 +304,17 @@ public class AuthController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(new { errores = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage) });
 
-        var actualizado = await _auth.RestablecerPasswordAsync(dto.Token, dto.NuevoPassword);
+        bool actualizado;
+        try
+        {
+            actualizado = await _auth.RestablecerPasswordAsync(dto.Token, dto.NuevoPassword);
+        }
+        catch (PostgresException ex) when (ex.SqlState == "42P01")
+        {
+            _logger.LogError(ex, "Falta la tabla de tokens de restablecimiento de contraseña.");
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                new { mensaje = "El módulo de recuperación requiere una actualización de base de datos. Contacta al administrador." });
+        }
         if (!actualizado)
             return BadRequest(new { mensaje = "El enlace no es válido, ya fue utilizado o venció. Solicita uno nuevo." });
 
@@ -425,7 +445,8 @@ public class AuthController : ControllerBase
             Rol = perfil.Rol,
             Nickname = perfil.Nickname,
             FotoModificada = perfil.FotoModificada,
-            Expiracion = expiracion
+            Expiracion = expiracion,
+            DebeCambiarPassword = User.FindFirst("debe_cambiar_password")?.Value == "true"
         });
     }
 

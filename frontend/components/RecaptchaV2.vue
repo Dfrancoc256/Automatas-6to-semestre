@@ -20,7 +20,11 @@ declare global {
 }
 
 const props = defineProps<{ siteKey: string }>()
-const emit = defineEmits<{ 'update:token': [token: string] }>()
+const emit = defineEmits<{
+  'update:token': [token: string]
+  expired: []
+  error: []
+}>()
 
 const contenedor = ref<HTMLElement | null>(null)
 const mensaje = ref('')
@@ -46,6 +50,22 @@ function reiniciar() {
   mensaje.value = ''
   emit('update:token', '')
   if (widgetId !== null && window.grecaptcha) window.grecaptcha.reset(widgetId)
+}
+
+function marcarVencido() {
+  emit('update:token', '')
+  mensaje.value = 'La verificación venció. Márcala nuevamente para continuar.'
+  // El token de reCAPTCHA solo puede utilizarse una vez y expira por seguridad.
+  // Restablecemos únicamente este control, sin perder los datos del formulario.
+  if (widgetId !== null && window.grecaptcha) window.grecaptcha.reset(widgetId)
+  emit('expired')
+}
+
+function marcarError() {
+  emit('update:token', '')
+  mensaje.value = 'No fue posible validar reCAPTCHA. Intenta nuevamente.'
+  if (widgetId !== null && window.grecaptcha) window.grecaptcha.reset(widgetId)
+  emit('error')
 }
 
 function cargarApi(): Promise<void> {
@@ -116,12 +136,12 @@ onMounted(async () => {
     widgetId = window.grecaptcha.render(contenedor.value, {
       sitekey: props.siteKey,
       size: tamanoWidget(),
-      callback: (token: string) => emit('update:token', token),
-      'expired-callback': () => emit('update:token', ''),
-      'error-callback': () => {
-        emit('update:token', '')
-        mensaje.value = 'No fue posible validar reCAPTCHA. Intenta nuevamente.'
-      }
+      callback: (token: string) => {
+        mensaje.value = ''
+        emit('update:token', token)
+      },
+      'expired-callback': marcarVencido,
+      'error-callback': marcarError
     })
   } catch {
     if (activo) mensaje.value = 'No fue posible cargar reCAPTCHA. Revisa tu conexión e intenta nuevamente.'
