@@ -140,7 +140,7 @@ const modulos = computed(() => {
       },
       {
         ruta: '/dashboard/bitacora', icono: 'mdi-shield-check', color: 'accent', primario: false,
-        categoria: 'AUDITORÍA', titulo: 'Bitácora de accesos',
+        categoria: 'AUDITORÍA', titulo: 'Historial de accesos',
         descripcion: 'Consulta quién ingresó, cuándo lo hizo y el resultado de cada acceso.',
         accion: 'Consultar bitácora'
       }

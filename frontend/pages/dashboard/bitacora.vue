@@ -3,7 +3,7 @@
     <div class="d-flex align-center mb-6">
       <v-icon color="accent" class="mr-3">mdi-shield-check</v-icon>
       <div>
-        <h1 class="text-h5 font-weight-bold" style="color:#051B2E">Bitácora de Accesos</h1>
+        <h1 class="text-h5 font-weight-bold" style="color:#051B2E">Historial de accesos</h1>
         <p class="text-body-2 text-medium-emphasis">Registro de actividad de autenticación</p>
       </div>
     </div>

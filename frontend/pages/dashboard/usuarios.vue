@@ -18,7 +18,7 @@
           <template #item.usuario="{ item }">
             <div class="user-identity py-2">
               <v-avatar size="38" color="primary" class="user-identity__avatar">
-                <v-img v-if="item.fotoModificada" :src="fotoUrl(item.fotoModificada)" :alt="`Fotografía de ${item.nombre}`" cover />
+                <v-img v-if="fotoUrl(item.fotoModificada)" :src="fotoUrl(item.fotoModificada)" :alt="`Fotografía de ${item.nombre}`" cover @error="ocultarFoto(item)" />
                 <span v-else>{{ iniciales(item) }}</span>
               </v-avatar>
               <div><div class="font-weight-bold">{{ item.nombre }} {{ item.apellido }}</div><div class="text-caption text-medium-emphasis">@{{ item.nickname }}</div></div>
@@ -50,7 +50,7 @@
         <v-card-title class="pt-5 px-6">Enviar carnet PDF</v-card-title>
         <v-card-text class="px-6 pb-2">
           <div v-if="usuarioCredencial" class="notification-recipient mb-5">
-            <v-avatar size="48" color="primary"><v-img v-if="usuarioCredencial.fotoModificada" :src="fotoUrl(usuarioCredencial.fotoModificada)" cover /><span v-else>{{ iniciales(usuarioCredencial) }}</span></v-avatar>
+            <v-avatar size="48" color="primary"><v-img v-if="fotoUrl(usuarioCredencial.fotoModificada)" :src="fotoUrl(usuarioCredencial.fotoModificada)" cover @error="ocultarFoto(usuarioCredencial)" /><span v-else>{{ iniciales(usuarioCredencial) }}</span></v-avatar>
             <div><strong>{{ usuarioCredencial.nombre }} {{ usuarioCredencial.apellido }}</strong><span>{{ destinoCredencial }}</span></div>
           </div>
           <v-btn-toggle v-model="canalCredencial" mandatory divided color="primary" class="mb-5 w-100">
@@ -157,6 +157,7 @@ function confirmar(texto: string) { mensaje.value = texto; mensajeVisible.value 
 function fecha(valor: string) { return new Date(valor).toLocaleDateString('es-GT') }
 function colRol(rol: string) { return rol === 'ADMIN' ? 'error' : rol === 'SUPERVISOR' ? 'warning' : 'accent' }
 function iniciales(usuario: any) { return `${usuario.nombre?.[0] || ''}${usuario.apellido?.[0] || ''}`.toUpperCase() || '?' }
+function ocultarFoto(usuario: any) { usuario.fotoModificada = null }
 </script>
 
 <style scoped>

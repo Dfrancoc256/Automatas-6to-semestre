@@ -14,54 +14,70 @@
       </div>
 
       <nav class="sidebar-nav" @click="sidebarOpen = false">
-        <div class="nav-section">Espacio de trabajo</div>
+        <div class="nav-root">
+          <NuxtLink to="/dashboard" class="nav-item nav-item--root" title="Inicio" :class="{ active: route.path === '/dashboard' }">
+            <span class="nav-item__icon"><v-icon size="18">mdi-home-variant-outline</v-icon></span>
+            <span class="nav-item__label">Inicio</span>
+          </NuxtLink>
+        </div>
 
-        <NuxtLink to="/dashboard" class="nav-item" title="Dashboard" :class="{ active: route.path === '/dashboard' }">
-          <span class="nav-item__icon"><v-icon size="18">mdi-view-dashboard-outline</v-icon></span>
-          <span class="nav-item__label">Resumen</span>
-        </NuxtLink>
-
-        <NuxtLink to="/dashboard/analisis" class="nav-item" title="Análisis léxico"
-                  :class="{ active: route.path === '/dashboard/analisis' }">
-          <span class="nav-item__icon"><v-icon size="18">mdi-text-search</v-icon></span>
-          <span class="nav-item__label">Análisis léxico</span>
-        </NuxtLink>
-
-        <NuxtLink to="/dashboard/historial" class="nav-item" title="Historial de análisis"
-                  :class="{ active: route.path === '/dashboard/historial' }">
-          <span class="nav-item__icon"><v-icon size="18">mdi-history</v-icon></span>
-          <span class="nav-item__label">Historial</span>
-        </NuxtLink>
+        <section class="nav-group">
+          <div class="nav-section">Análisis</div>
+          <div class="nav-tree">
+            <NuxtLink to="/dashboard/analisis" class="nav-item" title="Análisis léxico"
+                      :class="{ active: route.path === '/dashboard/analisis' }">
+              <span class="nav-item__icon"><v-icon size="18">mdi-text-search</v-icon></span>
+              <span class="nav-item__label">Análisis léxico</span>
+            </NuxtLink>
+            <NuxtLink to="/dashboard/historial" class="nav-item" title="Historial de análisis"
+                      :class="{ active: route.path === '/dashboard/historial' }">
+              <span class="nav-item__icon"><v-icon size="18">mdi-history</v-icon></span>
+              <span class="nav-item__label">Historial de análisis</span>
+            </NuxtLink>
+          </div>
+        </section>
 
         <template v-if="auth.isSupervisor">
-          <div class="nav-section">Reportes</div>
-          <NuxtLink to="/dashboard/reportes" class="nav-item" title="Estadísticas y reportes"
-                    :class="{ active: route.path === '/dashboard/reportes' }">
-            <span class="nav-item__icon"><v-icon size="18">mdi-chart-box-outline</v-icon></span>
-            <span class="nav-item__label">Estadísticas</span>
-          </NuxtLink>
+          <section class="nav-group">
+            <div class="nav-section">Supervisión</div>
+            <div class="nav-tree">
+              <NuxtLink to="/dashboard/reportes" class="nav-item" title="Estadísticas y reportes"
+                        :class="{ active: route.path === '/dashboard/reportes' }">
+                <span class="nav-item__icon"><v-icon size="18">mdi-chart-box-outline</v-icon></span>
+                <span class="nav-item__label">Estadísticas</span>
+              </NuxtLink>
+            </div>
+          </section>
         </template>
 
         <template v-if="auth.isAdmin">
-          <div class="nav-section">Administración</div>
-          <NuxtLink to="/dashboard/usuarios" class="nav-item" title="Usuarios y roles"
-                    :class="{ active: route.path === '/dashboard/usuarios' }">
-            <span class="nav-item__icon"><v-icon size="18">mdi-account-group-outline</v-icon></span>
-            <span class="nav-item__label">Usuarios</span>
-          </NuxtLink>
-          <NuxtLink to="/dashboard/bitacora" class="nav-item" title="Bitácora de accesos"
-                    :class="{ active: route.path === '/dashboard/bitacora' }">
-            <span class="nav-item__icon"><v-icon size="18">mdi-shield-check-outline</v-icon></span>
-            <span class="nav-item__label">Bitácora</span>
-          </NuxtLink>
+          <section class="nav-group">
+            <div class="nav-section">Administración</div>
+            <div class="nav-tree">
+              <NuxtLink to="/dashboard/usuarios" class="nav-item" title="Usuarios y roles"
+                        :class="{ active: route.path === '/dashboard/usuarios' }">
+                <span class="nav-item__icon"><v-icon size="18">mdi-account-group-outline</v-icon></span>
+                <span class="nav-item__label">Usuarios</span>
+              </NuxtLink>
+              <NuxtLink to="/dashboard/bitacora" class="nav-item" title="Historial de accesos"
+                        :class="{ active: route.path === '/dashboard/bitacora' }">
+                <span class="nav-item__icon"><v-icon size="18">mdi-shield-check-outline</v-icon></span>
+                <span class="nav-item__label">Historial de accesos</span>
+              </NuxtLink>
+            </div>
+          </section>
         </template>
 
-        <div class="nav-section">Cuenta</div>
-        <NuxtLink to="/dashboard/perfil" class="nav-item" title="Mi perfil"
-                  :class="{ active: route.path === '/dashboard/perfil' }">
-          <span class="nav-item__icon"><v-icon size="18">mdi-account-cog-outline</v-icon></span>
-          <span class="nav-item__label">Mi perfil</span>
-        </NuxtLink>
+        <section class="nav-group">
+          <div class="nav-section">Cuenta</div>
+          <div class="nav-tree">
+            <NuxtLink to="/dashboard/perfil" class="nav-item" title="Mi perfil"
+                      :class="{ active: route.path === '/dashboard/perfil' }">
+              <span class="nav-item__icon"><v-icon size="18">mdi-account-cog-outline</v-icon></span>
+              <span class="nav-item__label">Mi perfil</span>
+            </NuxtLink>
+          </div>
+        </section>
       </nav>
 
       <div class="sidebar-account">
@@ -71,12 +87,12 @@
               {{ auth.user?.nickname?.charAt(0).toUpperCase() }}
             </span>
             <img
-              v-if="fotoSidebarUrl"
+              v-if="fotoSidebarUrl && !fotoSidebarError"
               :src="fotoSidebarUrl"
               class="sidebar-user-photo"
               alt=""
               @load="fotoSidebarCargada = true"
-              @error="fotoSidebarCargada = false"
+              @error="fotoSidebarError = true"
             >
           </v-avatar>
           <span class="sidebar-user__copy">
@@ -92,7 +108,7 @@
       </div>
     </aside>
 
-    <main :class="['page-content', { 'sidebar-collapsed': sidebarCollapsed }]">
+    <main :class="['page-content', { 'sidebar-collapsed': sidebarCollapsed, 'page-content--overview': route.path === '/dashboard' }]">
       <header class="dashboard-topbar">
         <button
           type="button"
@@ -111,7 +127,7 @@
         </div>
         <NuxtLink to="/dashboard/perfil" class="dashboard-topbar__profile" title="Abrir mi perfil">
           <v-avatar size="30" color="accent">
-            <img v-if="fotoSidebarUrl" :src="fotoSidebarUrl" class="sidebar-user-photo" alt="" @error="fotoSidebarCargada = false">
+            <img v-if="fotoSidebarUrl && !fotoSidebarError" :src="fotoSidebarUrl" class="sidebar-user-photo" alt="" @error="fotoSidebarError = true">
             <span v-else>{{ auth.user?.nickname?.charAt(0).toUpperCase() }}</span>
           </v-avatar>
           <span>{{ auth.user?.nombre || auth.user?.nickname || 'Mi perfil' }}</span>
@@ -129,6 +145,7 @@ const route = useRoute()
 const { fotoUrl } = useMediaUrl()
 const fotoSidebarUrl = computed(() => fotoUrl(auth.user?.fotoModificada))
 const fotoSidebarCargada = ref(false)
+const fotoSidebarError = ref(false)
 
 const sidebarOpen = ref(false)
 const sidebarCollapsed = ref(false)
@@ -138,12 +155,13 @@ const paginaActual = computed(() => ({
   '/dashboard/historial': 'Historial',
   '/dashboard/reportes': 'Estadísticas',
   '/dashboard/usuarios': 'Usuarios',
-  '/dashboard/bitacora': 'Bitácora',
+  '/dashboard/bitacora': 'Historial de accesos',
   '/dashboard/perfil': 'Mi perfil'
 }[route.path] || 'Panel académico'))
 
 watch(fotoSidebarUrl, () => {
   fotoSidebarCargada.value = false
+  fotoSidebarError.value = false
 }, { immediate: true })
 
 onMounted(() => auth.restore())

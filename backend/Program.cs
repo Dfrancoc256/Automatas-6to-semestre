@@ -206,13 +206,9 @@ else
     app.UseHttpsRedirection();
 }
 
-app.UseCors("FrontendPolicy");
-app.UseRateLimiter();
-app.UseAuthentication();
-app.UseMiddleware<PasswordChangeRequiredMiddleware>();
-app.UseAuthorization();
-
 // Servir archivos estáticos (uploads de fotos, incluida la foto de enrolamiento facial)
+// antes de autenticación: son recursos públicos y deben poder cargarse aun
+// cuando una cuenta tenga pendiente el cambio de contraseña.
 var carpetaUploads = Path.Combine(builder.Environment.ContentRootPath, "uploads");
 Directory.CreateDirectory(carpetaUploads);
 app.UseStaticFiles(new StaticFileOptions
@@ -225,6 +221,12 @@ app.UseStaticFiles(new StaticFileOptions
         contexto.Context.Response.Headers["Cache-Control"] = "private, no-store, max-age=0";
     }
 });
+
+app.UseCors("FrontendPolicy");
+app.UseRateLimiter();
+app.UseAuthentication();
+app.UseMiddleware<PasswordChangeRequiredMiddleware>();
+app.UseAuthorization();
 
 app.MapControllers();
 // Esquema: backend/database/schema.sql.

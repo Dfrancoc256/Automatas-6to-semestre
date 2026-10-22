@@ -300,6 +300,8 @@ img, video, canvas { max-width: 100%; }
   border-radius: 12px;
 }
 .sidebar.collapsed .nav-item__label { display: none; }
+.sidebar.collapsed .nav-tree { margin-left: 0; padding-left: 0; border-left: 0; }
+.sidebar.collapsed .nav-group { margin-top: 8px; }
 
 .sidebar.collapsed .nav-item.active {
   border: 1px solid rgba(212,164,43,.32);
@@ -369,6 +371,12 @@ img, video, canvas { max-width: 100%; }
 
 .sidebar-nav { flex: 1; padding: 18px 12px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.22) transparent; }
 
+.nav-root { margin-bottom: 12px; }
+.nav-group { margin-top: 9px; }
+.nav-tree { position: relative; display: grid; gap: 2px; margin-left: 20px; padding-left: 10px; border-left: 1px solid rgba(179,206,225,.20); }
+.nav-tree .nav-item::before { content: ''; position: absolute; left: -11px; width: 10px; height: 1px; background: rgba(179,206,225,.24); }
+.nav-tree .nav-item:last-child::after { content: ''; position: absolute; z-index: 1; top: 22px; bottom: -5px; left: -12px; width: 2px; background: #071e31; }
+
 .nav-section {
   padding: 17px 10px 8px;
   font-size: 9px; font-weight: 750;
@@ -377,6 +385,7 @@ img, video, canvas { max-width: 100%; }
 }
 
 .nav-item {
+  position: relative;
   display: flex; align-items: center; gap: 10px;
   min-height: 44px;
   padding: 8px 10px;
@@ -435,6 +444,9 @@ img, video, canvas { max-width: 100%; }
   border-bottom: 1px solid #E2E8F0;
   backdrop-filter: blur(14px);
 }
+
+/* El resumen se acerca ligeramente al encabezado para priorizar el panel principal. */
+.page-content--overview .dashboard-topbar { margin-bottom: 12px; }
 
 .dashboard-topbar__page { display: grid; gap: 1px; line-height: 1.1; }
 .dashboard-topbar__page span { color: #7B8B99; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
