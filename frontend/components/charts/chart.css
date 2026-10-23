@@ -1,0 +1,19 @@
+.chart-wrap { position: relative; width: 100%; }
+svg { display: block; overflow: visible; font-family: inherit; }
+.grid { stroke: #E7E9EC; stroke-width: 1; }
+.baseline { stroke: #C4C9D0; stroke-width: 1; }
+.axis { fill: #6B7280; font-size: 11px; }
+.hit { fill: transparent; }
+.hit.on { fill: rgba(5, 27, 46, 0.05); }
+.crosshair { stroke: #9AA3AE; stroke-width: 1; stroke-dasharray: 3 3; }
+.tip {
+  position: absolute; pointer-events: none; z-index: 5;
+  background: #fff; border: 1px solid #E2E5E9; border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(5, 27, 46, 0.12);
+  padding: 8px 10px; font-size: 12px; min-width: 130px; white-space: nowrap;
+}
+.tip-title { font-weight: 700; color: #051B2E; margin-bottom: 4px; }
+.tip-row { display: flex; align-items: center; gap: 6px; color: #374151; line-height: 1.6; }
+.tip-name { flex: 1; }
+.tip-val { font-weight: 700; color: #051B2E; font-variant-numeric: tabular-nums; }
+.sw { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex: none; }

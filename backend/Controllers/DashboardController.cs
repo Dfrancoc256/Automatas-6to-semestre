@@ -64,6 +64,148 @@ public class DashboardController : ControllerBase
         });
     }
 
+    /// <summary>Estadísticas detalladas para gráficos (tendencias, distribución y rankings) — solo Admin/Supervisor</summary>
+    [HttpGet("estadisticas/detalle")]
+    [Authorize(Roles = "ADMIN,SUPERVISOR")]
+    public async Task<IActionResult> EstadisticasDetalle([FromQuery] int dias = 30)
+    {
+        dias = Math.Clamp(dias, 7, 365);
+
+        // Guatemala no usa horario de verano: UTC-6 fijo
+        var offset = TimeSpan.FromHours(-6);
+        DateTime Local(DateTime utc) => DateTime.SpecifyKind(utc, DateTimeKind.Utc) + offset;
+
+        var hoyLocal = Local(DateTime.UtcNow).Date;
+        var inicioLocal = hoyLocal.AddDays(-(dias - 1));
+        var desdeUtc = DateTime.SpecifyKind(inicioLocal - offset, DateTimeKind.Utc);
+
+        // ── Usuarios ──
+        var usuarios = await _db.Usuarios
+            .Select(u => new
+            {
+                u.Rol,
+                u.Activo,
+                u.MetodoNotificacion,
+                u.FechaRegistro,
+                ConRostro = u.EncodingFacial != null && u.EncodingFacial != "",
+                ConGoogle = u.GoogleSubject != null
+            })
+            .ToListAsync();
+
+        // ── Análisis del periodo ──
+        var analisis = await _db.ResultadosAnalisis
+            .Where(r => r.FechaAnalisis >= desdeUtc)
+            .Select(r => new
+            {
+                r.UsuarioId,
+                Usuario = r.Usuario != null ? r.Usuario.Nickname : "—",
+                r.Idioma,
+                r.TotalPalabras,
+                r.TotalTokens,
+                r.FechaAnalisis
+            })
+            .ToListAsync();
+
+        // ── Accesos del periodo ──
+        var logins = await _db.BitacoraLogins
+            .Where(b => b.FechaHora >= desdeUtc)
+            .Select(b => new { b.Resultado, b.Metodo, b.FechaHora, b.IpOrigen })
+            .ToListAsync();
+
+        var fechas = Enumerable.Range(0, dias).Select(i => inicioLocal.AddDays(i)).ToList();
+
+        var analisisPorDia = fechas.Select(f => new
+        {
+            fecha = f.ToString("yyyy-MM-dd"),
+            cantidad = analisis.Count(a => Local(a.FechaAnalisis).Date == f),
+            palabras = analisis.Where(a => Local(a.FechaAnalisis).Date == f).Sum(a => a.TotalPalabras)
+        }).ToList();
+
+        var loginsPorDia = fechas.Select(f => new
+        {
+            fecha = f.ToString("yyyy-MM-dd"),
+            exitosos = logins.Count(l => Local(l.FechaHora).Date == f && l.Resultado == "exitoso"),
+            fallidos = logins.Count(l => Local(l.FechaHora).Date == f && l.Resultado != "exitoso")
+        }).ToList();
+
+        var registrosPorDia = fechas.Select(f => new
+        {
+            fecha = f.ToString("yyyy-MM-dd"),
+            cantidad = usuarios.Count(u => Local(u.FechaRegistro).Date == f)
+        }).ToList();
+
+        var totalExitosos = logins.Count(l => l.Resultado == "exitoso");
+        var totalPalabrasPeriodo = analisis.Sum(a => a.TotalPalabras);
+
+        return Ok(new
+        {
+            dias,
+            desde = inicioLocal.ToString("yyyy-MM-dd"),
+            hasta = hoyLocal.ToString("yyyy-MM-dd"),
+            kpis = new
+            {
+                usuariosActivos = usuarios.Count(u => u.Activo),
+                usuariosInactivos = usuarios.Count(u => !u.Activo),
+                usuariosConRostro = usuarios.Count(u => u.Activo && u.ConRostro),
+                usuariosConGoogle = usuarios.Count(u => u.Activo && u.ConGoogle),
+                nuevosUsuarios = usuarios.Count(u => u.FechaRegistro >= desdeUtc),
+                analisis = analisis.Count,
+                palabras = totalPalabrasPeriodo,
+                tokens = analisis.Sum(a => a.TotalTokens),
+                promedioPalabras = analisis.Count == 0 ? 0 : Math.Round((double)totalPalabrasPeriodo / analisis.Count, 1),
+                analistasActivos = analisis.Select(a => a.UsuarioId).Distinct().Count(),
+                logins = logins.Count,
+                loginsExitosos = totalExitosos,
+                loginsFallidos = logins.Count - totalExitosos,
+                tasaExito = logins.Count == 0 ? 0 : Math.Round(100.0 * totalExitosos / logins.Count, 1)
+            },
+            analisisPorDia,
+            loginsPorDia,
+            registrosPorDia,
+            analisisPorIdioma = analisis
+                .GroupBy(a => string.IsNullOrWhiteSpace(a.Idioma) ? "sin idioma" : a.Idioma.ToLowerInvariant())
+                .Select(g => new { idioma = g.Key, cantidad = g.Count(), palabras = g.Sum(a => a.TotalPalabras) })
+                .OrderByDescending(x => x.cantidad)
+                .ToList(),
+            loginsPorMetodo = logins
+                .GroupBy(l => l.Metodo)
+                .Select(g => new
+                {
+                    metodo = g.Key,
+                    exitosos = g.Count(l => l.Resultado == "exitoso"),
+                    fallidos = g.Count(l => l.Resultado != "exitoso")
+                })
+                .OrderByDescending(x => x.exitosos + x.fallidos)
+                .ToList(),
+            loginsPorHora = Enumerable.Range(0, 24)
+                .Select(h => new { hora = h, cantidad = logins.Count(l => Local(l.FechaHora).Hour == h) })
+                .ToList(),
+            usuariosPorRol = usuarios.Where(u => u.Activo)
+                .GroupBy(u => u.Rol)
+                .Select(g => new { rol = g.Key, cantidad = g.Count() })
+                .OrderByDescending(x => x.cantidad)
+                .ToList(),
+            usuariosPorNotificacion = usuarios.Where(u => u.Activo)
+                .GroupBy(u => u.MetodoNotificacion)
+                .Select(g => new { metodo = g.Key, cantidad = g.Count() })
+                .OrderByDescending(x => x.cantidad)
+                .ToList(),
+            topAnalistas = analisis
+                .GroupBy(a => a.Usuario)
+                .Select(g => new { usuario = g.Key, analisis = g.Count(), palabras = g.Sum(a => a.TotalPalabras) })
+                .OrderByDescending(x => x.analisis)
+                .Take(5)
+                .ToList(),
+            ipsConFallos = logins
+                .Where(l => l.Resultado != "exitoso" && !string.IsNullOrEmpty(l.IpOrigen))
+                .GroupBy(l => l.IpOrigen!)
+                .Select(g => new { ip = g.Key, fallidos = g.Count() })
+                .OrderByDescending(x => x.fallidos)
+                .Take(5)
+                .ToList()
+        });
+    }
+
     /// <summary>Bitácora de accesos — solo Admin</summary>
     [HttpGet("bitacora")]
     [Authorize(Roles = "ADMIN")]
