@@ -82,6 +82,125 @@ public class DashboardController : ControllerBase
         });
     }
 
+    /// <summary>
+    /// Indicadores agregados para el panel ejecutivo. Las agrupaciones se ejecutan
+    /// en PostgreSQL para no cargar historiales completos en memoria del servidor.
+    /// </summary>
+    [HttpGet("estadisticas/detalle")]
+    [Authorize(Roles = "ADMIN,SUPERVISOR")]
+    public async Task<IActionResult> EstadisticasDetalle([FromQuery] int dias = 30)
+    {
+        dias = dias switch { 7 or 30 or 90 => dias, _ => 30 };
+
+        var hoy = DateTime.UtcNow.Date;
+        var desde = hoy.AddDays(-(dias - 1));
+        var hasta = hoy.AddDays(1);
+        var analisisPeriodo = _db.ResultadosAnalisis.AsNoTracking()
+            .Where(resultado => resultado.FechaAnalisis >= desde && resultado.FechaAnalisis < hasta);
+        var accesosPeriodo = _db.BitacoraLogins.AsNoTracking()
+            .Where(acceso => acceso.FechaHora >= desde && acceso.FechaHora < hasta);
+        var usuariosActivos = _db.Usuarios.AsNoTracking().Where(usuario => usuario.Activo);
+
+        var totalUsuarios = await usuariosActivos.CountAsync();
+        var totalAnalisis = await analisisPeriodo.CountAsync();
+        var totalPalabras = await analisisPeriodo.SumAsync(resultado => (long?)resultado.TotalPalabras) ?? 0;
+        var totalAccesos = await accesosPeriodo.CountAsync();
+        var accesosExitosos = await accesosPeriodo.CountAsync(acceso => acceso.Resultado == "exitoso");
+
+        var analisisPorDia = await analisisPeriodo
+            .GroupBy(resultado => resultado.FechaAnalisis.Date)
+            .Select(grupo => new
+            {
+                fecha = grupo.Key,
+                cantidad = grupo.Count(),
+                palabras = grupo.Sum(resultado => resultado.TotalPalabras)
+            })
+            .OrderBy(item => item.fecha)
+            .ToListAsync();
+
+        var accesosPorDia = await accesosPeriodo
+            .GroupBy(acceso => acceso.FechaHora.Date)
+            .Select(grupo => new
+            {
+                fecha = grupo.Key,
+                exitosos = grupo.Count(acceso => acceso.Resultado == "exitoso"),
+                fallidos = grupo.Count(acceso => acceso.Resultado != "exitoso")
+            })
+            .OrderBy(item => item.fecha)
+            .ToListAsync();
+
+        var analisisPorIdioma = await analisisPeriodo
+            .GroupBy(resultado => resultado.Idioma)
+            .Select(grupo => new { idioma = grupo.Key, cantidad = grupo.Count(), palabras = grupo.Sum(resultado => resultado.TotalPalabras) })
+            .OrderByDescending(item => item.cantidad)
+            .ToListAsync();
+
+        var accesosPorMetodo = await accesosPeriodo
+            .GroupBy(acceso => acceso.Metodo)
+            .Select(grupo => new
+            {
+                metodo = grupo.Key,
+                exitosos = grupo.Count(acceso => acceso.Resultado == "exitoso"),
+                fallidos = grupo.Count(acceso => acceso.Resultado != "exitoso")
+            })
+            .OrderByDescending(item => item.exitosos + item.fallidos)
+            .ToListAsync();
+
+        var usuariosPorRol = await usuariosActivos
+            .GroupBy(usuario => usuario.Rol)
+            .Select(grupo => new { rol = grupo.Key, cantidad = grupo.Count() })
+            .OrderByDescending(item => item.cantidad)
+            .ToListAsync();
+
+        var usuariosConRostro = await usuariosActivos.CountAsync(usuario =>
+            usuario.EncodingFacial != null && usuario.EncodingFacial != "");
+
+        var nuevosUsuarios = await usuariosActivos.CountAsync(usuario =>
+            usuario.FechaRegistro >= desde && usuario.FechaRegistro < hasta);
+
+        var topAnalistas = await analisisPeriodo
+            .GroupBy(resultado => new { resultado.UsuarioId, Usuario = resultado.Usuario != null ? resultado.Usuario.Nickname : "—" })
+            .Select(grupo => new { usuario = grupo.Key.Usuario, analisis = grupo.Count(), palabras = grupo.Sum(resultado => resultado.TotalPalabras) })
+            .OrderByDescending(item => item.analisis)
+            .ThenByDescending(item => item.palabras)
+            .Take(5)
+            .ToListAsync();
+
+        var alertasIp = await accesosPeriodo
+            .Where(acceso => acceso.Resultado != "exitoso" && acceso.IpOrigen != null && acceso.IpOrigen != "")
+            .GroupBy(acceso => acceso.IpOrigen)
+            .Select(grupo => new { ip = grupo.Key, fallidos = grupo.Count() })
+            .OrderByDescending(item => item.fallidos)
+            .Take(5)
+            .ToListAsync();
+
+        return Ok(new
+        {
+            dias,
+            desde,
+            hasta = hoy,
+            indicadores = new
+            {
+                usuarios = totalUsuarios,
+                analisis = totalAnalisis,
+                palabras = totalPalabras,
+                nuevosUsuarios,
+                accesos = totalAccesos,
+                accesosExitosos,
+                accesosFallidos = totalAccesos - accesosExitosos,
+                tasaExito = totalAccesos == 0 ? 0 : Math.Round(accesosExitosos * 100d / totalAccesos, 1),
+                usuariosConRostro
+            },
+            analisisPorDia,
+            accesosPorDia,
+            analisisPorIdioma,
+            accesosPorMetodo,
+            usuariosPorRol,
+            topAnalistas,
+            alertasIp
+        });
+    }
+
     /// <summary>Bitácora de accesos — solo Admin</summary>
     [HttpGet("bitacora")]
     [Authorize(Roles = "ADMIN")]
