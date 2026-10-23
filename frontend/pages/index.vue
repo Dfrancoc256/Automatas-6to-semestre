@@ -11,8 +11,8 @@
         <a href="#capacidades"><v-icon size="16">mdi-chart-box-outline</v-icon><span>Herramientas</span></a>
       </nav>
       <div class="landing-nav__actions">
-        <v-btn to="/registro" class="landing-register" variant="text">Crear cuenta</v-btn>
-        <v-btn to="/login" class="landing-login" variant="outlined" prepend-icon="mdi-login">Ingresar</v-btn>
+        <v-btn to="/registro" class="landing-register" variant="text" prepend-icon="mdi-account-plus-outline" aria-label="Crear cuenta" title="Crear cuenta">Crear cuenta</v-btn>
+        <v-btn to="/login" class="landing-login" variant="outlined" prepend-icon="mdi-login" aria-label="Ingresar" title="Ingresar">Ingresar</v-btn>
 
         <v-menu location="bottom end" transition="slide-y-transition">
           <template #activator="{ props }">
@@ -104,7 +104,12 @@
 
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
-useHead({ title: 'Analizador Léxico | Universidad Mariano Gálvez' })
+useHead({
+  title: 'Analizador Léxico | Universidad Mariano Gálvez',
+  meta: [
+    { name: 'google-site-verification', content: 'BbBOZkQW2lhz7F8f1x20Ac43gSxIjy2AzOpSjgJi4s8' }
+  ]
+})
 
 let revealObserver: IntersectionObserver | undefined
 

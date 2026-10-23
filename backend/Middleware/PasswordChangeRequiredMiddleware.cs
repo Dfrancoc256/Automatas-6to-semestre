@@ -15,7 +15,12 @@ public class PasswordChangeRequiredMiddleware
         var ruta = context.Request.Path;
 
         if (requiereCambio
+            && !ruta.StartsWithSegments("/api/auth/registro")
             && !ruta.StartsWithSegments("/api/auth/login")
+            && !ruta.StartsWithSegments("/api/auth/login-facial")
+            && !ruta.StartsWithSegments("/api/auth/facial/verificar-captcha")
+            && !ruta.StartsWithSegments("/api/auth/google")
+            && !ruta.StartsWithSegments("/api/auth/sesion")
             && !ruta.StartsWithSegments("/api/auth/cambiar-password-temporal")
             && !ruta.StartsWithSegments("/api/auth/validar-enlace-inicial")
             && !ruta.StartsWithSegments("/api/auth/cambiar-password-inicial")

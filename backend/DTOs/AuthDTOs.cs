@@ -71,8 +71,6 @@ public class LoginFacialDTO
     [MinLength(1)]
     public List<double> Descriptor { get; set; } = new();
 
-    [Required]
-    public string RecaptchaToken { get; set; } = string.Empty;
 }
 
 public class EnrolarFacialDTO
@@ -159,6 +157,7 @@ public class AuthResponseDTO
     public string Token { get; set; } = string.Empty;
     public string Rol { get; set; } = string.Empty;
     public string Nickname { get; set; } = string.Empty;
+    public string Nombre { get; set; } = string.Empty;
     public string? FotoModificada { get; set; }
     public DateTime Expiracion { get; set; }
     public string? CodigoQr { get; set; }
@@ -170,8 +169,10 @@ public class SesionActualDTO
 {
     public string Rol { get; set; } = string.Empty;
     public string Nickname { get; set; } = string.Empty;
+    public string Nombre { get; set; } = string.Empty;
     public string? FotoModificada { get; set; }
     public DateTime Expiracion { get; set; }
+    public bool DebeCambiarPassword { get; set; }
 }
 
 public class UsuarioPerfilDTO

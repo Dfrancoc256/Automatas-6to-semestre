@@ -269,6 +269,9 @@ public class AuthService : IAuthService
         var correo = dto.Correo.Trim().ToLowerInvariant();
         var nombre = NormalizarNombre(dto.Nombre);
         var apellido = NormalizarNombre(dto.Apellido);
+        var telefono = dto.Telefono.Trim();
+        var fechaNacimiento = DateTime.SpecifyKind(dto.FechaNacimiento, DateTimeKind.Utc);
+        var metodoNotificacion = dto.MetodoNotificacion;
 
         if (!string.IsNullOrWhiteSpace(dto.GoogleRegistroToken))
         {
@@ -281,6 +284,17 @@ public class AuthService : IAuthService
 
             correo = correoGoogle.Trim().ToLowerInvariant();
             nombre = NormalizarNombre(nombreGoogle);
+
+            var apellidoGoogle = principal?.FindFirst(System.Security.Claims.ClaimTypes.Surname)?.Value;
+            var telefonoGoogle = principal?.FindFirst("google_phone")?.Value;
+            var fechaGoogle = principal?.FindFirst("google_birthdate")?.Value;
+            if (!string.IsNullOrWhiteSpace(apellidoGoogle)) apellido = NormalizarNombre(apellidoGoogle);
+            if (!string.IsNullOrWhiteSpace(telefonoGoogle)
+                && System.Text.RegularExpressions.Regex.IsMatch(telefonoGoogle.Trim(), @"^\+?[0-9\s-]{8,20}$"))
+                telefono = telefonoGoogle.Trim();
+            if (DateOnly.TryParse(fechaGoogle, out var fechaGoogleValida))
+                fechaNacimiento = DateTime.SpecifyKind(fechaGoogleValida.ToDateTime(TimeOnly.MinValue), DateTimeKind.Utc);
+            if (!string.IsNullOrWhiteSpace(telefono)) metodoNotificacion = "ambos";
         }
 
         // Verificar unicidad
@@ -319,13 +333,13 @@ public class AuthService : IAuthService
             Correo              = correo,
             Nombre              = nombre,
             Apellido            = apellido,
-            Telefono            = dto.Telefono.Trim(),
-            FechaNacimiento     = DateTime.SpecifyKind(dto.FechaNacimiento, DateTimeKind.Utc),
+            Telefono            = telefono,
+            FechaNacimiento     = fechaNacimiento,
             Nickname            = nickname,
             PasswordHash        = BCrypt.Net.BCrypt.HashPassword(passwordInicialAleatoria),
             DebeCambiarPassword = requiereCrearPassword,
             GoogleSubject       = string.IsNullOrWhiteSpace(googleSubject) ? null : googleSubject,
-            MetodoNotificacion  = dto.MetodoNotificacion,
+            MetodoNotificacion  = metodoNotificacion,
             FotoOriginal        = rutaFotoOriginal,
             FotoModificada      = rutaFotoModificada,
             EncodingFacial      = dto.Descriptor is { Count: > 0 } ? JsonSerializer.Serialize(dto.Descriptor) : null,
@@ -679,6 +693,7 @@ public class AuthService : IAuthService
         Token = _jwt.GenerarToken(usuario, usuario.DebeCambiarPassword),
         Rol = usuario.Rol,
         Nickname = usuario.Nickname,
+        Nombre = usuario.Nombre,
         FotoModificada = usuario.FotoModificada,
         Expiracion = DateTime.UtcNow.AddHours(8),
         DebeCambiarPassword = usuario.DebeCambiarPassword

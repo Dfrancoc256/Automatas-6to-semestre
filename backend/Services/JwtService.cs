@@ -15,7 +15,7 @@ public interface IJwtService
     ClaimsPrincipal? ValidarToken(string token);
     ClaimsPrincipal? ValidarTokenQr(string token);
     ClaimsPrincipal? ValidarCodigoQrCredencial(string token);
-    string GenerarTokenRegistroGoogle(string subject, string correo, string nombre);
+    string GenerarTokenRegistroGoogle(string subject, string correo, string nombre, string? apellido = null, string? telefono = null, string? fechaNacimiento = null);
     ClaimsPrincipal? ValidarTokenRegistroGoogle(string token);
     string GenerarEnlaceCambioInicial(Usuario usuario);
     bool ValidarEnlaceCambioInicial(string token, Usuario usuario);
@@ -85,15 +85,18 @@ public class JwtService : IJwtService
         return new ClaimsPrincipal(identidad);
     }
 
-    public string GenerarTokenRegistroGoogle(string subject, string correo, string nombre)
+    public string GenerarTokenRegistroGoogle(string subject, string correo, string nombre, string? apellido = null, string? telefono = null, string? fechaNacimiento = null)
     {
-        var claims = new[]
+        var claims = new List<Claim>
         {
             new Claim("tipo", "registro_google"),
             new Claim("google_subject", subject),
             new Claim(ClaimTypes.Email, correo),
             new Claim(ClaimTypes.GivenName, nombre)
         };
+        if (!string.IsNullOrWhiteSpace(apellido)) claims.Add(new Claim(ClaimTypes.Surname, apellido));
+        if (!string.IsNullOrWhiteSpace(telefono)) claims.Add(new Claim("google_phone", telefono));
+        if (!string.IsNullOrWhiteSpace(fechaNacimiento)) claims.Add(new Claim("google_birthdate", fechaNacimiento));
         return EscribirToken(claims, DateTime.UtcNow.AddMinutes(10));
     }
 

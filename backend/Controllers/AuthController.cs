@@ -201,6 +201,9 @@ public class AuthController : ControllerBase
         var correo = externo.Principal?.FindFirst(ClaimTypes.Email)?.Value;
         var nombre = externo.Principal?.FindFirst(ClaimTypes.GivenName)?.Value
             ?? externo.Principal?.FindFirst(ClaimTypes.Name)?.Value;
+        var apellido = externo.Principal?.FindFirst(ClaimTypes.Surname)?.Value;
+        var telefono = externo.Principal?.FindFirst("google_phone")?.Value;
+        var fechaNacimiento = externo.Principal?.FindFirst("google_birthdate")?.Value;
         var esRegistro = externo.Properties?.Items.TryGetValue("modo_registro", out var modoRegistro) == true
             && modoRegistro == "google";
         if (!externo.Succeeded || string.IsNullOrWhiteSpace(subject) || string.IsNullOrWhiteSpace(correo)
@@ -215,7 +218,7 @@ public class AuthController : ControllerBase
             if (cuentaExiste)
                 return Redirect(RutaPublica("/login?error=google-existente"));
 
-            var tokenRegistroNuevo = _jwt.GenerarTokenRegistroGoogle(subject, correoNormalizado, nombre);
+            var tokenRegistroNuevo = _jwt.GenerarTokenRegistroGoogle(subject, correoNormalizado, nombre, apellido, telefono, fechaNacimiento);
             return Redirect(RutaPublica($"/login?modo=registro&googleRegistro={Uri.EscapeDataString(tokenRegistroNuevo)}"));
         }
 
@@ -227,7 +230,7 @@ public class AuthController : ControllerBase
             return Redirect(RutaPublica("/dashboard"));
         }
 
-        var tokenRegistro = _jwt.GenerarTokenRegistroGoogle(subject, correo, nombre);
+        var tokenRegistro = _jwt.GenerarTokenRegistroGoogle(subject, correo, nombre, apellido, telefono, fechaNacimiento);
         return Redirect(RutaPublica($"/login?modo=registro&googleRegistro={Uri.EscapeDataString(tokenRegistro)}"));
     }
 
@@ -241,7 +244,14 @@ public class AuthController : ControllerBase
         if (string.IsNullOrWhiteSpace(correo) || string.IsNullOrWhiteSpace(nombre))
             return BadRequest(new { mensaje = "La verificación de Google venció. Selecciona tu cuenta nuevamente." });
 
-        return Ok(new { correo, nombre });
+        return Ok(new
+        {
+            correo,
+            nombre,
+            apellido = principal?.FindFirst(ClaimTypes.Surname)?.Value,
+            telefono = principal?.FindFirst("google_phone")?.Value,
+            fechaNacimiento = principal?.FindFirst("google_birthdate")?.Value
+        });
     }
 
     [HttpPost("cambiar-password-temporal")]
@@ -305,7 +315,17 @@ public class AuthController : ControllerBase
         if (!await _recaptcha.ValidarAsync(dto.RecaptchaToken))
             return BadRequest(new { mensaje = "Verificación reCAPTCHA inválida." });
 
-        var enviado = await _auth.SolicitarRestablecimientoPasswordAsync(dto.Correo);
+        bool enviado;
+        try
+        {
+            enviado = await _auth.SolicitarRestablecimientoPasswordAsync(dto.Correo);
+        }
+        catch (PostgresException ex) when (ex.SqlState == "42P01")
+        {
+            _logger.LogError(ex, "Falta la tabla de tokens de restablecimiento de contraseña.");
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                new { mensaje = "El módulo de recuperación requiere una actualización de base de datos. Contacta al administrador." });
+        }
         if (!enviado)
             return StatusCode(StatusCodes.Status503ServiceUnavailable,
                 new { mensaje = "No fue posible enviar el correo en este momento. Intenta nuevamente más tarde." });
@@ -323,7 +343,17 @@ public class AuthController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(new { errores = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage) });
 
-        var actualizado = await _auth.RestablecerPasswordAsync(dto.Token, dto.NuevoPassword);
+        bool actualizado;
+        try
+        {
+            actualizado = await _auth.RestablecerPasswordAsync(dto.Token, dto.NuevoPassword);
+        }
+        catch (PostgresException ex) when (ex.SqlState == "42P01")
+        {
+            _logger.LogError(ex, "Falta la tabla de tokens de restablecimiento de contraseña.");
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                new { mensaje = "El módulo de recuperación requiere una actualización de base de datos. Contacta al administrador." });
+        }
         if (!actualizado)
             return BadRequest(new { mensaje = "El enlace no es válido, ya fue utilizado o venció. Solicita uno nuevo." });
 
@@ -385,6 +415,30 @@ public class AuthController : ControllerBase
         });
     }
 
+    /// <summary>Valida reCAPTCHA y habilita hasta tres intentos faciales durante cinco minutos.</summary>
+    [HttpPost("facial/verificar-captcha")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> VerificarCaptchaFacial([FromBody] RecaptchaTokenDTO dto)
+    {
+        if (!ModelState.IsValid || !await _recaptcha.ValidarAsync(dto.RecaptchaToken))
+            return BadRequest(new { mensaje = "Completa la verificación reCAPTCHA antes de usar el reconocimiento facial." });
+
+        var permiso = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+        _cache.Set($"facial-captcha:{permiso}", new FacialLoginPermit(), TimeSpan.FromMinutes(5));
+        Response.Cookies.Append("umg_facial_captcha", permiso, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = UsarCookieSegura(),
+            SameSite = SameSiteMode.Lax,
+            Path = "/api/auth/login-facial",
+            MaxAge = TimeSpan.FromMinutes(5),
+            IsEssential = true
+        });
+
+        return Ok(new { intentosRestantes = 3 });
+    }
+
     /// <summary>Login mediante reconocimiento facial (descriptor calculado en el navegador)</summary>
     [HttpPost("login-facial")]
     [AllowAnonymous]
@@ -396,8 +450,27 @@ public class AuthController : ControllerBase
                 .SelectMany(v => v.Errors)
                 .Select(e => e.ErrorMessage) });
 
-        if (!await _recaptcha.ValidarAsync(dto.RecaptchaToken))
-            return BadRequest(new { mensaje = "Verificación reCAPTCHA inválida." });
+        if (!Request.Cookies.TryGetValue("umg_facial_captcha", out var permiso)
+            || string.IsNullOrWhiteSpace(permiso)
+            || !_cache.TryGetValue<FacialLoginPermit>($"facial-captcha:{permiso}", out var intento)
+            || intento is null)
+        {
+            return BadRequest(new { mensaje = "Completa reCAPTCHA para iniciar los tres intentos de reconocimiento facial." });
+        }
+
+        int intentosRestantes;
+        lock (intento.Sync)
+        {
+            if (intento.IntentosRestantes <= 0)
+                return StatusCode(StatusCodes.Status429TooManyRequests,
+                    new { mensaje = "Se agotaron los tres intentos. Completa reCAPTCHA para iniciar nuevos intentos.", intentosRestantes = 0 });
+
+            intento.IntentosRestantes--;
+            intentosRestantes = intento.IntentosRestantes;
+        }
+
+        if (intentosRestantes == 0)
+            _cache.Remove($"facial-captcha:{permiso}");
 
         var ip        = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "desconocido";
         var userAgent = Request.Headers.UserAgent.ToString();
@@ -406,8 +479,20 @@ public class AuthController : ControllerBase
         {
             var result = await _auth.LoginFacialAsync(dto, ip, userAgent);
             if (result == null)
-                return Unauthorized(new { mensaje = "Rostro no reconocido." });
+            {
+                if (intentosRestantes == 0)
+                    return StatusCode(StatusCodes.Status429TooManyRequests,
+                        new { mensaje = "Se agotaron los tres intentos. Completa reCAPTCHA para iniciar nuevos intentos.", intentosRestantes });
 
+                return Unauthorized(new { mensaje = "Rostro no reconocido.", intentosRestantes });
+            }
+
+            _cache.Remove($"facial-captcha:{permiso}");
+            Response.Cookies.Delete("umg_facial_captcha", new CookieOptions
+            {
+                Secure = UsarCookieSegura(), SameSite = SameSiteMode.Lax,
+                Path = "/api/auth/login-facial", IsEssential = true
+            });
             EstablecerCookieSesion(result.Token, result.Expiracion);
             return Ok(result);
         }
@@ -453,8 +538,10 @@ public class AuthController : ControllerBase
         {
             Rol = perfil.Rol,
             Nickname = perfil.Nickname,
+            Nombre = perfil.Nombre,
             FotoModificada = perfil.FotoModificada,
-            Expiracion = expiracion
+            Expiracion = expiracion,
+            DebeCambiarPassword = User.FindFirst("debe_cambiar_password")?.Value == "true"
         });
     }
 
@@ -625,4 +712,10 @@ public class AuthController : ControllerBase
 
     // HTTPS en producción.
     private bool UsarCookieSegura() => !_environment.IsDevelopment() || Request.IsHttps;
+}
+
+internal sealed class FacialLoginPermit
+{
+    public object Sync { get; } = new();
+    public int IntentosRestantes { get; set; } = 3;
 }

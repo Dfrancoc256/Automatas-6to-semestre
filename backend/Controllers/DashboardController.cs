@@ -6,6 +6,7 @@ using System.Security.Claims;
 using LenguajesFormalesAPI.Data;
 using LenguajesFormalesAPI.Interfaces;
 using LenguajesFormalesAPI.Models;
+using LenguajesFormalesAPI.Services;
 
 namespace LenguajesFormalesAPI.Controllers;
 
@@ -18,12 +19,21 @@ public class DashboardController : ControllerBase
     private readonly AppDbContext _db;
     private readonly IEmailService _email;
     private readonly IWhatsAppService _whatsApp;
+    private readonly ICredentialService _credential;
+    private readonly IJwtService _jwt;
 
-    public DashboardController(AppDbContext db, IEmailService email, IWhatsAppService whatsApp)
+    public DashboardController(
+        AppDbContext db,
+        IEmailService email,
+        IWhatsAppService whatsApp,
+        ICredentialService credential,
+        IJwtService jwt)
     {
         _db = db;
         _email = email;
         _whatsApp = whatsApp;
+        _credential = credential;
+        _jwt = jwt;
     }
 
     /// <summary>Estadísticas generales — solo Admin/Supervisor</summary>
@@ -72,6 +82,125 @@ public class DashboardController : ControllerBase
         });
     }
 
+    /// <summary>
+    /// Indicadores agregados para el panel ejecutivo. Las agrupaciones se ejecutan
+    /// en PostgreSQL para no cargar historiales completos en memoria del servidor.
+    /// </summary>
+    [HttpGet("estadisticas/detalle")]
+    [Authorize(Roles = "ADMIN,SUPERVISOR")]
+    public async Task<IActionResult> EstadisticasDetalle([FromQuery] int dias = 30)
+    {
+        dias = dias switch { 7 or 30 or 90 => dias, _ => 30 };
+
+        var hoy = DateTime.UtcNow.Date;
+        var desde = hoy.AddDays(-(dias - 1));
+        var hasta = hoy.AddDays(1);
+        var analisisPeriodo = _db.ResultadosAnalisis.AsNoTracking()
+            .Where(resultado => resultado.FechaAnalisis >= desde && resultado.FechaAnalisis < hasta);
+        var accesosPeriodo = _db.BitacoraLogins.AsNoTracking()
+            .Where(acceso => acceso.FechaHora >= desde && acceso.FechaHora < hasta);
+        var usuariosActivos = _db.Usuarios.AsNoTracking().Where(usuario => usuario.Activo);
+
+        var totalUsuarios = await usuariosActivos.CountAsync();
+        var totalAnalisis = await analisisPeriodo.CountAsync();
+        var totalPalabras = await analisisPeriodo.SumAsync(resultado => (long?)resultado.TotalPalabras) ?? 0;
+        var totalAccesos = await accesosPeriodo.CountAsync();
+        var accesosExitosos = await accesosPeriodo.CountAsync(acceso => acceso.Resultado == "exitoso");
+
+        var analisisPorDia = await analisisPeriodo
+            .GroupBy(resultado => resultado.FechaAnalisis.Date)
+            .Select(grupo => new
+            {
+                fecha = grupo.Key,
+                cantidad = grupo.Count(),
+                palabras = grupo.Sum(resultado => resultado.TotalPalabras)
+            })
+            .OrderBy(item => item.fecha)
+            .ToListAsync();
+
+        var accesosPorDia = await accesosPeriodo
+            .GroupBy(acceso => acceso.FechaHora.Date)
+            .Select(grupo => new
+            {
+                fecha = grupo.Key,
+                exitosos = grupo.Count(acceso => acceso.Resultado == "exitoso"),
+                fallidos = grupo.Count(acceso => acceso.Resultado != "exitoso")
+            })
+            .OrderBy(item => item.fecha)
+            .ToListAsync();
+
+        var analisisPorIdioma = await analisisPeriodo
+            .GroupBy(resultado => resultado.Idioma)
+            .Select(grupo => new { idioma = grupo.Key, cantidad = grupo.Count(), palabras = grupo.Sum(resultado => resultado.TotalPalabras) })
+            .OrderByDescending(item => item.cantidad)
+            .ToListAsync();
+
+        var accesosPorMetodo = await accesosPeriodo
+            .GroupBy(acceso => acceso.Metodo)
+            .Select(grupo => new
+            {
+                metodo = grupo.Key,
+                exitosos = grupo.Count(acceso => acceso.Resultado == "exitoso"),
+                fallidos = grupo.Count(acceso => acceso.Resultado != "exitoso")
+            })
+            .OrderByDescending(item => item.exitosos + item.fallidos)
+            .ToListAsync();
+
+        var usuariosPorRol = await usuariosActivos
+            .GroupBy(usuario => usuario.Rol)
+            .Select(grupo => new { rol = grupo.Key, cantidad = grupo.Count() })
+            .OrderByDescending(item => item.cantidad)
+            .ToListAsync();
+
+        var usuariosConRostro = await usuariosActivos.CountAsync(usuario =>
+            usuario.EncodingFacial != null && usuario.EncodingFacial != "");
+
+        var nuevosUsuarios = await usuariosActivos.CountAsync(usuario =>
+            usuario.FechaRegistro >= desde && usuario.FechaRegistro < hasta);
+
+        var topAnalistas = await analisisPeriodo
+            .GroupBy(resultado => new { resultado.UsuarioId, Usuario = resultado.Usuario != null ? resultado.Usuario.Nickname : "—" })
+            .Select(grupo => new { usuario = grupo.Key.Usuario, analisis = grupo.Count(), palabras = grupo.Sum(resultado => resultado.TotalPalabras) })
+            .OrderByDescending(item => item.analisis)
+            .ThenByDescending(item => item.palabras)
+            .Take(5)
+            .ToListAsync();
+
+        var alertasIp = await accesosPeriodo
+            .Where(acceso => acceso.Resultado != "exitoso" && acceso.IpOrigen != null && acceso.IpOrigen != "")
+            .GroupBy(acceso => acceso.IpOrigen)
+            .Select(grupo => new { ip = grupo.Key, fallidos = grupo.Count() })
+            .OrderByDescending(item => item.fallidos)
+            .Take(5)
+            .ToListAsync();
+
+        return Ok(new
+        {
+            dias,
+            desde,
+            hasta = hoy,
+            indicadores = new
+            {
+                usuarios = totalUsuarios,
+                analisis = totalAnalisis,
+                palabras = totalPalabras,
+                nuevosUsuarios,
+                accesos = totalAccesos,
+                accesosExitosos,
+                accesosFallidos = totalAccesos - accesosExitosos,
+                tasaExito = totalAccesos == 0 ? 0 : Math.Round(accesosExitosos * 100d / totalAccesos, 1),
+                usuariosConRostro
+            },
+            analisisPorDia,
+            accesosPorDia,
+            analisisPorIdioma,
+            accesosPorMetodo,
+            usuariosPorRol,
+            topAnalistas,
+            alertasIp
+        });
+    }
+
     /// <summary>Bitácora de accesos — solo Admin</summary>
     [HttpGet("bitacora")]
     [Authorize(Roles = "ADMIN")]
@@ -115,6 +244,8 @@ public class DashboardController : ControllerBase
                 u.Apellido,
                 u.Correo,
                 u.Telefono,
+                // Algunas cuentas antiguas solo tienen foto original.
+                FotoModificada = u.FotoModificada ?? u.FotoOriginal,
                 u.MetodoNotificacion,
                 u.Rol,
                 u.Activo,
@@ -196,6 +327,52 @@ public class DashboardController : ControllerBase
         return Ok(new { usuario.Id, usuario.Activo });
     }
 
+    /// <summary>Envía el carnet PDF de un usuario por correo o WhatsApp — solo Admin</summary>
+    [HttpPost("usuarios/{id:int}/credencial/enviar")]
+    [Authorize(Roles = "ADMIN")]
+    public async Task<IActionResult> EnviarCredencialUsuario(int id, [FromBody] EnviarCredencialUsuarioDTO dto)
+    {
+        var usuario = await _db.Usuarios.FindAsync(id);
+        if (usuario == null) return NotFound();
+
+        if (!ModelState.IsValid)
+            return BadRequest(new { mensaje = "Canal inválido. Usa correo o WhatsApp." });
+
+        var nombre = WebUtility.HtmlEncode(usuario.NombreCompleto);
+        var codigoQr = _jwt.GenerarCodigoQrCredencial(usuario);
+        var pdf = _credential.GenerarPdf(usuario, codigoQr);
+        var nombreArchivo = $"credencial-{usuario.Nickname}.pdf";
+
+        try
+        {
+            if (dto.Canal == "email")
+            {
+                await _email.SendEmailAsync(
+                    usuario.Correo,
+                    "Tu carnet - Lenguajes Formales",
+                    $"<p>Hola {nombre},</p><p>Adjuntamos tu carnet de la plataforma de Lenguajes Formales y Autómatas.</p><p>El código QR permite verificar su autenticidad.</p>",
+                    pdf,
+                    nombreArchivo);
+
+                return Ok(new { mensaje = "Carnet PDF enviado por correo." });
+            }
+
+            var enviado = await _whatsApp.SendPdfAsync(
+                usuario.Telefono,
+                pdf,
+                nombreArchivo,
+                $"Hola {usuario.NombreCompleto}, adjuntamos tu carnet. El código QR permite verificar su autenticidad.");
+
+            return enviado
+                ? Ok(new { mensaje = "Carnet PDF enviado por WhatsApp." })
+                : StatusCode(502, new { mensaje = "No se pudo enviar el carnet por WhatsApp. Inténtalo de nuevo o usa el correo." });
+        }
+        catch (Exception)
+        {
+            return StatusCode(502, new { mensaje = "No se pudo enviar el carnet PDF en este momento." });
+        }
+    }
+
     [HttpPost("usuarios/{id:int}/notificacion")]
     [Authorize(Roles = "ADMIN")]
     public async Task<IActionResult> NotificarUsuario(int id, [FromBody] NotificarUsuarioDTO dto)
@@ -244,6 +421,13 @@ public class ActualizarUsuarioAdminDTO
     public string MetodoNotificacion { get; set; } = "email";
     [System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.RegularExpression("^(ADMIN|SUPERVISOR|ANALISTA)$")]
     public string Rol { get; set; } = "ANALISTA";
+}
+
+public class EnviarCredencialUsuarioDTO
+{
+    [System.ComponentModel.DataAnnotations.Required]
+    [System.ComponentModel.DataAnnotations.RegularExpression("^(email|whatsapp)$")]
+    public string Canal { get; set; } = string.Empty;
 }
 
 public record NotificarUsuarioDTO(string Canal);

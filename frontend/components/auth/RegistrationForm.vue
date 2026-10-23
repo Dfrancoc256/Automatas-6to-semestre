@@ -12,9 +12,10 @@
       <v-btn variant="outlined" color="primary" class="registro-choice__action google-access-button mb-3"
              @click="registrarConGoogle">
         <span class="google-mark" aria-hidden="true">G</span>
-        <span>Registrarme con Google</span>
+        <span>Continuar con Google</span>
       </v-btn>
-      <p class="registro-choice__hint">Usaremos tu cuenta de Google para completar nombre y correo; después solicitaremos los datos necesarios para tu credencial.</p>
+      <p class="registro-choice__hint">Si tu cuenta es nueva, verificaremos tu identidad y después solicitaremos únicamente los datos necesarios para tu credencial.</p>
+      <button type="button" class="registro-choice__login" @click="emit('cambiarModo', 'login')">¿Ya tienes una cuenta? Ingresa con Google</button>
       <div class="registro-choice__divider"><span>o</span></div>
       <v-btn color="accent" class="registro-choice__action umg-gold-button" @click="crearConCorreo">
         Crear cuenta con correo
@@ -30,7 +31,7 @@
         <img class="auth-logo login-logo mx-auto mb-3" src="/images/logo-umg-oficial.png"
              alt="Universidad Mariano Gálvez de Guatemala" />
         <h1 class="text-h5 font-weight-bold" style="color:#051B2E">Crear cuenta</h1>
-        <p class="text-body-2 text-medium-emphasis mt-1">Completa el formulario para registrarte</p>
+        <p class="text-body-2 text-medium-emphasis mt-1">{{ esRegistroGoogle ? 'Completa los datos para generar tu credencial' : 'Completa el formulario para registrarte' }}</p>
         <v-btn v-if="!esRegistroGoogle" variant="text" size="small" color="primary" class="mt-1" @click="mostrarOpcionesRegistro = true">
           Elegir otro método
         </v-btn>
@@ -48,8 +49,20 @@
         <v-stepper-window>
           <!-- Paso 1: datos básicos -->
           <v-stepper-window-item :value="1">
-            <v-form ref="formPaso1" @focusin="activarEdicion" @submit.prevent="siguientePaso">
-              <v-row dense>
+            <v-form ref="formPaso1" validate-on="blur" @focusin="activarEdicion" @submit.prevent="siguientePaso">
+              <div v-if="esRegistroGoogle" class="google-identity mb-5">
+                <span class="google-identity__icon"><span class="google-mark" aria-hidden="true">G</span></span>
+                <div>
+                  <strong>Cuenta de Google verificada</strong>
+                  <span>{{ form.nombre }} · {{ form.correo }}</span>
+                </div>
+                <v-icon color="success" size="20">mdi-check-decagram</v-icon>
+              </div>
+              <p v-if="esRegistroGoogle && datosGoogleFaltantes.length" class="google-identity__notice mb-4">
+                Google no proporcionó {{ datosGoogleFaltantes.join(', ') }}. Completa únicamente ese dato para continuar.
+              </p>
+
+              <v-row v-if="!esRegistroGoogle" dense>
                 <v-col cols="12" sm="6">
                   <v-text-field v-model.trim="form.nombre" label="Nombres"
                                 prepend-inner-icon="mdi-account"
@@ -64,44 +77,38 @@
                                 :rules="[validarApellido]" class="mb-1" />
                 </v-col>
               </v-row>
-              <v-text-field v-model="form.correo" label="Correo electrónico"
+
+              <v-text-field v-if="!esRegistroGoogle" v-model="form.correo" label="Correo electrónico"
                             prepend-inner-icon="mdi-email" type="email"
-                            :readonly="esRegistroGoogle"
                             :rules="[v => !!v || 'Requerido', v => /.+@.+\..+/.test(v) || 'Correo inválido']"
                             class="mb-3" />
-              <v-text-field v-model="form.telefono" label="Teléfono"
+              <v-text-field v-if="esRegistroGoogle && !form.apellido" v-model.trim="form.apellido" label="Apellidos"
+                            prepend-inner-icon="mdi-account-outline" autocomplete="family-name"
+                            :rules="[validarApellido]" class="mb-3" />
+              <v-text-field v-if="!esRegistroGoogle || !telefonoGoogleValido" v-model="form.telefono" label="Teléfono"
                             prepend-inner-icon="mdi-phone"
                             :rules="[v => !!v || 'Requerido']" class="mb-3" />
-              <v-text-field v-model="form.fechaNacimiento" label="Fecha de nacimiento"
+              <v-text-field v-if="!esRegistroGoogle || !fechaGoogleValida" v-model="form.fechaNacimiento" label="Fecha de nacimiento"
                             prepend-inner-icon="mdi-calendar" type="date"
                             :rules="[v => !!v || 'Requerido']" class="mb-3" />
+              <v-select v-if="!esRegistroGoogle || !telefonoGoogleValido" v-model="form.metodoNotificacion"
+                        label="Método de notificación"
+                        prepend-inner-icon="mdi-bell"
+                        :items="['email','whatsapp','ambos']"
+                        class="mb-4" />
+
               <v-alert type="info" variant="tonal" density="compact" class="mb-3">
                 Tu nickname se generará automáticamente.
                 {{ esRegistroGoogle
                   ? 'Podrás ingresar con la cuenta de Google que seleccionaste.'
                   : 'Recibirás por correo un enlace para crear tu contraseña antes de ingresar.' }}
               </v-alert>
-              <v-select v-model="form.metodoNotificacion"
-                        label="Método de notificación"
-                        prepend-inner-icon="mdi-bell"
-                        :items="['email','whatsapp','ambos']"
-                        class="mb-4" />
 
-              <RecaptchaV2
-                v-if="requiereRecaptcha"
-                ref="recaptcha"
-                v-model:token="recaptchaToken"
-                :site-key="recaptchaSiteKey"
-                class="mb-4"
-              />
-              <v-alert v-else-if="!bypassDesarrollo" type="warning" variant="tonal" density="compact" class="mb-4">
-                Falta configurar la clave pública de reCAPTCHA.
-              </v-alert>
               <v-alert v-if="error" type="error" variant="tonal" density="compact" class="mb-4">
                 {{ error }}
               </v-alert>
 
-              <v-btn color="accent" class="umg-gold-button" block size="large" type="submit" :disabled="!puedeEnviar">
+              <v-btn color="accent" class="umg-gold-button" block size="large" type="submit">
                 Siguiente <v-icon end>mdi-arrow-right</v-icon>
               </v-btn>
             </v-form>
@@ -184,9 +191,19 @@
             <v-alert v-if="error" type="error" variant="tonal" class="registro-error mb-3" density="compact" closable @click:close="error = ''">
               <span class="registro-error__message">{{ error }}</span>
             </v-alert>
-            <v-alert v-else-if="fotoCapturada && !bypassDesarrollo && !recaptchaToken" type="warning" variant="tonal" density="compact" class="mb-3">
-              La verificación reCAPTCHA venció. Selecciona el paso <strong>Datos</strong> para validarla nuevamente.
-            </v-alert>
+            <template v-if="fotoCapturada">
+              <p class="text-body-2 text-medium-emphasis text-center mb-2">Confirma la verificación de seguridad antes de crear la cuenta.</p>
+              <RecaptchaV2
+                v-if="requiereRecaptcha"
+                ref="recaptcha"
+                v-model:token="recaptchaToken"
+                :site-key="recaptchaSiteKey"
+                class="mb-3"
+              />
+              <v-alert v-else-if="!bypassDesarrollo" type="warning" variant="tonal" density="compact" class="mb-3">
+                Falta configurar la clave pública de reCAPTCHA.
+              </v-alert>
+            </template>
             <v-btn v-if="error && fotoCapturada" class="registro-retry mb-4" size="small" variant="text" prepend-icon="mdi-refresh" @click="registrar">
               Reintentar registro
             </v-btn>
@@ -262,6 +279,13 @@ const form = reactive({
   nombre: '', apellido: '', correo: '', telefono: '', fechaNacimiento: '',
   metodoNotificacion: 'email'
 })
+const telefonoGoogleValido = computed(() => /^\+?[0-9\s-]{8,20}$/.test(form.telefono.trim()))
+const fechaGoogleValida = computed(() => /^\d{4}-\d{2}-\d{2}$/.test(form.fechaNacimiento))
+const datosGoogleFaltantes = computed(() => [
+  !form.apellido ? 'apellidos' : '',
+  !telefonoGoogleValido.value ? 'teléfono' : '',
+  !fechaGoogleValida.value ? 'fecha de nacimiento' : ''
+].filter(Boolean))
 
 const patronNombre = /^[\p{L}][\p{L}\s'-]{1,79}$/u
 const validarNombre = (valor: string) =>
@@ -280,6 +304,10 @@ onMounted(async () => {
     const { data } = await api.post('/auth/google-registro', { token: googleRegistroToken.value })
     form.correo = data.correo
     form.nombre = data.nombre
+    form.apellido = data.apellido || ''
+    form.telefono = data.telefono || ''
+    form.fechaNacimiento = data.fechaNacimiento || ''
+    form.metodoNotificacion = telefonoGoogleValido.value ? 'ambos' : 'email'
   } catch (e: any) {
     error.value = e.response?.data?.mensaje || 'No se pudo validar la cuenta de Google.'
   }
@@ -358,15 +386,19 @@ function terminarArrastreSticker() {
 
 async function siguientePaso() {
   error.value = ''
-  if (!puedeEnviar.value) {
-    error.value = 'Completa la verificación reCAPTCHA para continuar.'
-    return
-  }
   const { valid } = await formPaso1.value?.validate()
   if (!valid) return
   paso.value = 2
   calentar()
 }
+
+watch(paso, (pasoActual) => {
+  // Al volver a Datos se descarta un token viejo; se solicitará uno nuevo al final.
+  if (pasoActual !== 2) {
+    recaptchaToken.value = ''
+    recaptcha.value?.reiniciar()
+  }
+})
 
 async function capturarFoto() {
   error.value = ''
@@ -544,7 +576,6 @@ async function registrar() {
     if (requiereRecaptcha.value && !bypassDesarrollo.value) {
       recaptchaToken.value = ''
       recaptcha.value?.reiniciar()
-      paso.value = 1
       error.value += ' Completa nuevamente reCAPTCHA antes de reintentar.'
     }
   } finally {
@@ -679,6 +710,7 @@ async function descargarCredencial() {
 }
 .registro-choice h1 { color: #051B2E; }
 .registro-choice__hint { margin: 0 0 14px; color: #667085; font-size: 12px; line-height: 1.45; }
+.registro-choice__login { margin: -5px 0 14px; padding: 0; border: 0; color: #7A5E12; background: transparent; font: inherit; font-size: 12px; font-weight: 700; text-decoration: underline; cursor: pointer; }
 .registro-choice__action {
   width: min(100%, 340px) !important;
   min-height: 46px !important;
@@ -698,6 +730,12 @@ async function descargarCredencial() {
 .registro-choice__divider::before,
 .registro-choice__divider::after { content: ''; flex: 1; height: 1px; background: #E2E4E8; }
 .google-access-button :deep(.v-btn__content) { gap: 10px; justify-content: center; }
+.google-identity { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 11px 12px; border: 1px solid #D7E5EF; border-radius: 12px; background: #F5F9FC; }
+.google-identity__icon { display: grid; width: 30px; height: 30px; flex: 0 0 30px; place-items: center; border-radius: 8px; background: #fff; border: 1px solid #E5ECF1; }
+.google-identity > div { display: grid; min-width: 0; flex: 1; }
+.google-identity strong { color: #15324A; font-size: 12px; }
+.google-identity span:not(.google-mark) { overflow: hidden; margin-top: 2px; color: #65798B; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.google-identity__notice { color: #65798B; font-size: 12px; line-height: 1.45; }
 .google-mark {
   display: inline-grid;
   width: 20px;
@@ -719,6 +757,12 @@ async function descargarCredencial() {
   .registro-content :deep(.v-stepper-window) { padding-right: 2px; }
   .registro-content :deep(.v-stepper-window-item),
   .registro-content :deep(.v-row) { min-width: 0; max-width: 100%; }
+  .registro-content :deep(.v-stepper-window-item) { padding-inline: 0; }
+  .registro-content :deep(.v-row) { margin-inline: 0; }
+  .registro-content :deep(.v-col) { min-width: 0; padding-inline: 4px; }
+  .registro-content :deep(.v-col-sm-6) { flex: 0 0 100% !important; max-width: 100% !important; }
+  .registro-content :deep(.v-input),
+  .registro-content :deep(.v-field) { max-width: 100%; }
   .registro-content :deep(.v-stepper-header) { min-height: 64px; }
   .registro-content :deep(.v-stepper-item__title) { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
   .registro-content--captura :deep(.face-scanner) { max-width: 100%; }
@@ -728,5 +772,11 @@ async function descargarCredencial() {
   .registro-error :deep(.v-alert__close) { align-self: flex-start; }
   .registro-actions { gap: 8px; }
   .registro-actions .v-btn { min-width: 0; }
+}
+
+@media (max-width: 420px) {
+  .registro-content :deep(.v-stepper-item__title) { font-size: 10px; }
+  .registro-actions { flex-direction: column-reverse; }
+  .registro-actions .v-btn { width: 100%; max-width: none; }
 }
 </style>

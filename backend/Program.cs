@@ -1,4 +1,6 @@
 using System.Text;
+using System.Security.Claims;
+using System.Text.Json;
 using System.Threading.RateLimiting;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -80,14 +82,71 @@ if (!string.IsNullOrWhiteSpace(googleClientId) && !string.IsNullOrWhiteSpace(goo
             options.SignInScheme = "GoogleExternal";
             options.CallbackPath = "/api/auth/google/callback";
             options.Scope.Add("openid");
-            options.Events.OnCreatingTicket = context =>
+            options.Scope.Add("https://www.googleapis.com/auth/user.phonenumbers.read");
+            options.Scope.Add("https://www.googleapis.com/auth/user.birthday.read");
+            options.SaveTokens = true;
+            options.Events.OnCreatingTicket = async context =>
             {
                 if (!context.User.TryGetProperty("email_verified", out var verificado)
                     || verificado.ValueKind != System.Text.Json.JsonValueKind.True)
                 {
                     context.Fail("Google no confirmó el correo de la cuenta.");
                 }
-                return Task.CompletedTask;
+
+                // El perfil OIDC estándar entrega nombre y correo. People API aporta
+                // teléfono y fecha de nacimiento solo si el usuario los autoriza.
+                try
+                {
+                    using var solicitud = new HttpRequestMessage(
+                        HttpMethod.Get,
+                        "https://people.googleapis.com/v1/people/me?personFields=names,phoneNumbers,birthdays");
+                    solicitud.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", context.AccessToken);
+                    using var respuesta = await context.Backchannel.SendAsync(solicitud, context.HttpContext.RequestAborted);
+                    if (!respuesta.IsSuccessStatusCode) return;
+
+                    using var documento = JsonDocument.Parse(await respuesta.Content.ReadAsStringAsync(context.HttpContext.RequestAborted));
+                    var identidad = context.Principal?.Identity as ClaimsIdentity;
+                    if (identidad == null) return;
+
+                    var raiz = documento.RootElement;
+                    if (raiz.TryGetProperty("names", out var nombres))
+                    {
+                        var apellido = nombres.EnumerateArray()
+                            .Select(n => n.TryGetProperty("familyName", out var valor) ? valor.GetString() : null)
+                            .FirstOrDefault(valor => !string.IsNullOrWhiteSpace(valor));
+                        if (!string.IsNullOrWhiteSpace(apellido))
+                            identidad.AddClaim(new Claim(ClaimTypes.Surname, apellido));
+                    }
+
+                    if (raiz.TryGetProperty("phoneNumbers", out var telefonos))
+                    {
+                        var telefono = telefonos.EnumerateArray()
+                            .Select(t => t.TryGetProperty("value", out var valor) ? valor.GetString() : null)
+                            .FirstOrDefault(valor => !string.IsNullOrWhiteSpace(valor));
+                        if (!string.IsNullOrWhiteSpace(telefono))
+                            identidad.AddClaim(new Claim("google_phone", telefono));
+                    }
+
+                    if (raiz.TryGetProperty("birthdays", out var fechas))
+                    {
+                        var fecha = fechas.EnumerateArray()
+                            .Select(f => f.TryGetProperty("date", out var valor) ? valor : default)
+                            .FirstOrDefault(f => f.ValueKind == JsonValueKind.Object);
+                        if (fecha.ValueKind == JsonValueKind.Object
+                            && fecha.TryGetProperty("year", out var ano)
+                            && fecha.TryGetProperty("month", out var mes)
+                            && fecha.TryGetProperty("day", out var dia)
+                            && DateOnly.TryParse($"{ano.GetInt32():D4}-{mes.GetInt32():D2}-{dia.GetInt32():D2}", out var fechaNacimiento))
+                        {
+                            identidad.AddClaim(new Claim("google_birthdate", fechaNacimiento.ToString("yyyy-MM-dd")));
+                        }
+                    }
+                }
+                catch
+                {
+                    // El acceso básico con Google continúa si People API no está habilitada
+                    // o el usuario no tiene esos campos en su perfil.
+                }
             };
         });
 }
@@ -123,7 +182,9 @@ builder.Services.AddRateLimiter(options =>
         context.Connection.RemoteIpAddress?.ToString() ?? "desconocido",
         _ => new FixedWindowRateLimiterOptions
         {
-            PermitLimit = 3,
+            // Cada CAPTCHA habilita un máximo de tres intentos faciales.
+            // Este límite adicional frena reintentos masivos desde una IP.
+            PermitLimit = 9,
             Window = TimeSpan.FromMinutes(10),
             QueueLimit = 0,
             AutoReplenishment = true
@@ -204,13 +265,9 @@ else
     app.UseHttpsRedirection();
 }
 
-app.UseCors("FrontendPolicy");
-app.UseRateLimiter();
-app.UseAuthentication();
-app.UseMiddleware<PasswordChangeRequiredMiddleware>();
-app.UseAuthorization();
-
 // Servir archivos estáticos (uploads de fotos, incluida la foto de enrolamiento facial)
+// antes de autenticación: son recursos públicos y deben poder cargarse aun
+// cuando una cuenta tenga pendiente el cambio de contraseña.
 var carpetaUploads = Path.Combine(builder.Environment.ContentRootPath, "uploads");
 Directory.CreateDirectory(carpetaUploads);
 app.UseStaticFiles(new StaticFileOptions
@@ -223,6 +280,12 @@ app.UseStaticFiles(new StaticFileOptions
         contexto.Context.Response.Headers["Cache-Control"] = "private, no-store, max-age=0";
     }
 });
+
+app.UseCors("FrontendPolicy");
+app.UseRateLimiter();
+app.UseAuthentication();
+app.UseMiddleware<PasswordChangeRequiredMiddleware>();
+app.UseAuthorization();
 
 app.MapControllers();
 // Esquema: backend/database/schema.sql.
