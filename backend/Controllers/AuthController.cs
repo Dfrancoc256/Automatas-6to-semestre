@@ -201,6 +201,9 @@ public class AuthController : ControllerBase
         var correo = externo.Principal?.FindFirst(ClaimTypes.Email)?.Value;
         var nombre = externo.Principal?.FindFirst(ClaimTypes.GivenName)?.Value
             ?? externo.Principal?.FindFirst(ClaimTypes.Name)?.Value;
+        var apellido = externo.Principal?.FindFirst(ClaimTypes.Surname)?.Value;
+        var telefono = externo.Principal?.FindFirst("google_phone")?.Value;
+        var fechaNacimiento = externo.Principal?.FindFirst("google_birthdate")?.Value;
         var esRegistro = externo.Properties?.Items.TryGetValue("modo_registro", out var modoRegistro) == true
             && modoRegistro == "google";
         if (!externo.Succeeded || string.IsNullOrWhiteSpace(subject) || string.IsNullOrWhiteSpace(correo)
@@ -215,7 +218,7 @@ public class AuthController : ControllerBase
             if (cuentaExiste)
                 return Redirect(RutaPublica("/login?error=google-existente"));
 
-            var tokenRegistroNuevo = _jwt.GenerarTokenRegistroGoogle(subject, correoNormalizado, nombre);
+            var tokenRegistroNuevo = _jwt.GenerarTokenRegistroGoogle(subject, correoNormalizado, nombre, apellido, telefono, fechaNacimiento);
             return Redirect(RutaPublica($"/login?modo=registro&googleRegistro={Uri.EscapeDataString(tokenRegistroNuevo)}"));
         }
 
@@ -227,7 +230,7 @@ public class AuthController : ControllerBase
             return Redirect(RutaPublica("/dashboard"));
         }
 
-        var tokenRegistro = _jwt.GenerarTokenRegistroGoogle(subject, correo, nombre);
+        var tokenRegistro = _jwt.GenerarTokenRegistroGoogle(subject, correo, nombre, apellido, telefono, fechaNacimiento);
         return Redirect(RutaPublica($"/login?modo=registro&googleRegistro={Uri.EscapeDataString(tokenRegistro)}"));
     }
 
@@ -241,7 +244,14 @@ public class AuthController : ControllerBase
         if (string.IsNullOrWhiteSpace(correo) || string.IsNullOrWhiteSpace(nombre))
             return BadRequest(new { mensaje = "La verificación de Google venció. Selecciona tu cuenta nuevamente." });
 
-        return Ok(new { correo, nombre });
+        return Ok(new
+        {
+            correo,
+            nombre,
+            apellido = principal?.FindFirst(ClaimTypes.Surname)?.Value,
+            telefono = principal?.FindFirst("google_phone")?.Value,
+            fechaNacimiento = principal?.FindFirst("google_birthdate")?.Value
+        });
     }
 
     [HttpPost("cambiar-password-temporal")]
