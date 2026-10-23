@@ -29,7 +29,9 @@ const props = withDefaults(defineProps<{
   auto?: boolean
   conFoto?: boolean   // incluye la foto en base64
   ocupado?: boolean   // el resultado está en proceso
-}>(), { auto: true, conFoto: false, ocupado: false })
+  // 0 desactiva el límite. Se usa en login para cerrar una cámara abandonada.
+  timeoutSinRostro?: number
+}>(), { auto: true, conFoto: false, ocupado: false, timeoutSinRostro: 0 })
 
 interface CapturaFacial {
   descriptor: number[] | null
@@ -41,6 +43,7 @@ interface CapturaFacial {
 const emit = defineEmits<{
   capturado: [captura: CapturaFacial]
   error: [mensaje: string]
+  sinRostroTimeout: []
 }>()
 
 const { calentar, detectarRostro, obtenerDescriptor } = useFacialRecognition()
@@ -54,6 +57,7 @@ let stream: MediaStream | null = null
 let activo = false
 let pausado = false
 let buenosSeguidos = 0
+let sinRostroDesde = 0
 
 // Cuadros válidos requeridos antes de capturar.
 const CUADROS_ESTABLES = 2
@@ -147,7 +151,14 @@ async function ciclo() {
     if (!caja) {
       buenosSeguidos = 0
       estado.value = 'buscando'
+      if (!sinRostroDesde) sinRostroDesde = Date.now()
+      if (props.timeoutSinRostro > 0 && Date.now() - sinRostroDesde >= props.timeoutSinRostro) {
+        pausado = true
+        emit('sinRostroTimeout')
+        return
+      }
     } else {
+      sinRostroDesde = 0
       const problema = evaluarEncuadre(caja, video)
       if (problema) {
         buenosSeguidos = 0
@@ -198,6 +209,7 @@ async function capturar(): Promise<CapturaFacial | null> {
 /** Reinicia la detección facial. */
 function reiniciar() {
   buenosSeguidos = 0
+  sinRostroDesde = 0
   estado.value = 'buscando'
   pausado = false
 }

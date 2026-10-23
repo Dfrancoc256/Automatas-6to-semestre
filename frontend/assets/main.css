@@ -248,6 +248,8 @@ img, video, canvas { max-width: 100%; }
 .main-layout {
   display: flex;
   min-height: 100vh;
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 /* ─── Sidebar ────────────────────────────────────────────── */
@@ -647,7 +649,13 @@ img, video, canvas { max-width: 100%; }
   .sidebar.open { transform: translateX(0); }
   .sidebar.collapsed { width: min(88vw, 310px); transform: translateX(-100%); }
   .page-content,
-  .page-content.sidebar-collapsed { margin-left: 0; padding: 24px 20px; }
+  .page-content.sidebar-collapsed { width: 100%; min-width: 0; margin-left: 0; padding: 24px 20px; overflow-x: clip; }
+  .page-content > * { min-width: 0; max-width: 100%; }
+  .page-content .v-card,
+  .page-content .v-card-text { min-width: 0; max-width: 100%; }
+  .page-content .v-table__wrapper { max-width: 100%; }
+  .page-content .v-card-actions { flex-wrap: wrap; gap: 6px; }
+  .page-content .v-card-actions .v-btn { min-width: 0; }
   .dashboard-topbar { margin: -24px -20px 24px; padding: 14px 20px; }
   .dashboard-header { align-items: flex-start !important; gap: 16px; flex-wrap: wrap; }
   .dashboard-title { font-size: 27px; }

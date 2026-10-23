@@ -153,8 +153,10 @@
             ref="escanerLogin"
             con-foto
             :ocupado="verificandoFacial"
+            :timeout-sin-rostro="30_000"
             @capturado="verificarRostro"
             @error="errorFacial = $event"
+            @sin-rostro-timeout="cerrarPorAusenciaDeRostro"
           />
           <div v-else-if="rostroValidado" class="facial-success py-7" role="status" aria-live="polite">
             <v-avatar v-if="fotoLoginRecortada" size="88" class="mb-3 facial-success__photo">
@@ -465,6 +467,13 @@ async function abrirLoginFacial() {
   }
 
   mostrarFacial.value = true
+}
+
+function cerrarPorAusenciaDeRostro() {
+  if (verificandoFacial.value || rostroValidado.value) return
+  mostrarFacial.value = false
+  errorFacial.value = ''
+  error.value = 'No se detectó un rostro durante 30 segundos. El reconocimiento facial se cerró; puedes intentarlo nuevamente cuando estés frente a la cámara.'
 }
 
 async function verificarRostro(captura: { descriptor: number[] | null, fotoRecortada: string | null }) {
