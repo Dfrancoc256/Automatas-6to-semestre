@@ -97,7 +97,7 @@
           block
           size="large"
           :loading="cargando"
-          :disabled="!puedeEnviar"
+          :disabled="cargando"
           prepend-icon="mdi-login"
         >
           Ingresar
@@ -110,7 +110,7 @@
         color="primary"
         class="mt-4 google-access-button"
         :loading="cargandoGoogle"
-        :disabled="!puedeEnviar || cargandoGoogle"
+        :disabled="cargandoGoogle"
         @click="continuarConGoogle"
       >
         <span class="google-mark" aria-hidden="true">G</span>
@@ -367,11 +367,31 @@ const rutaDestino = computed(() => {
 
 async function loginPassword() {
   error.value = ''
-  if (!identificadorValido(form.identificador)) {
+  const identificadorInvalido = !identificadorValido(form.identificador)
+  const passwordInvalida = form.password.length < 8
+  const captchaPendiente = !puedeEnviar.value
+
+  if (identificadorInvalido && passwordInvalida && captchaPendiente) {
+    error.value = 'Completa tu correo o nombre de usuario, la contraseña y la verificación reCAPTCHA para continuar.'
+    return
+  }
+  if (identificadorInvalido && passwordInvalida) {
+    error.value = 'Completa tu correo o nombre de usuario y una contraseña de al menos 8 caracteres.'
+    return
+  }
+  if (identificadorInvalido && captchaPendiente) {
+    error.value = 'Completa tu correo o nombre de usuario y la verificación reCAPTCHA para continuar.'
+    return
+  }
+  if (passwordInvalida && captchaPendiente) {
+    error.value = 'Completa una contraseña de al menos 8 caracteres y la verificación reCAPTCHA para continuar.'
+    return
+  }
+  if (identificadorInvalido) {
     error.value = 'Ingresa un correo válido o un nickname de 3 a 50 caracteres.'
     return
   }
-  if (form.password.length < 8) {
+  if (passwordInvalida) {
     error.value = 'La contraseña debe tener al menos 8 caracteres.'
     return
   }

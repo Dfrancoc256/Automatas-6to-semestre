@@ -49,7 +49,7 @@
         <v-stepper-window>
           <!-- Paso 1: datos básicos -->
           <v-stepper-window-item :value="1">
-            <v-form ref="formPaso1" @focusin="activarEdicion" @submit.prevent="siguientePaso">
+            <v-form ref="formPaso1" validate-on="blur" @focusin="activarEdicion" @submit.prevent="siguientePaso">
               <div v-if="esRegistroGoogle" class="google-identity mb-5">
                 <span class="google-identity__icon"><span class="google-mark" aria-hidden="true">G</span></span>
                 <div>
