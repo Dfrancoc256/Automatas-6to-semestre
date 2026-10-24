@@ -3,12 +3,12 @@
     <section class="executive-hero" aria-labelledby="dashboard-title">
       <div>
         <p class="executive-hero__eyebrow">Panel de trabajo</p>
-        <h1 id="dashboard-title">Buen día, {{ nombreUsuario }}.</h1>
+        <h1 id="dashboard-title">{{ saludo }}, {{ nombreUsuario }}.</h1>
         <p>Gestiona tus análisis léxicos y consulta la actividad de tu espacio académico.</p>
       </div>
       <div class="executive-hero__actions">
         <span class="executive-hero__date"><v-icon size="16">mdi-calendar-blank-outline</v-icon>{{ fechaActual }}</span>
-        <v-btn class="umg-gold-button" prepend-icon="mdi-plus" @click="navigateTo('/dashboard/analisis')">Nuevo análisis</v-btn>
+        <v-btn class="umg-gold-button executive-hero__new-analysis" prepend-icon="mdi-plus" @click="navigateTo('/dashboard/analisis')">Nuevo análisis</v-btn>
       </div>
     </section>
 
@@ -95,6 +95,7 @@ const auth    = useAuthStore()
 const { api } = useApi()
 const stats   = ref<any>(null)
 const nombreUsuario = computed(() => auth.user?.nombre || auth.user?.nickname || 'usuario')
+const saludo = ref('Buen día')
 const fechaActual = computed(() => new Intl.DateTimeFormat('es-GT', {
   day: '2-digit', month: 'long', year: 'numeric'
 }).format(new Date()))
@@ -150,13 +151,30 @@ const modulos = computed(() => {
   return disponibles
 })
 
+let temporizadorSaludo: ReturnType<typeof setInterval> | undefined
+
+function actualizarSaludo() {
+  const hora = new Date().getHours()
+  saludo.value = hora >= 5 && hora < 12
+    ? 'Buenos días'
+    : hora >= 12 && hora < 19
+      ? 'Buenas tardes'
+      : 'Buenas noches'
+}
+
 onMounted(async () => {
+  actualizarSaludo()
+  temporizadorSaludo = window.setInterval(actualizarSaludo, 60_000)
   if (auth.isSupervisor) {
     try {
       const { data } = await api.get('/dashboard/estadisticas')
       stats.value = data
     } catch { /* sin permisos */ }
   }
+})
+
+onBeforeUnmount(() => {
+  if (temporizadorSaludo) window.clearInterval(temporizadorSaludo)
 })
 
 function formatFecha(iso: string) {
@@ -201,6 +219,24 @@ function formatFecha(iso: string) {
 .executive-hero > div > p:not(.executive-hero__eyebrow) { max-width: 630px; margin: .7rem 0 0; color: #d9e5ec; }
 .executive-hero__actions { display: flex; flex-direction: column; align-items: flex-end; gap: .8rem; flex-shrink: 0; }
 .executive-hero__date { display: inline-flex; gap: .4rem; align-items: center; color: #d9e5ec; font-size: .84rem; text-transform: capitalize; }
+.executive-hero__new-analysis { position: relative; overflow: hidden; isolation: isolate; }
+.executive-hero__new-analysis::before {
+  content: '';
+  position: absolute;
+  inset: -20% auto -20% -45%;
+  width: 26%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.72), transparent);
+  transform: skewX(-22deg);
+  animation: executive-button-shine 2.8s ease-in-out infinite;
+  z-index: 0;
+}
+.executive-hero__new-analysis :deep(.v-btn__content) { position: relative; z-index: 1; }
+
+@keyframes executive-button-shine {
+  0%, 34% { transform: translateX(0) skewX(-22deg); opacity: 0; }
+  40% { opacity: 1; }
+  65%, 100% { transform: translateX(520%) skewX(-22deg); opacity: 0; }
+}
 
 .executive-metrics {
   display: grid;
