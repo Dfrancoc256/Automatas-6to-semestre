@@ -50,15 +50,17 @@
                    @click="iniciarEnrolamiento">
               {{ perfil?.tieneRostroEnrolado ? 'Actualizar rostro' : 'Enrolar rostro' }}
             </v-btn>
+            <v-alert v-if="msgFacial" :type="tipoMsgFacial" variant="tonal" density="compact" class="mt-3">
+              {{ msgFacial }}
+            </v-alert>
           </div>
 
-          <div v-else class="text-center">
+          <div v-else-if="!capturaPendiente" class="text-center">
             <FaceScanner
-              ref="escanerEnrol"
               con-foto
               :ocupado="enrolando"
               class="mb-3"
-              @capturado="enrolar"
+              @capturado="prepararFoto"
               @error="alFallarCamara"
             />
             <p class="text-body-2 text-medium-emphasis mb-3">
@@ -71,6 +73,42 @@
 
             <div class="d-flex gap-2 justify-center">
               <v-btn variant="outlined" @click="cancelarEnrolamiento">Cancelar</v-btn>
+            </div>
+          </div>
+
+          <div v-else class="text-center">
+            <p class="text-body-2 text-medium-emphasis mb-3">Personaliza la foto que aparecerá en tu perfil y credencial.</p>
+            <div ref="vistaPreviaFoto" class="foto-preview mb-4">
+              <img :src="capturaPendiente.fotoRecortada" :style="{ filter: filtroActual.css }"
+                   class="foto-preview__imagen" alt="Vista previa de la credencial" />
+              <img v-if="stickerActual !== 'ninguno'" :src="imagenesStickers[stickerActual]"
+                   class="foto-preview__sticker"
+                   :style="{ left: `${posicionSticker.x}px`, top: `${posicionSticker.y}px`, width: `${tamanoSticker}px` }"
+                   alt="Adorno seleccionado" draggable="false" @pointerdown.prevent="iniciarArrastreSticker" />
+            </div>
+            <p class="text-caption font-weight-bold mb-2">Filtro de la fotografía</p>
+            <div class="d-flex flex-wrap justify-center gap-2 mb-4">
+              <v-btn v-for="filtro in filtros" :key="filtro.id" size="small"
+                     :color="filtroActual.id === filtro.id ? 'accent' : 'primary'"
+                     :variant="filtroActual.id === filtro.id ? 'flat' : 'outlined'"
+                     :prepend-icon="filtro.icono" @click="filtroActual = filtro">
+                {{ filtro.nombre }}
+              </v-btn>
+            </div>
+            <div class="efectos-foto mb-4">
+              <p class="text-caption font-weight-bold mb-2">Adorno opcional</p>
+              <PhotoStickerSelector v-model="stickerActual" />
+            </div>
+            <p v-if="stickerActual !== 'ninguno'" class="text-caption text-medium-emphasis mb-4">
+              Arrastra el icono sobre la foto para colocarlo donde prefieras.
+            </p>
+            <v-alert v-if="msgFacial" :type="tipoMsgFacial" variant="tonal" density="compact" class="mb-3">
+              {{ msgFacial }}
+            </v-alert>
+            <div class="d-flex flex-wrap gap-2 justify-center">
+              <v-btn variant="outlined" :disabled="enrolando" @click="repetirFoto">Repetir foto</v-btn>
+              <v-btn variant="outlined" :disabled="enrolando" @click="cancelarEnrolamiento">Cancelar</v-btn>
+              <v-btn color="accent" :loading="enrolando" @click="enrolar">Guardar rostro y foto</v-btn>
             </div>
           </div>
         </v-card>
@@ -141,7 +179,27 @@ const camaraFacialActiva = ref(false)
 const enrolando     = ref(false)
 const msgFacial      = ref('')
 const tipoMsgFacial  = ref<'success' | 'error'>('success')
-const escanerEnrol  = ref<{ reiniciar: () => void } | null>(null)
+const capturaPendiente = ref<{ descriptor: number[], fotoRecortada: string } | null>(null)
+const vistaPreviaFoto = ref<HTMLElement | null>(null)
+const stickerActual = ref('ninguno')
+const posicionSticker = reactive({ x: 72, y: 12 })
+const tamanoSticker = 42
+const imagenesStickers: Record<string, string> = {
+  graduacion: '/stickers/graduacion.png',
+  lentes: '/stickers/lentes.png',
+  corona: '/stickers/corona.png',
+  estrella: '/stickers/estrella.png',
+  corazon: '/stickers/corazon.png'
+}
+const filtros = [
+  { id: 'normal', nombre: 'Natural', icono: 'mdi-image-filter-none', css: 'none', canvas: 'none' },
+  { id: 'calido', nombre: 'Cálido', icono: 'mdi-white-balance-sunny', css: 'sepia(.28) saturate(1.15)', canvas: 'sepia(28%) saturate(115%)' },
+  { id: 'azul', nombre: 'Azul UMG', icono: 'mdi-palette-outline', css: 'hue-rotate(175deg) saturate(1.1)', canvas: 'hue-rotate(175deg) saturate(110%)' },
+  { id: 'gris', nombre: 'Clásico', icono: 'mdi-image-filter-black-white', css: 'grayscale(1) contrast(1.08)', canvas: 'grayscale(100%) contrast(108%)' }
+]
+const filtroActual = ref(filtros[0]!)
+let arrastrandoSticker = false
+let desplazamientoSticker = { x: 0, y: 0 }
 
 onMounted(async () => {
   calentar()
@@ -179,12 +237,95 @@ function formatFecha(iso: string) {
 
 function iniciarEnrolamiento() {
   msgFacial.value = ''
+  capturaPendiente.value = null
   camaraFacialActiva.value = true
 }
 
 function cancelarEnrolamiento() {
   camaraFacialActiva.value = false
+  capturaPendiente.value = null
   msgFacial.value = ''
+  terminarArrastreSticker()
+}
+
+function repetirFoto() {
+  capturaPendiente.value = null
+  msgFacial.value = ''
+  terminarArrastreSticker()
+}
+
+function prepararFoto(captura: { descriptor: number[] | null, fotoRecortada: string | null }) {
+  if (!captura.descriptor || !captura.fotoRecortada) return
+  capturaPendiente.value = { descriptor: captura.descriptor, fotoRecortada: captura.fotoRecortada }
+  filtroActual.value = filtros[0]!
+  stickerActual.value = 'ninguno'
+  posicionSticker.x = 72
+  posicionSticker.y = 12
+  msgFacial.value = ''
+}
+
+function iniciarArrastreSticker(evento: PointerEvent) {
+  const vista = vistaPreviaFoto.value
+  if (!vista) return
+  const limites = vista.getBoundingClientRect()
+  arrastrandoSticker = true
+  desplazamientoSticker = {
+    x: evento.clientX - limites.left - posicionSticker.x,
+    y: evento.clientY - limites.top - posicionSticker.y
+  }
+  window.addEventListener('pointermove', moverSticker)
+  window.addEventListener('pointerup', terminarArrastreSticker, { once: true })
+}
+
+function moverSticker(evento: PointerEvent) {
+  const vista = vistaPreviaFoto.value
+  if (!arrastrandoSticker || !vista) return
+  const limites = vista.getBoundingClientRect()
+  posicionSticker.x = Math.max(0, Math.min(limites.width - tamanoSticker, evento.clientX - limites.left - desplazamientoSticker.x))
+  posicionSticker.y = Math.max(0, Math.min(limites.height - tamanoSticker, evento.clientY - limites.top - desplazamientoSticker.y))
+}
+
+function terminarArrastreSticker() {
+  arrastrandoSticker = false
+  window.removeEventListener('pointermove', moverSticker)
+}
+
+onBeforeUnmount(terminarArrastreSticker)
+
+function cargarImagen(origen: string): Promise<HTMLImageElement> {
+  return new Promise((resolver, rechazar) => {
+    const imagen = new Image()
+    imagen.onload = () => resolver(imagen)
+    imagen.onerror = () => rechazar(new Error('No se pudo cargar la imagen.'))
+    imagen.src = origen
+  })
+}
+
+async function crearFotoPersonalizada(fuente: string): Promise<string> {
+  const imagen = await cargarImagen(fuente)
+  const lienzo = document.createElement('canvas')
+  lienzo.width = 360
+  lienzo.height = 480
+  const contexto = lienzo.getContext('2d')
+  if (!contexto) throw new Error('No se pudo preparar la fotografía.')
+  contexto.filter = filtroActual.value.canvas
+  contexto.drawImage(imagen, 0, 0, lienzo.width, lienzo.height)
+  contexto.filter = 'none'
+
+  const rutaSticker = imagenesStickers[stickerActual.value]
+  if (rutaSticker) {
+    const sticker = await cargarImagen(rutaSticker)
+    const anchoVista = vistaPreviaFoto.value?.clientWidth || 120
+    const altoVista = vistaPreviaFoto.value?.clientHeight || 160
+    contexto.drawImage(
+      sticker,
+      posicionSticker.x * lienzo.width / anchoVista,
+      posicionSticker.y * lienzo.height / altoVista,
+      tamanoSticker * lienzo.width / anchoVista,
+      tamanoSticker * lienzo.height / altoVista
+    )
+  }
+  return lienzo.toDataURL('image/jpeg', 0.85)
 }
 
 function alFallarCamara(mensaje: string) {
@@ -197,16 +338,18 @@ function actualizarFotoSesion(fotoModificada: string | null) {
   auth.establecerSesionVerificada({ ...auth.user, fotoModificada })
 }
 
-async function enrolar(captura: { descriptor: number[] | null, fotoRecortada: string | null }) {
-  if (!captura.descriptor || !captura.fotoRecortada || enrolando.value) return
+async function enrolar() {
+  const captura = capturaPendiente.value
+  if (!captura || enrolando.value) return
   msgFacial.value = ''
   enrolando.value = true
 
   try {
+    const fotoPersonalizada = await crearFotoPersonalizada(captura.fotoRecortada)
     await api.post('/facial/enrolar', { descriptor: captura.descriptor })
     await api.put('/auth/perfil', {
       fotoBase64: captura.fotoRecortada,
-      fotoModificadaBase64: captura.fotoRecortada
+      fotoModificadaBase64: fotoPersonalizada
     })
 
     const { data } = await api.get('/auth/perfil')
@@ -216,10 +359,10 @@ async function enrolar(captura: { descriptor: number[] | null, fotoRecortada: st
     msgFacial.value = 'Rostro enrolado correctamente.'
     tipoMsgFacial.value = 'success'
     camaraFacialActiva.value = false
+    capturaPendiente.value = null
   } catch (e: any) {
-    msgFacial.value = e.response?.data?.mensaje || 'No se pudo enrolar el rostro.'
+    msgFacial.value = e.response?.data?.mensaje || 'No se pudo actualizar el rostro o la foto. Intenta nuevamente.'
     tipoMsgFacial.value = 'error'
-    setTimeout(() => escanerEnrol.value?.reiniciar(), 1800)
   } finally {
     enrolando.value = false
   }
@@ -229,5 +372,32 @@ async function enrolar(captura: { descriptor: number[] | null, fotoRecortada: st
 <style scoped>
 .facial-enrol-foto {
   border: 3px solid #B48B21;
+}
+.gap-2 { gap: 8px; }
+.foto-preview {
+  position: relative;
+  width: 120px;
+  height: 160px;
+  margin: 0 auto;
+  overflow: hidden;
+  border: 3px solid #B48B21;
+  border-radius: 12px;
+  background: #edf1f4;
+}
+.foto-preview__imagen { display: block; width: 100%; height: 100%; object-fit: cover; }
+.foto-preview__sticker {
+  position: absolute;
+  z-index: 1;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.foto-preview__sticker:active { cursor: grabbing; }
+.efectos-foto {
+  max-width: 420px;
+  margin: 0 auto;
+  padding-top: 4px;
+  border-top: 1px solid rgba(5, 27, 46, .12);
 }
 </style>
