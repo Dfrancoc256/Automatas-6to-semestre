@@ -149,8 +149,21 @@ public class AnalisisLexicoService : IAnalisisLexicoService
 
     private static readonly Dictionary<string, HashSet<string>> AdjetivosLexicos = new()
     {
+        ["español"] = new(StringComparer.OrdinalIgnoreCase) { "bueno","buena","grande","pequeño","pequeña","nuevo","nueva","viejo","vieja","importante","rápido","rápida","simple","complejo","compleja","formal","académico","académica" },
+        ["inglés"] = new(StringComparer.OrdinalIgnoreCase) { "good","big","small","new","old","important","fast","simple","complex","formal","academic" },
+        ["ruso"] = new(StringComparer.OrdinalIgnoreCase) { "большой","маленький","новый","старый","важный","красивый","быстрый","сильный","слабый" },
         ["chino"] = new(StringComparer.OrdinalIgnoreCase) { "好","大","小","新","旧","重要","快速","简单","复杂","正式" },
         ["árabe"] = new(StringComparer.OrdinalIgnoreCase) { "كبير","صغير","جديد","قديم","مهم","سريع","بسيط","رسمي" }
+    };
+
+    // Un AFD por idioma. Los léxicos definen el lenguaje aceptado por cada autómata.
+    private static readonly Dictionary<string, AutomataFinitoDeterminista> AutomatasPorIdioma = new()
+    {
+        ["español"] = CrearAutomata("español"),
+        ["inglés"] = CrearAutomata("inglés"),
+        ["ruso"] = CrearAutomata("ruso"),
+        ["chino"] = CrearAutomata("chino"),
+        ["árabe"] = CrearAutomata("árabe")
     };
 
     // Patrones de nombres propios (palabras que inician con mayúscula, no al inicio de oración)
@@ -289,39 +302,24 @@ public class AnalisisLexicoService : IAnalisisLexicoService
             .Select(kv => new FrecuenciaToken { Token = kv.Key, Frecuencia = kv.Value })
             .ToList();
 
-        // Clasificación
+        // Clasificación: el AFD recorre cada token aplicando δ(q, símbolo).
+        var automata = AutomatasPorIdioma[idioma];
+        var reconocimientos = tokens
+            .Select(token => token.ToLowerInvariant())
+            .Distinct()
+            .Select(token => new TokenReconocido(token, automata.Evaluar(token)))
+            .ToList();
+        reconocimientos.AddRange(EncontrarConectoresCompuestos(tokens, idioma, automata));
+
         var pronomsSet = Pronombres.GetValueOrDefault(idioma, PalabrasVacias);
         var verbsSet   = Verbos.GetValueOrDefault(idioma, PalabrasVacias);
         var conecSet   = Conectores.GetValueOrDefault(idioma, PalabrasVacias);
         var prepSet    = Preposiciones.GetValueOrDefault(idioma, PalabrasVacias);
 
-        var pronombresEncontrados = tokens
-            .Where(t => pronomsSet.Contains(t))
-            .Select(t => t.ToLowerInvariant())
-            .Distinct()
-            .OrderBy(x => x)
-            .ToList();
-
-        var verbosEncontrados = tokens
-            .Where(t => verbsSet.Contains(t))
-            .Select(t => t.ToLowerInvariant())
-            .Distinct()
-            .OrderBy(x => x)
-            .ToList();
-
-        var conectoresEncontrados = tokens
-            .Where(t => conecSet.Contains(t))
-            .Select(t => t.ToLowerInvariant())
-            .Distinct()
-            .OrderBy(x => x)
-            .ToList();
-
-        var preposicionesEncontradas = tokens
-            .Where(t => prepSet.Contains(t))
-            .Select(t => t.ToLowerInvariant())
-            .Distinct()
-            .OrderBy(x => x)
-            .ToList();
+        var pronombresEncontrados = ObtenerCategoria(reconocimientos, "pronombre");
+        var verbosEncontrados = ObtenerCategoria(reconocimientos, "verbo");
+        var conectoresEncontrados = ObtenerCategoria(reconocimientos, "conector");
+        var preposicionesEncontradas = ObtenerCategoria(reconocimientos, "preposición");
 
         // Nombres propios (heurística: mayúscula + no pronombre + no verbo + no al inicio)
         var stopWords = pronomsSet
@@ -359,11 +357,12 @@ public class AnalisisLexicoService : IAnalisisLexicoService
             .ToList();
 
         var adjetivosSet = AdjetivosLexicos.GetValueOrDefault(idioma, PalabrasVacias);
-        var adjetivos = tokens
+        var adjetivos = ObtenerCategoria(reconocimientos, "adjetivo")
+            .Union(tokens
             .Select(t => t.ToLowerInvariant())
             .Distinct()
             .Where(t => EsAdjetivo(t, idioma, adjetivosSet))
-            .Where(t => !clasificadas.Contains(t))
+            .Where(t => !clasificadas.Contains(t)))
             .OrderBy(x => x)
             .Take(20)
             .ToList();
@@ -391,10 +390,75 @@ public class AnalisisLexicoService : IAnalisisLexicoService
             UrlsEncontradas        = urls,
             FechasEncontradas      = fechas,
             HorasEncontradas       = horas,
+            EstadosAutomata        = automata.Estados.Count,
+            SimbolosAutomata       = automata.Alfabeto.Count,
+            TransicionesAutomata   = automata.CantidadTransiciones,
+            RecorridosAutomata     = reconocimientos
+                .OrderByDescending(reconocimiento => reconocimiento.Resultado.Aceptado)
+                .ThenBy(reconocimiento => reconocimiento.Token)
+                .Take(25)
+                .Select(reconocimiento => new RecorridoAutomataDTO
+                {
+                    Token = reconocimiento.Token,
+                    Aceptado = reconocimiento.Resultado.Aceptado,
+                    Categorias = reconocimiento.Resultado.Categorias.ToList(),
+                    Estados = reconocimiento.Resultado.EstadosRecorridos.ToList()
+                })
+                .ToList(),
             Idioma                 = idioma,
             NombreArchivo          = nombreArchivo,
             FechaAnalisis          = DateTime.UtcNow
         };
+    }
+
+    private static AutomataFinitoDeterminista CrearAutomata(string idioma) =>
+        AutomataFinitoDeterminista.CrearDesdeLexico(
+            new Dictionary<string, IEnumerable<string>>
+            {
+                ["pronombre"] = Pronombres[idioma],
+                ["verbo"] = Verbos[idioma],
+                ["conector"] = Conectores[idioma],
+                ["preposición"] = Preposiciones[idioma],
+                ["adjetivo"] = AdjetivosLexicos[idioma]
+            });
+
+    private static List<string> ObtenerCategoria(
+        IEnumerable<TokenReconocido> reconocimientos,
+        string categoria) => reconocimientos
+            .Where(reconocimiento => reconocimiento.Resultado.Categorias.Contains(categoria, StringComparer.OrdinalIgnoreCase))
+            .Select(reconocimiento => reconocimiento.Token)
+            .OrderBy(token => token)
+            .ToList();
+
+    private static IEnumerable<TokenReconocido> EncontrarConectoresCompuestos(
+        IReadOnlyList<string> tokens,
+        string idioma,
+        AutomataFinitoDeterminista automata)
+    {
+        var expresiones = Conectores[idioma]
+            .Where(expresion => expresion.Contains(' '))
+            .Select(expresion => expresion.ToLowerInvariant())
+            .ToList();
+        if (expresiones.Count == 0) yield break;
+
+        var primerosTerminos = expresiones
+            .Select(expresion => expresion.Split(' ', StringSplitOptions.RemoveEmptyEntries)[0])
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var longitudMaxima = expresiones
+            .Max(expresion => expresion.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length);
+
+        for (var inicio = 0; inicio < tokens.Count; inicio++)
+        {
+            if (!primerosTerminos.Contains(tokens[inicio])) continue;
+
+            for (var longitud = 2; longitud <= longitudMaxima && inicio + longitud <= tokens.Count; longitud++)
+            {
+                var candidato = string.Join(' ', tokens.Skip(inicio).Take(longitud)).ToLowerInvariant();
+                var resultado = automata.Evaluar(candidato);
+                if (resultado.Aceptado && resultado.Categorias.Contains("conector", StringComparer.OrdinalIgnoreCase))
+                    yield return new TokenReconocido(candidato, resultado);
+            }
+        }
     }
 
     private static List<string> Tokenizar(string contenido, string idioma)
@@ -406,13 +470,7 @@ public class AnalisisLexicoService : IAnalisisLexicoService
                 .ToList();
         }
 
-        var diccionario = Pronombres["chino"]
-            .Union(Verbos["chino"])
-            .Union(Conectores["chino"])
-            .Union(Preposiciones["chino"])
-            .Union(AdjetivosLexicos["chino"])
-            .OrderByDescending(palabra => palabra.Length)
-            .ToArray();
+        var automata = AutomatasPorIdioma["chino"];
         var tokens = new List<string>();
 
         foreach (Match coincidencia in Regex.Matches(contenido, @"[\u4E00-\u9FFF]+|[\p{L}]+"))
@@ -426,16 +484,17 @@ public class AnalisisLexicoService : IAnalisisLexicoService
 
             for (var posicion = 0; posicion < bloque.Length;)
             {
-                var palabra = diccionario.FirstOrDefault(item => bloque.AsSpan(posicion).StartsWith(item, StringComparison.Ordinal));
-                if (palabra == null)
+                // Segmentación por recorrido AFD: elige la coincidencia aceptada más larga.
+                var coincidenciaAfD = automata.BuscarPrefijoMasLargo(bloque, posicion);
+                if (coincidenciaAfD is null)
                 {
                     tokens.Add(bloque[posicion].ToString());
                     posicion++;
                 }
                 else
                 {
-                    tokens.Add(palabra);
-                    posicion += palabra.Length;
+                    tokens.Add(bloque.Substring(posicion, coincidenciaAfD.Longitud));
+                    posicion += coincidenciaAfD.Longitud;
                 }
             }
         }
@@ -455,4 +514,6 @@ public class AnalisisLexicoService : IAnalisisLexicoService
             _ => false
         };
     }
+
+    private sealed record TokenReconocido(string Token, ResultadoAutomata Resultado);
 }

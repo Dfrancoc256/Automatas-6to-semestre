@@ -137,6 +137,7 @@
             <v-tabs v-model="tabResultado" color="accent" density="compact">
               <v-tab value="frecuencia" prepend-icon="mdi-chart-bar">Frecuencia</v-tab>
               <v-tab value="clasificacion" prepend-icon="mdi-format-list-bulleted-type">Clasificación</v-tab>
+              <v-tab value="automata" prepend-icon="mdi-state-machine">Autómata AFD</v-tab>
               <v-tab value="patrones" prepend-icon="mdi-magnify-scan">Datos detectados</v-tab>
             </v-tabs>
 
@@ -193,6 +194,52 @@
                     </button>
                   </v-col>
                 </v-row>
+              </v-window-item>
+
+              <v-window-item value="automata" class="pa-4">
+                <v-alert type="success" variant="tonal" density="compact" class="mb-4">
+                  La clasificación léxica se ejecuta con un AFD: cada carácter aplica una transición δ(q, símbolo)
+                  y el token solo se acepta si finaliza en un estado de aceptación.
+                </v-alert>
+
+                <v-row class="mb-2">
+                  <v-col cols="4">
+                    <div class="automata-metric">
+                      <strong>{{ resultado.estadosAutomata }}</strong>
+                      <span>Estados Q</span>
+                    </div>
+                  </v-col>
+                  <v-col cols="4">
+                    <div class="automata-metric">
+                      <strong>{{ resultado.simbolosAutomata }}</strong>
+                      <span>Símbolos Σ</span>
+                    </div>
+                  </v-col>
+                  <v-col cols="4">
+                    <div class="automata-metric">
+                      <strong>{{ resultado.transicionesAutomata }}</strong>
+                      <span>Transiciones δ</span>
+                    </div>
+                  </v-col>
+                </v-row>
+
+                <p class="analysis-tab-intro">Recorrido de tokens distintos. q0 es el estado inicial; el último estado indica si el token fue aceptado.</p>
+                <div class="automata-table-wrap">
+                  <table class="tabla-frecuencia automata-table">
+                    <thead><tr><th>Token</th><th>Recorrido</th><th>Resultado</th></tr></thead>
+                    <tbody>
+                      <tr v-for="recorrido in resultado.recorridosAutomata" :key="recorrido.token">
+                        <td><code>{{ recorrido.token }}</code></td>
+                        <td class="automata-states">{{ recorrido.estados.map((estado: number) => `q${estado}`).join(' → ') }}</td>
+                        <td>
+                          <v-chip size="x-small" :color="recorrido.aceptado ? 'success' : 'grey'" variant="tonal">
+                            {{ recorrido.aceptado ? recorrido.categorias.join(', ') : 'No aceptado' }}
+                          </v-chip>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </v-window-item>
 
               <v-window-item value="patrones" class="pa-4">
@@ -544,4 +591,9 @@ async function descargarReporte() {
   .analysis-summary :deep(.v-col):nth-child(odd) { border-left: 0; }
   .analysis-summary :deep(.v-col):nth-child(n + 3) { border-top: 1px solid #E2E8F0; }
 }
+.automata-metric { border: 1px solid #D9E3EA; border-radius: 10px; padding: 12px 8px; text-align: center; background: #F8FBFC; }
+.automata-metric strong { display: block; color: #062640; font-size: 20px; }
+.automata-metric span { color: #587083; font-size: 12px; }
+.automata-table-wrap { overflow-x: auto; }
+.automata-states { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; white-space: nowrap; }
 </style>
