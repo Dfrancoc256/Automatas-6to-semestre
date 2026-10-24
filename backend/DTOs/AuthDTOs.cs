@@ -122,8 +122,8 @@ public class CambiarPasswordDTO
 public class CambiarPasswordTemporalDTO
 {
     [Required]
-    [RegularExpression(@"^(?=.{8,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).*$",
-        ErrorMessage = "La contraseña debe tener entre 8 y 128 caracteres, mayúscula, minúscula, número y carácter especial")]
+    [RegularExpression(@"^(?=.{8,35}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).*$",
+        ErrorMessage = "La contraseña debe tener entre 8 y 35 caracteres, mayúscula, minúscula, número y carácter especial")]
     public string NuevoPassword { get; set; } = string.Empty;
 }
 

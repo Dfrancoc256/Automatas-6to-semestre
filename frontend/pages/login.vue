@@ -259,7 +259,11 @@
 
     <v-dialog v-model="mostrarCambioPassword" max-width="440" persistent>
       <v-card class="pa-6">
-        <v-card-title class="px-0 text-h6">Crea tu contraseña personal</v-card-title>
+        <v-card-title class="px-0 text-h6 d-flex align-center">
+          <span>Crea tu contraseña personal</span>
+          <v-spacer />
+          <v-btn icon="mdi-close" variant="text" size="small" aria-label="Cancelar cambio de contraseña" title="Cancelar" :disabled="cambiandoPassword" @click="cancelarCambioPassword" />
+        </v-card-title>
         <v-card-text class="px-0">
           <p class="text-body-2 text-medium-emphasis mb-4">
             Tu contraseña temporal ya fue validada. Define una contraseña personal para continuar.
@@ -269,8 +273,10 @@
             label="Nueva contraseña"
             type="password"
             autocomplete="new-password"
-            hint="Mínimo 8 caracteres, mayúscula, minúscula, número y símbolo"
+            hint="Entre 8 y 35 caracteres, mayúscula, minúscula, número y símbolo"
             persistent-hint
+            maxlength="35"
+            counter="35"
             class="mb-3"
           />
           <v-text-field
@@ -278,6 +284,8 @@
             label="Confirmar nueva contraseña"
             type="password"
             autocomplete="new-password"
+            maxlength="35"
+            counter="35"
           />
           <v-alert v-if="errorCambioPassword" type="error" variant="tonal" density="compact" class="mt-3">
             {{ errorCambioPassword }}
@@ -667,9 +675,9 @@ async function solicitarRestablecimiento() {
 
 async function cambiarPasswordTemporal() {
   errorCambioPassword.value = ''
-  const cumpleRegla = /^(?=.{8,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).*$/.test(nuevaPassword.value)
+  const cumpleRegla = /^(?=.{8,35}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).*$/.test(nuevaPassword.value)
   if (!cumpleRegla) {
-    errorCambioPassword.value = 'Usa entre 8 y 128 caracteres, con mayúscula, minúscula, número y símbolo.'
+    errorCambioPassword.value = 'Usa entre 8 y 35 caracteres, con mayúscula, minúscula, número y símbolo.'
     return
   }
   if (nuevaPassword.value !== confirmarNuevaPassword.value) {
@@ -690,6 +698,20 @@ async function cambiarPasswordTemporal() {
   } finally {
     cambiandoPassword.value = false
   }
+}
+
+async function cancelarCambioPassword() {
+  if (cambiandoPassword.value) return
+  mostrarCambioPassword.value = false
+  nuevaPassword.value = ''
+  confirmarNuevaPassword.value = ''
+  errorCambioPassword.value = ''
+  try {
+    await api.post('/auth/logout')
+  } catch {
+    // La limpieza local evita conservar una sesión temporal.
+  }
+  auth.logout()
 }
 
 function identificadorValido(valor: string) {
