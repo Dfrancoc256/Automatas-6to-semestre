@@ -107,6 +107,11 @@ public class AuthController : ControllerBase
                 .SelectMany(v => v.Errors)
                 .Select(e => e.ErrorMessage) });
 
+        // Los nicknames son más cortos que los correos; este límite adicional
+        // también protege el endpoint aunque se omita la interfaz web.
+        if (!dto.Identificador.Contains('@') && dto.Identificador.Trim().Length > 25)
+            return BadRequest(new { mensaje = "El nickname no puede superar 25 caracteres." });
+
         if (!await _recaptcha.ValidarAsync(dto.RecaptchaToken))
             return BadRequest(new { mensaje = "Verificación reCAPTCHA inválida." });
 

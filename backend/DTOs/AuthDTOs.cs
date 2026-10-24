@@ -51,12 +51,12 @@ public class LoginDTO
 {
     [Required(ErrorMessage = "El nickname o correo es obligatorio")]
     [MinLength(3, ErrorMessage = "El identificador debe tener al menos 3 caracteres")]
-    [MaxLength(254)]
+    [MaxLength(30, ErrorMessage = "El correo o nickname no puede superar 30 caracteres")]
     public string Identificador { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "La contraseña es obligatoria")]
     [MinLength(8, ErrorMessage = "La contraseña debe tener al menos 8 caracteres")]
-    [MaxLength(128)]
+    [MaxLength(35, ErrorMessage = "La contraseña no puede superar 35 caracteres")]
     public string Password { get; set; } = string.Empty;
 
     // Token de reCAPTCHA

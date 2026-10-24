@@ -50,6 +50,8 @@
           placeholder="Ingresa tu correo o nickname"
           prepend-inner-icon="mdi-account-outline"
           autocomplete="username"
+          maxlength="30"
+          counter="30"
           :error="!!error"
           hide-details
           base-color="primary"
@@ -66,6 +68,8 @@
           :type="mostrarPass ? 'text' : 'password'"
           :append-inner-icon="mostrarPass ? 'mdi-eye-off' : 'mdi-eye'"
           autocomplete="current-password"
+          maxlength="35"
+          counter="35"
           @click:append-inner="mostrarPass = !mostrarPass"
           :error="!!error"
           hide-details
@@ -370,7 +374,7 @@ const rutaDestino = computed(() => {
 async function loginPassword() {
   error.value = ''
   const identificadorInvalido = !identificadorValido(form.identificador)
-  const passwordInvalida = form.password.length < 8
+  const passwordInvalida = form.password.length < 8 || form.password.length > 35
   const captchaPendiente = !puedeEnviar.value
 
   if (identificadorInvalido && passwordInvalida && captchaPendiente) {
@@ -378,7 +382,7 @@ async function loginPassword() {
     return
   }
   if (identificadorInvalido && passwordInvalida) {
-    error.value = 'Completa tu correo o nombre de usuario y una contraseña de al menos 8 caracteres.'
+    error.value = 'Completa tu correo o nombre de usuario y una contraseña de entre 8 y 35 caracteres.'
     return
   }
   if (identificadorInvalido && captchaPendiente) {
@@ -386,15 +390,15 @@ async function loginPassword() {
     return
   }
   if (passwordInvalida && captchaPendiente) {
-    error.value = 'Completa una contraseña de al menos 8 caracteres y la verificación reCAPTCHA para continuar.'
+    error.value = 'Completa una contraseña de entre 8 y 35 caracteres y la verificación reCAPTCHA para continuar.'
     return
   }
   if (identificadorInvalido) {
-    error.value = 'Ingresa un correo válido o un nickname de 3 a 50 caracteres.'
+    error.value = 'Ingresa un correo válido de hasta 30 caracteres o un nickname de 3 a 25 caracteres.'
     return
   }
   if (passwordInvalida) {
-    error.value = 'La contraseña debe tener al menos 8 caracteres.'
+    error.value = 'La contraseña debe tener entre 8 y 35 caracteres.'
     return
   }
   if (!puedeEnviar.value) {
@@ -611,8 +615,8 @@ async function cambiarPasswordTemporal() {
 
 function identificadorValido(valor: string) {
   const identificador = valor.trim()
-  if (identificador.includes('@')) return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identificador)
-  return /^[a-zA-Z0-9_.-]{3,50}$/.test(identificador)
+  if (identificador.includes('@')) return identificador.length <= 30 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identificador)
+  return /^[a-zA-Z0-9_.-]{3,25}$/.test(identificador)
 }
 
 async function continuarConGoogle() {
