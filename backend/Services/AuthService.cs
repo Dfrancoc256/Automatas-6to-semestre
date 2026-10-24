@@ -595,7 +595,11 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponseDTO?> CambiarPasswordTemporalAsync(int usuarioId, string nuevoPassword)
     {
-        var usuario = await _db.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioId && u.Activo);
+        // Esta operación solo es válida para una sesión autenticada con la
+        // contraseña temporal. Evita reutilizar el endpoint después de que la
+        // cuenta ya haya definido su contraseña personal.
+        var usuario = await _db.Usuarios.FirstOrDefaultAsync(u =>
+            u.Id == usuarioId && u.Activo && u.DebeCambiarPassword);
         if (usuario == null) return null;
 
         usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(nuevoPassword);
