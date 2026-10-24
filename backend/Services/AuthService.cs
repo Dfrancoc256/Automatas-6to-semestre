@@ -350,15 +350,16 @@ public class AuthService : IAuthService
 
         _logger.LogInformation("Nuevo usuario registrado: {UsuarioId} ({Correo})", usuario.Id, usuario.Correo);
         var codigoQr = _jwt.GenerarCodigoQrCredencial(usuario);
-        await NotificarRegistroAsync(usuario, codigoQr, passwordTemporal);
+        var correoEnviado = await NotificarRegistroAsync(usuario, codigoQr, passwordTemporal);
 
         var respuesta = CrearRespuestaSesion(usuario, omitirCambioPassword: true);
         respuesta.CodigoQr = codigoQr;
+        respuesta.PasswordTemporalEnviada = passwordTemporal is not null && correoEnviado;
         return respuesta;
     }
 
     /// <summary>Envía las notificaciones del registro.</summary>
-    private async Task NotificarRegistroAsync(Usuario usuario, string codigoQr, string? passwordTemporal)
+    private async Task<bool> NotificarRegistroAsync(Usuario usuario, string codigoQr, string? passwordTemporal)
     {
         var nombre = WebUtility.HtmlEncode(usuario.NombreCompleto);
         var correo = WebUtility.HtmlEncode(usuario.Correo);
@@ -391,11 +392,14 @@ public class AuthService : IAuthService
             $"Nickname: {usuario.Nickname}\n\n" +
             mensajeAcceso;
 
+        var correoEnviado = false;
         try
         {
             await _emailService.SendEmailAsync(
                 usuario.Correo,
-                "Registro exitoso - Lenguajes Formales",
+                passwordTemporal is null
+                    ? "Registro exitoso - Lenguajes Formales"
+                    : "Tu contraseña temporal de acceso - Lenguajes Formales",
                 $"<p>¡Bienvenido, <strong>{nombre}</strong>!</p>" +
                 "<p>Tu cuenta fue creada correctamente. Estos son tus datos de acceso:</p>" +
                 $"<ul><li><strong>Enlace:</strong> <a href=\"{urlHtml}\">{urlHtml}</a></li>" +
@@ -408,6 +412,7 @@ public class AuthService : IAuthService
                 "<p>Adjuntamos tu credencial PDF con código QR.</p>",
                 credencial,
                 credencial is null ? null : nombreArchivo);
+            correoEnviado = true;
         }
         catch (Exception ex)
         {
@@ -423,6 +428,8 @@ public class AuthService : IAuthService
             if (!enviado)
                 _logger.LogWarning("No se pudo enviar WhatsApp de registro al usuario {UsuarioId}", usuario.Id);
         }
+
+        return correoEnviado;
     }
 
     // Registro temporal para desarrollo.

@@ -148,6 +148,8 @@ public class AuthResponseDTO
     public DateTime Expiracion { get; set; }
     public string? CodigoQr { get; set; }
     public bool DebeCambiarPassword { get; set; }
+    // Nunca expone la clave: solo confirma que el correo con la clave temporal salió del servidor.
+    public bool PasswordTemporalEnviada { get; set; }
 }
 
 /// <summary>Datos mínimos de una sesión ya validada por la cookie HttpOnly.</summary>

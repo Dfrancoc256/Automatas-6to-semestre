@@ -221,7 +221,9 @@
               <p class="text-body-2 text-medium-emphasis mb-6">
                 {{ esRegistroGoogle
                   ? 'Tu cuenta ha sido creada. A partir de ahora podrás ingresar con la cuenta de Google seleccionada.'
-                  : 'Tu cuenta ha sido creada. Revisa tu correo para conocer la contraseña temporal. En tu próximo inicio de sesión deberás cambiarla por una contraseña personal.' }}
+                  : passwordTemporalEnviada
+                    ? `Tu cuenta ha sido creada. Enviamos una contraseña temporal a ${form.correo}. Úsala en tu próximo ingreso y luego cámbiala por una contraseña personal.`
+                    : 'Tu cuenta ha sido creada, pero no fue posible enviar la contraseña temporal. Solicita el restablecimiento de contraseña antes de cerrar esta sesión.' }}
               </p>
               <v-btn color="accent" class="umg-gold-button" prepend-icon="mdi-login"
                      @click="navigateTo('/dashboard')">
@@ -258,6 +260,7 @@ const paso        = ref(1)
 const cargando    = ref(false)
 const error       = ref('')
 const descargando = ref(false)
+const passwordTemporalEnviada = ref(false)
 const formPaso1   = ref<any>(null)
 const formularioEnEdicion = ref(false)
 const googleRegistroToken = computed(() => typeof route.query.googleRegistro === 'string' ? route.query.googleRegistro : '')
@@ -556,6 +559,7 @@ async function registrar() {
       recaptchaToken:     bypassDesarrollo.value ? 'dev-bypass' : recaptchaToken.value
     }
     const { data } = await api.post('/auth/registro', payload)
+    passwordTemporalEnviada.value = data.passwordTemporalEnviada === true
     auth.login(data)
     paso.value = 3
   } catch (e: any) {
