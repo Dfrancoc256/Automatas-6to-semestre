@@ -3,7 +3,7 @@
     <section class="executive-hero" aria-labelledby="dashboard-title">
       <div>
         <p class="executive-hero__eyebrow">Panel de trabajo</p>
-        <h1 id="dashboard-title" class="executive-hero__greeting">{{ saludo }}, {{ nombreUsuario }}.</h1>
+        <h1 id="dashboard-title" class="executive-hero__greeting" :data-greeting="textoSaludo">{{ textoSaludo }}</h1>
         <p>Gestiona tus análisis léxicos y consulta la actividad de tu espacio académico.</p>
       </div>
       <div class="executive-hero__actions">
@@ -96,6 +96,7 @@ const { api } = useApi()
 const stats   = ref<any>(null)
 const nombreUsuario = computed(() => auth.user?.nombre || auth.user?.nickname || 'usuario')
 const saludo = ref('Buen día')
+const textoSaludo = computed(() => `${saludo.value}, ${nombreUsuario.value}.`)
 const fechaActual = computed(() => new Intl.DateTimeFormat('es-GT', {
   day: '2-digit', month: 'long', year: 'numeric'
 }).format(new Date()))
@@ -217,11 +218,22 @@ function formatFecha(iso: string) {
 .executive-hero__eyebrow { color: #e1b22a; }
 .executive-hero h1 { margin: 0; font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif; font-size: clamp(1.7rem, 3vw, 2.25rem); line-height: 1.1; }
 .executive-hero__greeting {
+  position: relative;
+  display: inline-block;
+  color: #fff;
+  text-shadow: 0 0 16px rgba(255, 232, 165, .16);
+}
+.executive-hero__greeting::after {
+  position: absolute;
+  inset: 0;
+  content: attr(data-greeting);
   color: transparent;
-  background: linear-gradient(105deg, #fff 0%, #fff 38%, #ffe8a5 50%, #fff 62%, #fff 100%);
+  background: linear-gradient(105deg, transparent 0%, transparent 38%, rgba(255, 237, 181, .95) 50%, transparent 62%, transparent 100%);
   background-size: 250% 100%;
   -webkit-background-clip: text;
   background-clip: text;
+  -webkit-text-fill-color: transparent;
+  pointer-events: none;
   animation: executive-greeting-shine 3.2s ease-in-out infinite;
 }
 .executive-hero > div > p:not(.executive-hero__eyebrow) { max-width: 630px; margin: .7rem 0 0; color: #d9e5ec; }
@@ -233,7 +245,7 @@ function formatFecha(iso: string) {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .executive-hero__greeting { animation: none; color: #fff; background: none; }
+  .executive-hero__greeting::after { display: none; }
 }
 
 .executive-metrics {
