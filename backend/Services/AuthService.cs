@@ -112,7 +112,12 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponseDTO?> LoginQrAsync(LoginQrDTO dto, string ip, string userAgent)
     {
-        var principal = _jwt.ValidarTokenQr(dto.CodigoQr.Trim());
+        // El QR impreso en el carnet contiene una URL de verificación firmada.
+        // Se extrae su token para que el mismo carnet pueda autenticarse sin
+        // crear un segundo QR distinto para iniciar sesión.
+        var codigoQr = ExtraerTokenDelCodigoQr(dto.CodigoQr);
+        var principal = _jwt.ValidarCodigoQrCredencial(codigoQr)
+            ?? _jwt.ValidarTokenQr(codigoQr); // Compatibilidad con carnets anteriores.
         var idTexto = principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (!int.TryParse(idTexto, out var usuarioId))
             return null;
@@ -132,6 +137,22 @@ public class AuthService : IAuthService
         await _db.SaveChangesAsync();
 
         return CrearRespuestaSesion(usuario);
+    }
+
+    private static string ExtraerTokenDelCodigoQr(string codigoQr)
+    {
+        var contenido = codigoQr.Trim();
+        if (!Uri.TryCreate(contenido, UriKind.Absolute, out var url))
+            return contenido;
+
+        foreach (var parametro in url.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var partes = parametro.Split('=', 2);
+            if (partes.Length == 2 && string.Equals(partes[0], "token", StringComparison.OrdinalIgnoreCase))
+                return Uri.UnescapeDataString(partes[1]);
+        }
+
+        return contenido;
     }
 
     public async Task<AuthResponseDTO?> LoginGoogleAsync(string googleSubject, string correo, string ip, string userAgent)

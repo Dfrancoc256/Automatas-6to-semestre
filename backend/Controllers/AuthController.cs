@@ -342,6 +342,11 @@ public class AuthController : ControllerBase
     [EnableRateLimiting("auth")]
     public async Task<IActionResult> LoginQr([FromBody] LoginQrDTO dto)
     {
+        if (!ModelState.IsValid)
+            return BadRequest(new { errores = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage) });
+
         if (!await _recaptcha.ValidarAsync(dto.RecaptchaToken))
             return BadRequest(new { mensaje = "Verificación reCAPTCHA inválida." });
 

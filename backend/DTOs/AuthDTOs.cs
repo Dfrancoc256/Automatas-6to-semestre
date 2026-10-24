@@ -82,7 +82,8 @@ public class EnrolarFacialDTO
 
 public class LoginQrDTO
 {
-    [Required]
+    [Required(ErrorMessage = "El código QR es obligatorio")]
+    [MaxLength(2048, ErrorMessage = "El código QR no tiene un formato válido")]
     public string CodigoQr { get; set; } = string.Empty;
 
     [Required]

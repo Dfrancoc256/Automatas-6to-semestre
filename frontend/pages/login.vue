@@ -134,6 +134,17 @@
         >
           {{ intentosFacialesRestantes ? 'Ingresar con reconocimiento facial' : 'Reconocimiento facial no disponible' }}
         </v-btn>
+        <v-btn
+          variant="outlined"
+          color="primary"
+          block
+          class="mt-3"
+          prepend-icon="mdi-qrcode-scan"
+          :disabled="!puedeEnviar"
+          @click="abrirEscanerQr"
+        >
+          Ingresar con carnet QR
+        </v-btn>
       </div>
 
       <div class="text-center mt-5">
@@ -180,6 +191,29 @@
         </v-card-text>
         <v-card-actions class="px-0 justify-end">
           <v-btn variant="outlined" :disabled="verificandoFacial || rostroValidado" @click="mostrarFacial = false">Cancelar</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="mostrarQr" max-width="460" :persistent="verificandoQr">
+      <v-card class="pa-6">
+        <v-card-title class="px-0 text-h6">Ingresar con carnet QR</v-card-title>
+        <v-card-text class="px-0 text-center">
+          <p class="text-body-2 text-medium-emphasis mb-4">
+            Enfoca con la cámara el código QR impreso en tu carnet institucional.
+          </p>
+          <QrLoginScanner
+            v-if="mostrarQr && !verificandoQr"
+            @detectado="ingresarConQr"
+            @error="errorQr = $event"
+          />
+          <v-progress-circular v-else-if="verificandoQr" indeterminate color="accent" size="44" class="my-10" />
+          <v-alert v-if="errorQr" type="error" variant="tonal" density="compact" class="mt-4">
+            {{ errorQr }}
+          </v-alert>
+        </v-card-text>
+        <v-card-actions class="px-0 justify-end">
+          <v-btn variant="outlined" :disabled="verificandoQr" @click="mostrarQr = false">Cancelar</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -288,6 +322,9 @@ const enviandoReset = ref(false)
 const errorReset = ref('')
 const mensajeReset = ref('')
 const accesoExitoso = ref(false)
+const mostrarQr = ref(false)
+const verificandoQr = ref(false)
+const errorQr = ref('')
 const mostrarCambioPassword = ref(false)
 const nuevaPassword = ref('')
 const confirmarNuevaPassword = ref('')
@@ -471,6 +508,48 @@ async function abrirLoginFacial() {
   }
 
   mostrarFacial.value = true
+}
+
+function abrirEscanerQr() {
+  if (!puedeEnviar.value) {
+    error.value = 'Completa la verificación reCAPTCHA antes de escanear tu carnet.'
+    return
+  }
+
+  error.value = ''
+  errorQr.value = ''
+  mostrarQr.value = true
+}
+
+async function ingresarConQr(codigoQr: string) {
+  if (verificandoQr.value) return
+
+  errorQr.value = ''
+  verificandoQr.value = true
+  try {
+    const { data } = await api.post('/auth/login-qr', {
+      codigoQr,
+      recaptchaToken: bypassDesarrollo.value ? 'dev-bypass' : recaptchaToken.value
+    })
+
+    auth.login(data)
+    if (data.debeCambiarPassword) {
+      mostrarQr.value = false
+      abrirCambioPassword()
+      return
+    }
+
+    accesoExitoso.value = true
+    mostrarQr.value = false
+    await new Promise(resolve => setTimeout(resolve, 650))
+    await navigateTo(rutaDestino.value)
+  } catch (e: any) {
+    errorQr.value = e.response?.data?.mensaje || 'El código QR no es válido o el carnet venció.'
+    recaptchaToken.value = ''
+    recaptcha.value?.reiniciar()
+  } finally {
+    verificandoQr.value = false
+  }
 }
 
 function cerrarPorAusenciaDeRostro() {
