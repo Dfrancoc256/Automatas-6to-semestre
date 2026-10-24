@@ -219,7 +219,6 @@ public class DashboardController : ControllerBase
             {
                 b.Id,
                 b.FechaHora,
-                b.IpOrigen,
                 b.Resultado,
                 b.Metodo,
                 Usuario = b.Usuario != null ? b.Usuario.Nickname : "—"
