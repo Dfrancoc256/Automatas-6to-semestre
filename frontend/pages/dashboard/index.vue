@@ -3,12 +3,12 @@
     <section class="executive-hero" aria-labelledby="dashboard-title">
       <div>
         <p class="executive-hero__eyebrow">Panel de trabajo</p>
-        <h1 id="dashboard-title">{{ saludo }}, {{ nombreUsuario }}.</h1>
+        <h1 id="dashboard-title" class="executive-hero__greeting">{{ saludo }}, {{ nombreUsuario }}.</h1>
         <p>Gestiona tus análisis léxicos y consulta la actividad de tu espacio académico.</p>
       </div>
       <div class="executive-hero__actions">
         <span class="executive-hero__date"><v-icon size="16">mdi-calendar-blank-outline</v-icon>{{ fechaActual }}</span>
-        <v-btn class="umg-gold-button executive-hero__new-analysis" prepend-icon="mdi-plus" @click="navigateTo('/dashboard/analisis')">Nuevo análisis</v-btn>
+        <v-btn class="umg-gold-button" prepend-icon="mdi-plus" @click="navigateTo('/dashboard/analisis')">Nuevo análisis</v-btn>
       </div>
     </section>
 
@@ -216,26 +216,24 @@ function formatFecha(iso: string) {
 
 .executive-hero__eyebrow { color: #e1b22a; }
 .executive-hero h1 { margin: 0; font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif; font-size: clamp(1.7rem, 3vw, 2.25rem); line-height: 1.1; }
+.executive-hero__greeting {
+  color: transparent;
+  background: linear-gradient(105deg, #fff 0%, #fff 38%, #ffe8a5 50%, #fff 62%, #fff 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: executive-greeting-shine 3.2s ease-in-out infinite;
+}
 .executive-hero > div > p:not(.executive-hero__eyebrow) { max-width: 630px; margin: .7rem 0 0; color: #d9e5ec; }
 .executive-hero__actions { display: flex; flex-direction: column; align-items: flex-end; gap: .8rem; flex-shrink: 0; }
 .executive-hero__date { display: inline-flex; gap: .4rem; align-items: center; color: #d9e5ec; font-size: .84rem; text-transform: capitalize; }
-.executive-hero__new-analysis { position: relative; overflow: hidden; isolation: isolate; }
-.executive-hero__new-analysis::before {
-  content: '';
-  position: absolute;
-  inset: -20% auto -20% -45%;
-  width: 26%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,.72), transparent);
-  transform: skewX(-22deg);
-  animation: executive-button-shine 2.8s ease-in-out infinite;
-  z-index: 0;
+@keyframes executive-greeting-shine {
+  0%, 28% { background-position: 100% 0; }
+  62%, 100% { background-position: -150% 0; }
 }
-.executive-hero__new-analysis :deep(.v-btn__content) { position: relative; z-index: 1; }
 
-@keyframes executive-button-shine {
-  0%, 34% { transform: translateX(0) skewX(-22deg); opacity: 0; }
-  40% { opacity: 1; }
-  65%, 100% { transform: translateX(520%) skewX(-22deg); opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .executive-hero__greeting { animation: none; color: #fff; background: none; }
 }
 
 .executive-metrics {
