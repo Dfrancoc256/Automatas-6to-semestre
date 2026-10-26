@@ -97,13 +97,6 @@
                         :items="['email','whatsapp','ambos']"
                         class="mb-4" />
 
-              <v-alert type="info" variant="tonal" density="compact" class="mb-3">
-                Tu nickname se generará automáticamente.
-                {{ esRegistroGoogle
-                  ? 'Podrás ingresar con la cuenta de Google que seleccionaste.'
-                  : 'Recibirás por correo un enlace para crear tu contraseña antes de ingresar.' }}
-              </v-alert>
-
               <v-alert v-if="error" type="error" variant="tonal" density="compact" class="mb-4">
                 {{ error }}
               </v-alert>
@@ -228,17 +221,15 @@
               <p class="text-body-2 text-medium-emphasis mb-6">
                 {{ esRegistroGoogle
                   ? 'Tu cuenta ha sido creada. A partir de ahora podrás ingresar con la cuenta de Google seleccionada.'
-                  : 'Tu cuenta ha sido creada. Revisa tu correo y abre el enlace para crear tu contraseña antes del primer acceso.' }}
+                  : passwordTemporalEnviada
+                    ? `Tu cuenta ha sido creada. Enviamos a ${form.correo} el enlace de acceso, tu usuario, una contraseña temporal y tu credencial PDF. Inicia sesión con esa contraseña para crear la tuya en la ventana que aparecerá.`
+                    : 'Tu cuenta ha sido creada, pero no fue posible enviar el correo de acceso. Solicita el restablecimiento de contraseña desde la página de ingreso.' }}
               </p>
-              <v-btn v-if="esRegistroGoogle" color="accent" class="umg-gold-button" prepend-icon="mdi-login"
-                     @click="navigateTo('/dashboard')">
+              <v-btn color="accent" class="umg-gold-button" prepend-icon="mdi-login"
+                     @click="esRegistroGoogle ? navigateTo('/dashboard') : emit('cambiarModo', 'login')">
                 Ingresar
               </v-btn>
-              <v-btn v-else color="accent" class="umg-gold-button" prepend-icon="mdi-email-outline"
-                     @click="navigateTo('/')">
-                Entendido, ir al inicio
-              </v-btn>
-              <v-btn class="mt-3" variant="outlined" color="secondary"
+              <v-btn v-if="esRegistroGoogle" class="mt-3" variant="outlined" color="secondary"
                      prepend-icon="mdi-file-pdf-box" :loading="descargando"
                      @click="descargarCredencial">
                 Descargar credencial PDF
@@ -269,6 +260,7 @@ const paso        = ref(1)
 const cargando    = ref(false)
 const error       = ref('')
 const descargando = ref(false)
+const passwordTemporalEnviada = ref(false)
 const formPaso1   = ref<any>(null)
 const formularioEnEdicion = ref(false)
 const googleRegistroToken = computed(() => typeof route.query.googleRegistro === 'string' ? route.query.googleRegistro : '')
@@ -567,6 +559,7 @@ async function registrar() {
       recaptchaToken:     bypassDesarrollo.value ? 'dev-bypass' : recaptchaToken.value
     }
     const { data } = await api.post('/auth/registro', payload)
+    passwordTemporalEnviada.value = data.passwordTemporalEnviada === true
     if (esRegistroGoogle.value) auth.login(data)
     else auth.logout()
     paso.value = 3
@@ -576,6 +569,7 @@ async function registrar() {
     if (requiereRecaptcha.value && !bypassDesarrollo.value) {
       recaptchaToken.value = ''
       recaptcha.value?.reiniciar()
+      paso.value = 1
       error.value += ' Completa nuevamente reCAPTCHA antes de reintentar.'
     }
   } finally {

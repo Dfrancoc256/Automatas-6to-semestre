@@ -3,7 +3,7 @@
     <section class="executive-hero" aria-labelledby="dashboard-title">
       <div>
         <p class="executive-hero__eyebrow">Panel de trabajo</p>
-        <h1 id="dashboard-title">Buen día, {{ nombreUsuario }}.</h1>
+        <h1 id="dashboard-title" class="executive-hero__greeting" :data-greeting="textoSaludo">{{ textoSaludo }}</h1>
         <p>Gestiona tus análisis léxicos y consulta la actividad de tu espacio académico.</p>
       </div>
       <div class="executive-hero__actions">
@@ -95,6 +95,8 @@ const auth    = useAuthStore()
 const { api } = useApi()
 const stats   = ref<any>(null)
 const nombreUsuario = computed(() => auth.user?.nombre || auth.user?.nickname || 'usuario')
+const saludo = ref('Buen día')
+const textoSaludo = computed(() => `${saludo.value}, ${nombreUsuario.value}.`)
 const fechaActual = computed(() => new Intl.DateTimeFormat('es-GT', {
   day: '2-digit', month: 'long', year: 'numeric'
 }).format(new Date()))
@@ -150,13 +152,30 @@ const modulos = computed(() => {
   return disponibles
 })
 
+let temporizadorSaludo: number | undefined
+
+function actualizarSaludo() {
+  const hora = new Date().getHours()
+  saludo.value = hora >= 5 && hora < 12
+    ? 'Buenos días'
+    : hora >= 12 && hora < 19
+      ? 'Buenas tardes'
+      : 'Buenas noches'
+}
+
 onMounted(async () => {
+  actualizarSaludo()
+  temporizadorSaludo = window.setInterval(actualizarSaludo, 60_000)
   if (auth.isSupervisor) {
     try {
       const { data } = await api.get('/dashboard/estadisticas')
       stats.value = data
     } catch { /* sin permisos */ }
   }
+})
+
+onBeforeUnmount(() => {
+  if (temporizadorSaludo) window.clearInterval(temporizadorSaludo)
 })
 
 function formatFecha(iso: string) {
@@ -198,9 +217,36 @@ function formatFecha(iso: string) {
 
 .executive-hero__eyebrow { color: #e1b22a; }
 .executive-hero h1 { margin: 0; font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif; font-size: clamp(1.7rem, 3vw, 2.25rem); line-height: 1.1; }
+.executive-hero__greeting {
+  position: relative;
+  display: inline-block;
+  color: #fff;
+  text-shadow: 0 0 16px rgba(255, 232, 165, .16);
+}
+.executive-hero__greeting::after {
+  position: absolute;
+  inset: 0;
+  content: attr(data-greeting);
+  color: transparent;
+  background: linear-gradient(105deg, transparent 0%, transparent 38%, rgba(255, 237, 181, .95) 50%, transparent 62%, transparent 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  pointer-events: none;
+  animation: executive-greeting-shine 3.2s ease-in-out infinite;
+}
 .executive-hero > div > p:not(.executive-hero__eyebrow) { max-width: 630px; margin: .7rem 0 0; color: #d9e5ec; }
 .executive-hero__actions { display: flex; flex-direction: column; align-items: flex-end; gap: .8rem; flex-shrink: 0; }
 .executive-hero__date { display: inline-flex; gap: .4rem; align-items: center; color: #d9e5ec; font-size: .84rem; text-transform: capitalize; }
+@keyframes executive-greeting-shine {
+  0%, 28% { background-position: 100% 0; }
+  62%, 100% { background-position: -150% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .executive-hero__greeting::after { display: none; }
+}
 
 .executive-metrics {
   display: grid;

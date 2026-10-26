@@ -68,7 +68,10 @@ public class AuthController : ControllerBase
         try
         {
             var result = await _auth.RegistrarAsync(dto);
-            EstablecerCookieSesion(result.Token, result.Expiracion);
+            if (result.DebeCambiarPassword)
+                BorrarCookieSesion();
+            else
+                EstablecerCookieSesion(result.Token, result.Expiracion);
             return Ok(result);
         }
         catch (InvalidOperationException ex)
@@ -106,6 +109,11 @@ public class AuthController : ControllerBase
             return BadRequest(new { errores = ModelState.Values
                 .SelectMany(v => v.Errors)
                 .Select(e => e.ErrorMessage) });
+
+        // Los nicknames son más cortos que los correos; este límite adicional
+        // también protege el endpoint aunque se omita la interfaz web.
+        if (!dto.Identificador.Contains('@') && dto.Identificador.Trim().Length > 25)
+            return BadRequest(new { mensaje = "El nickname no puede superar 25 caracteres." });
 
         if (!await _recaptcha.ValidarAsync(dto.RecaptchaToken))
             return BadRequest(new { mensaje = "Verificación reCAPTCHA inválida." });
@@ -267,40 +275,11 @@ public class AuthController : ControllerBase
         if (!int.TryParse(idStr, out var usuarioId))
             return Unauthorized();
 
-        var result = await _auth.CambiarPasswordTemporalAsync(
-            usuarioId, dto.PasswordTemporal, dto.NuevoPassword);
-        if (result == null)
-            return BadRequest(new { mensaje = "La contraseña temporal no es correcta o ya fue cambiada." });
+        var result = await _auth.CambiarPasswordTemporalAsync(usuarioId, dto.NuevoPassword);
+        if (result == null) return Unauthorized();
 
         EstablecerCookieSesion(result.Token, result.Expiracion);
         return Ok(result);
-    }
-
-    [HttpGet("validar-enlace-inicial")]
-    [AllowAnonymous]
-    [EnableRateLimiting("auth")]
-    public async Task<IActionResult> ValidarEnlaceInicial([FromQuery] string token)
-    {
-        var valido = await _auth.EnlaceCambioInicialValidoAsync(token);
-        return valido
-            ? Ok(new { valido = true })
-            : BadRequest(new { mensaje = "El enlace expiró o ya fue utilizado." });
-    }
-
-    [HttpPost("cambiar-password-inicial")]
-    [AllowAnonymous]
-    [EnableRateLimiting("auth")]
-    public async Task<IActionResult> CambiarPasswordInicial([FromBody] CambiarPasswordInicialDTO dto)
-    {
-        if (!ModelState.IsValid)
-            return BadRequest(new { errores = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage) });
-
-        var sesion = await _auth.CambiarPasswordInicialAsync(dto.Token, dto.NuevoPassword);
-        if (sesion is null)
-            return BadRequest(new { mensaje = "El enlace expiró o ya fue utilizado." });
-
-        EstablecerCookieSesion(sesion.Token, sesion.Expiracion);
-        return Ok(sesion);
     }
 
     /// <summary>Solicita un enlace de un solo uso para restablecer la contraseña.</summary>
@@ -366,6 +345,11 @@ public class AuthController : ControllerBase
     [EnableRateLimiting("auth")]
     public async Task<IActionResult> LoginQr([FromBody] LoginQrDTO dto)
     {
+        if (!ModelState.IsValid)
+            return BadRequest(new { errores = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage) });
+
         if (!await _recaptcha.ValidarAsync(dto.RecaptchaToken))
             return BadRequest(new { mensaje = "Verificación reCAPTCHA inválida." });
 
@@ -686,6 +670,12 @@ public class AuthController : ControllerBase
     [Authorize]
     public IActionResult Logout()
     {
+        BorrarCookieSesion();
+        return NoContent();
+    }
+
+    private void BorrarCookieSesion()
+    {
         Response.Cookies.Delete("umg_session", new CookieOptions
         {
             Path = "/",
@@ -694,7 +684,6 @@ public class AuthController : ControllerBase
             HttpOnly = true,
             IsEssential = true
         });
-        return NoContent();
     }
 
     private void EstablecerCookieSesion(string token, DateTime expiracion)

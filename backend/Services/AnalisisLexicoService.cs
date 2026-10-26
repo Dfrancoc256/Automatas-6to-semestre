@@ -28,14 +28,9 @@ public class AnalisisLexicoService : IAnalisisLexicoService
     {
         ["español"] = new(StringComparer.OrdinalIgnoreCase)
         {
-            "yo","tú","él","ella",
-            "nosotros","nosotras",
-            "vosotros","vosotras",
-            "ellos","ellas",
-            "usted","ustedes",
-            "me","te","se","nos","os",
-            "le","les",
-            "mí","ti","sí"
+            "yo","tú","él","ella","nosotros","nosotras","vosotros","vosotras",
+            "ellos","ellas","usted","ustedes","me","te","se","nos","os","le","les",
+            "lo","la","los","las","mi","tu","su","mí","ti","sí"
         },
         ["inglés"] = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -64,17 +59,7 @@ public class AnalisisLexicoService : IAnalisisLexicoService
             "recordar","terminar","permitir","aparecer","conseguir","comenzar",
             "servir","sacar","necesitar","mantener","resultar","leer","caer",
             "cambiar","presentar","crear","abrir","considerar","oír","puede",
-            "tiene","hace","va","ve","da","estudiar","vamos",
-            "revisar",
-            "explicar",
-            "caminar",
-            "conversar",
-            "practicar",
-            "comprobar",
-            "observar",
-            "comparar",
-            "confirmar",
-            "contener","contiene", "funcionar"
+            "tiene","hace","va","ve","da"
         },
         ["inglés"] = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -109,7 +94,7 @@ public class AnalisisLexicoService : IAnalisisLexicoService
             "y","e","o","u","ni","pero","sino","aunque","sin embargo","no obstante",
             "además","también","tampoco","porque","ya que","puesto que","dado que",
             "pues","así que","por tanto","entonces","luego","por lo tanto","es decir",
-            "o sea","esto es","en otras palabras","sin embargo","a pesar de","aunque","después",
+            "o sea","esto es","en otras palabras","sin embargo","a pesar de","aunque",
             "si","cuando","mientras","donde","como","que","quien","cual","cuyo"
         },
         ["inglés"] = new(StringComparer.OrdinalIgnoreCase)
@@ -163,31 +148,27 @@ public class AnalisisLexicoService : IAnalisisLexicoService
     };
 
     private static readonly Dictionary<string, HashSet<string>> AdjetivosLexicos = new()
-{
-    ["español"] = new(StringComparer.OrdinalIgnoreCase)
     {
-        "corto","corta",
-        "importante",
-        "sencillo","sencilla",
-        "correcto","correcta",
-        "completo","completa",
-        "varios","varias"
-    },
+        ["español"] = new(StringComparer.OrdinalIgnoreCase) { "bueno","buena","grande","pequeño","pequeña","nuevo","nueva","viejo","vieja","importante","rápido","rápida","simple","complejo","compleja","formal","académico","académica" },
+        ["inglés"] = new(StringComparer.OrdinalIgnoreCase) { "good","big","small","new","old","important","fast","simple","complex","formal","academic" },
+        ["ruso"] = new(StringComparer.OrdinalIgnoreCase) { "большой","маленький","новый","старый","важный","красивый","быстрый","сильный","слабый" },
+        ["chino"] = new(StringComparer.OrdinalIgnoreCase) { "好","大","小","新","旧","重要","快速","简单","复杂","正式" },
+        ["árabe"] = new(StringComparer.OrdinalIgnoreCase) { "كبير","صغير","جديد","قديم","مهم","سريع","بسيط","رسمي" }
+    };
 
-    ["chino"] = new(StringComparer.OrdinalIgnoreCase)
+    // Un AFD por idioma. Los léxicos definen el lenguaje aceptado por cada autómata.
+    private static readonly Dictionary<string, AutomataFinitoDeterminista> AutomatasPorIdioma = new()
     {
-        "好","大","小","新","旧","重要","快速","简单","复杂","正式"
-    },
-
-    ["árabe"] = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "كبير","صغير","جديد","قديم","مهم","سريع","بسيط","رسمي"
-    }
-};
+        ["español"] = CrearAutomata("español"),
+        ["inglés"] = CrearAutomata("inglés"),
+        ["ruso"] = CrearAutomata("ruso"),
+        ["chino"] = CrearAutomata("chino"),
+        ["árabe"] = CrearAutomata("árabe")
+    };
 
     // Patrones de nombres propios (palabras que inician con mayúscula, no al inicio de oración)
-   // private static readonly Regex _patronNombrePropio =
-       // new(@"(?<![.!?]\s)(?<![.!?]\s\s)\b[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]{2,}\b", RegexOptions.Compiled);
+    private static readonly Regex _patronNombrePropio =
+        new(@"(?<![.!?]\s)(?<![.!?]\s\s)\b[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]{2,}\b", RegexOptions.Compiled);
 
     private static readonly Regex _patronCorreo =
         new(@"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b", RegexOptions.Compiled);
@@ -281,113 +262,6 @@ public class AnalisisLexicoService : IAnalisisLexicoService
     };
 
     // ──────────────────────────────────────────────────────────────
-
-    private static bool EsVerboEspanol(
-    string palabra,
-    HashSet<string> verbosBase)
-{
-    palabra = palabra.ToLowerInvariant();
-
-    if (Preposiciones["español"].Contains(palabra))
-    return false;
-
-if (Conectores["español"].Contains(palabra))
-    return false;
-
-if (Pronombres["español"].Contains(palabra))
-    return false;
-
-if (PalabrasFuncionalesEspanol.Contains(palabra))
-    return false;
-
-    // Coincidencia exacta
-    if (verbosBase.Contains(palabra))
-        return true;
-
-    // Formas regulares de verbos terminados en -ar
-    foreach (var verbo in verbosBase.Where(v => v.EndsWith("ar")))
-    {
-        var raiz = verbo[..^2];
-
-        string[] terminaciones =
-        {
-            "o", "as", "a", "amos", "áis", "an",
-            "é", "aste", "ó", "aron",
-            "aba", "abas", "ábamos", "aban",
-            "aré", "arás", "ará", "aremos", "arán"
-        };
-
-        if (terminaciones.Any(t => palabra == raiz + t))
-            return true;
-    }
-
-    // Formas regulares de verbos terminados en -er
-    foreach (var verbo in verbosBase.Where(v => v.EndsWith("er")))
-    {
-        var raiz = verbo[..^2];
-
-        string[] terminaciones =
-        {
-            "o", "es", "e", "emos", "éis", "en",
-            "í", "iste", "ió", "ieron",
-            "ía", "ías", "íamos", "ían",
-            "eré", "erás", "erá", "eremos", "erán"
-        };
-
-        if (terminaciones.Any(t => palabra == raiz + t))
-            return true;
-    }
-
-    // Formas regulares de verbos terminados en -ir
-    foreach (var verbo in verbosBase.Where(v => v.EndsWith("ir")))
-    {
-        var raiz = verbo[..^2];
-
-        string[] terminaciones =
-        {
-            "o", "es", "e", "imos", "ís", "en",
-            "í", "iste", "ió", "ieron",
-            "ía", "ías", "íamos", "ían",
-            "iré", "irás", "irá", "iremos", "irán"
-        };
-
-        if (terminaciones.Any(t => palabra == raiz + t))
-            return true;
-    }
-
-    return false;
-}
-
-private static readonly HashSet<string> PalabrasFuncionalesEspanol =
-    new(StringComparer.OrdinalIgnoreCase)
-{
-    "el","la","los","las",
-    "un","una","unos","unas",
-    "mi","mis",
-    "tu","tus",
-    "su","sus",
-    "este","esta","estos","estas",
-    "ese","esa","esos","esas",
-    "aquel","aquella",
-    "cada",
-    "muy","más","menos"
-};
-
-private static readonly HashSet<string> PalabrasInstitucionalesEspanol =
-    new(StringComparer.OrdinalIgnoreCase)
-{
-    "universidad",
-    "instituto",
-    "colegio",
-    "escuela",
-    "academia",
-    "facultad",
-    "ministerio",
-    "empresa",
-    "fundación",
-    "asociación"
-};
-
     public AnalisisResultadoDTO Analizar(string contenido, string idioma, string nombreArchivo)
     {
         // Patrones especiales antes de tokenizar
@@ -428,42 +302,24 @@ private static readonly HashSet<string> PalabrasInstitucionalesEspanol =
             .Select(kv => new FrecuenciaToken { Token = kv.Key, Frecuencia = kv.Value })
             .ToList();
 
-        // Clasificación
+        // Clasificación: el AFD recorre cada token aplicando δ(q, símbolo).
+        var automata = AutomatasPorIdioma[idioma];
+        var reconocimientos = tokens
+            .Select(token => token.ToLowerInvariant())
+            .Distinct()
+            .Select(token => new TokenReconocido(token, automata.Evaluar(token)))
+            .ToList();
+        reconocimientos.AddRange(EncontrarConectoresCompuestos(tokens, idioma, automata));
+
         var pronomsSet = Pronombres.GetValueOrDefault(idioma, PalabrasVacias);
         var verbsSet   = Verbos.GetValueOrDefault(idioma, PalabrasVacias);
         var conecSet   = Conectores.GetValueOrDefault(idioma, PalabrasVacias);
         var prepSet    = Preposiciones.GetValueOrDefault(idioma, PalabrasVacias);
 
-        var pronombresEncontrados = tokens
-            .Where(t => pronomsSet.Contains(t))
-            .Select(t => t.ToLowerInvariant())
-            .Distinct()
-            .OrderBy(x => x)
-            .ToList();
-
-        var verbosEncontrados = tokens
-            .Where(t =>
-            idioma == "español"
-            ? EsVerboEspanol(t, verbsSet)
-            : verbsSet.Contains(t))
-            .Select(t => t.ToLowerInvariant())
-            .Distinct()
-            .OrderBy(x => x)
-            .ToList();
-
-        var conectoresEncontrados = tokens
-            .Where(t => conecSet.Contains(t))
-            .Select(t => t.ToLowerInvariant())
-            .Distinct()
-            .OrderBy(x => x)
-            .ToList();
-
-        var preposicionesEncontradas = tokens
-            .Where(t => prepSet.Contains(t))
-            .Select(t => t.ToLowerInvariant())
-            .Distinct()
-            .OrderBy(x => x)
-            .ToList();
+        var pronombresEncontrados = ObtenerCategoria(reconocimientos, "pronombre");
+        var verbosEncontrados = ObtenerCategoria(reconocimientos, "verbo");
+        var conectoresEncontrados = ObtenerCategoria(reconocimientos, "conector");
+        var preposicionesEncontradas = ObtenerCategoria(reconocimientos, "preposición");
 
         // Nombres propios (heurística: mayúscula + no pronombre + no verbo + no al inicio)
         var stopWords = pronomsSet
@@ -472,136 +328,44 @@ private static readonly HashSet<string> PalabrasInstitucionalesEspanol =
             .Union(prepSet)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        var nombresPersonas = new List<string>();
-
-foreach (Match match in Regex.Matches(
-    contenido,
-    @"\b[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]{2,}\b"))
-{
-    var palabra = match.Value;
-
-    if (idioma == "español" &&
-    PalabrasInstitucionalesEspanol.Contains(palabra))
-{
-    continue;
-}
-
-    // Buscar el carácter anterior significativo
-    int posicion = match.Index - 1;
-
-    while (posicion >= 0 &&
-           char.IsWhiteSpace(contenido[posicion]))
-    {
-        posicion--;
-    }
-
-    // Inicio del documento
-    bool inicioOracion = posicion < 0;
-
-    // Después de punto, ! o ?
-    if (posicion >= 0)
-    {
-        char anterior = contenido[posicion];
-
-        if (anterior == '.' ||
-            anterior == '!' ||
-            anterior == '?')
-        {
-            inicioOracion = true;
-        }
-    }
-
-    if (inicioOracion)
-        continue;
-
-    if (stopWords.Contains(palabra))
-    continue;
-
-// Evitar verbos conjugados en español
-if (idioma == "español" && EsVerboEspanol(palabra, verbsSet))
-    continue;
-
-    var inicioContexto = Math.Max(0, match.Index - 60);
-var contextoAnterior = contenido.Substring(
-    inicioContexto,
-    match.Index - inicioContexto
-);
-
-if (Regex.IsMatch(
-    contextoAnterior,
-    @"\b(universidad|instituto|colegio|escuela|academia|facultad)(\s+[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+){0,3}\s*$",
-    RegexOptions.IgnoreCase))
-{
-    continue;
-}
-
-nombresPersonas.Add(palabra);
-}
-
-
-
-nombresPersonas = nombresPersonas
-    .Distinct()
-    .OrderBy(x => x)
-    .Take(30)
-    .ToList();
+        var nombresPersonas = idioma is "español" or "inglés"
+            ? _patronNombrePropio.Matches(contenido)
+                .Select(m => m.Value)
+                .Where(n => !stopWords.Contains(n))
+                .Distinct()
+                .OrderBy(x => x)
+                .Take(30)
+                .ToList()
+            : new List<string>();
 
         // Sustantivos (heurística: palabras largas, no clasificadas, frecuentes)
-        // Palabras que ya fueron clasificadas
-    // 1. Clasificadas iniciales
-var clasificadas = pronombresEncontrados
-    .Union(verbosEncontrados)
-    .Union(conectoresEncontrados)
-    .Union(preposicionesEncontradas)
-    .Union(nombresPersonas)
-    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var clasificadas = pronombresEncontrados
+            .Union(verbosEncontrados)
+            .Union(conectoresEncontrados)
+            .Union(preposicionesEncontradas)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-// 2. Adjetivos
-var adjetivosSet =
-    AdjetivosLexicos.GetValueOrDefault(
-        idioma,
-        PalabrasVacias
-    );
+        var longitudMinimaSustantivo = idioma == "chino" ? 1 : idioma == "árabe" ? 3 : 4;
+        var sustantivos = frecuencia
+            .Where(kv => kv.Key.Length >= longitudMinimaSustantivo
+                      && kv.Value >= 2
+                      && !clasificadas.Contains(kv.Key)
+                      && !numeros.Contains(kv.Key))
+            .OrderByDescending(kv => kv.Value)
+            .Take(25)
+            .Select(kv => kv.Key)
+            .ToList();
 
-var adjetivos = tokens
-    .Select(t => t.ToLowerInvariant())
-    .Distinct()
-    .Where(t =>
-        EsAdjetivo(
-            t,
-            idioma,
-            adjetivosSet
-        ))
-    .Where(t => !t.EndsWith("mente"))
-    .Where(t => !clasificadas.Contains(t))
-    .Where(t => !verbosEncontrados.Contains(t))
-    .OrderBy(x => x)
-    .Take(20)
-    .ToList();
-
-// 3. Agregar adjetivos a clasificadas
-clasificadas = clasificadas
-    .Union(adjetivos)
-    .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-// 4. Sustantivos
-var longitudMinimaSustantivo =
-    idioma == "chino" ? 1 :
-    idioma == "árabe" ? 3 :
-    4;
-
-var sustantivos = frecuencia
-    .Where(kv =>
-        kv.Key.Length >= longitudMinimaSustantivo
-        && !clasificadas.Contains(kv.Key)
-        && (idioma != "español"
-            || !PalabrasFuncionalesEspanol.Contains(kv.Key))
-        && !kv.Key.EndsWith("mente"))
-    .OrderByDescending(kv => kv.Value)
-    .Take(25)
-    .Select(kv => kv.Key)
-    .ToList();
-
+        var adjetivosSet = AdjetivosLexicos.GetValueOrDefault(idioma, PalabrasVacias);
+        var adjetivos = ObtenerCategoria(reconocimientos, "adjetivo")
+            .Union(tokens
+            .Select(t => t.ToLowerInvariant())
+            .Distinct()
+            .Where(t => EsAdjetivo(t, idioma, adjetivosSet))
+            .Where(t => !clasificadas.Contains(t)))
+            .OrderBy(x => x)
+            .Take(20)
+            .ToList();
 
         var promLongitud = tokens.Any() ? tokens.Average(t => t.Length) : 0;
 
@@ -626,10 +390,75 @@ var sustantivos = frecuencia
             UrlsEncontradas        = urls,
             FechasEncontradas      = fechas,
             HorasEncontradas       = horas,
+            EstadosAutomata        = automata.Estados.Count,
+            SimbolosAutomata       = automata.Alfabeto.Count,
+            TransicionesAutomata   = automata.CantidadTransiciones,
+            RecorridosAutomata     = reconocimientos
+                .OrderByDescending(reconocimiento => reconocimiento.Resultado.Aceptado)
+                .ThenBy(reconocimiento => reconocimiento.Token)
+                .Take(25)
+                .Select(reconocimiento => new RecorridoAutomataDTO
+                {
+                    Token = reconocimiento.Token,
+                    Aceptado = reconocimiento.Resultado.Aceptado,
+                    Categorias = reconocimiento.Resultado.Categorias.ToList(),
+                    Estados = reconocimiento.Resultado.EstadosRecorridos.ToList()
+                })
+                .ToList(),
             Idioma                 = idioma,
             NombreArchivo          = nombreArchivo,
             FechaAnalisis          = DateTime.UtcNow
         };
+    }
+
+    private static AutomataFinitoDeterminista CrearAutomata(string idioma) =>
+        AutomataFinitoDeterminista.CrearDesdeLexico(
+            new Dictionary<string, IEnumerable<string>>
+            {
+                ["pronombre"] = Pronombres[idioma],
+                ["verbo"] = Verbos[idioma],
+                ["conector"] = Conectores[idioma],
+                ["preposición"] = Preposiciones[idioma],
+                ["adjetivo"] = AdjetivosLexicos[idioma]
+            });
+
+    private static List<string> ObtenerCategoria(
+        IEnumerable<TokenReconocido> reconocimientos,
+        string categoria) => reconocimientos
+            .Where(reconocimiento => reconocimiento.Resultado.Categorias.Contains(categoria, StringComparer.OrdinalIgnoreCase))
+            .Select(reconocimiento => reconocimiento.Token)
+            .OrderBy(token => token)
+            .ToList();
+
+    private static IEnumerable<TokenReconocido> EncontrarConectoresCompuestos(
+        IReadOnlyList<string> tokens,
+        string idioma,
+        AutomataFinitoDeterminista automata)
+    {
+        var expresiones = Conectores[idioma]
+            .Where(expresion => expresion.Contains(' '))
+            .Select(expresion => expresion.ToLowerInvariant())
+            .ToList();
+        if (expresiones.Count == 0) yield break;
+
+        var primerosTerminos = expresiones
+            .Select(expresion => expresion.Split(' ', StringSplitOptions.RemoveEmptyEntries)[0])
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var longitudMaxima = expresiones
+            .Max(expresion => expresion.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length);
+
+        for (var inicio = 0; inicio < tokens.Count; inicio++)
+        {
+            if (!primerosTerminos.Contains(tokens[inicio])) continue;
+
+            for (var longitud = 2; longitud <= longitudMaxima && inicio + longitud <= tokens.Count; longitud++)
+            {
+                var candidato = string.Join(' ', tokens.Skip(inicio).Take(longitud)).ToLowerInvariant();
+                var resultado = automata.Evaluar(candidato);
+                if (resultado.Aceptado && resultado.Categorias.Contains("conector", StringComparer.OrdinalIgnoreCase))
+                    yield return new TokenReconocido(candidato, resultado);
+            }
+        }
     }
 
     private static List<string> Tokenizar(string contenido, string idioma)
@@ -641,13 +470,7 @@ var sustantivos = frecuencia
                 .ToList();
         }
 
-        var diccionario = Pronombres["chino"]
-            .Union(Verbos["chino"])
-            .Union(Conectores["chino"])
-            .Union(Preposiciones["chino"])
-            .Union(AdjetivosLexicos["chino"])
-            .OrderByDescending(palabra => palabra.Length)
-            .ToArray();
+        var automata = AutomatasPorIdioma["chino"];
         var tokens = new List<string>();
 
         foreach (Match coincidencia in Regex.Matches(contenido, @"[\u4E00-\u9FFF]+|[\p{L}]+"))
@@ -661,16 +484,17 @@ var sustantivos = frecuencia
 
             for (var posicion = 0; posicion < bloque.Length;)
             {
-                var palabra = diccionario.FirstOrDefault(item => bloque.AsSpan(posicion).StartsWith(item, StringComparison.Ordinal));
-                if (palabra == null)
+                // Segmentación por recorrido AFD: elige la coincidencia aceptada más larga.
+                var coincidenciaAfD = automata.BuscarPrefijoMasLargo(bloque, posicion);
+                if (coincidenciaAfD is null)
                 {
                     tokens.Add(bloque[posicion].ToString());
                     posicion++;
                 }
                 else
                 {
-                    tokens.Add(palabra);
-                    posicion += palabra.Length;
+                    tokens.Add(bloque.Substring(posicion, coincidenciaAfD.Longitud));
+                    posicion += coincidenciaAfD.Longitud;
                 }
             }
         }
@@ -678,35 +502,18 @@ var sustantivos = frecuencia
         return tokens;
     }
 
-private static bool EsAdjetivo(
-    string palabra,
-    string idioma,
-    HashSet<string> adjetivosLexicos)
-{
-    if (adjetivosLexicos.Contains(palabra))
-        return true;
-
-    return idioma switch
+    private static bool EsAdjetivo(string palabra, string idioma, HashSet<string> adjetivosLexicos)
     {
-        "español" =>
-            Regex.IsMatch(
-                palabra,
-                @"(oso|osa|ble|ivo|iva|ante|ente|al)$"
-            ),
+        if (adjetivosLexicos.Contains(palabra)) return true;
 
-        "inglés" =>
-            Regex.IsMatch(
-                palabra,
-                @"(ful|less|ive|ous|al|ible|able|ent|ant|ary|ory|ic)$"
-            ),
+        return idioma switch
+        {
+            "español" => Regex.IsMatch(palabra, @"(oso|osa|ble|ivo|iva|ado|ada|ido|ida|ante|ente|al|ar)$"),
+            "inglés" => Regex.IsMatch(palabra, @"(ful|less|ive|ous|al|ible|able|ent|ant|ary|ory|ic)$"),
+            "ruso" => Regex.IsMatch(palabra, @"(ый|ий|ой|ая|яя|ое|ее|ые|ие)$"),
+            _ => false
+        };
+    }
 
-        "ruso" =>
-            Regex.IsMatch(
-                palabra,
-                @"(ый|ий|ой|ая|яя|ое|ее|ые|ие)$"
-            ),
-
-        _ => false
-    };
-}
+    private sealed record TokenReconocido(string Token, ResultadoAutomata Resultado);
 }

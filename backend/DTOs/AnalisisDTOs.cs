@@ -24,6 +24,14 @@ public class FrecuenciaToken
     public int Frecuencia { get; set; }
 }
 
+public class RecorridoAutomataDTO
+{
+    public string Token { get; set; } = string.Empty;
+    public bool Aceptado { get; set; }
+    public List<string> Categorias { get; set; } = new();
+    public List<int> Estados { get; set; } = new();
+}
+
 public class AnalisisResultadoDTO
 {
     public int TotalPalabras { get; set; }
@@ -49,6 +57,13 @@ public class AnalisisResultadoDTO
     public List<string> UrlsEncontradas { get; set; } = new();
     public List<string> FechasEncontradas { get; set; } = new();
     public List<string> HorasEncontradas { get; set; } = new();
+
+    // Evidencia formal del AFD utilizado durante la clasificación léxica.
+    public string TipoAutomata { get; set; } = "AFD léxico por idioma";
+    public int EstadosAutomata { get; set; }
+    public int SimbolosAutomata { get; set; }
+    public int TransicionesAutomata { get; set; }
+    public List<RecorridoAutomataDTO> RecorridosAutomata { get; set; } = new();
 
     public string Idioma { get; set; } = string.Empty;
     public string NombreArchivo { get; set; } = string.Empty;

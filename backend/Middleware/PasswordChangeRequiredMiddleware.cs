@@ -14,20 +14,16 @@ public class PasswordChangeRequiredMiddleware
             && context.User.FindFirst("debe_cambiar_password")?.Value == "true";
         var ruta = context.Request.Path;
 
+        // Estas rutas permiten recuperar el formulario tras recargar, volver a
+        // autenticarse con la contraseña temporal y completar el cambio.
+        var rutaPermitida = ruta.StartsWithSegments("/api/auth/cambiar-password-temporal")
+            || ruta.StartsWithSegments("/api/auth/logout")
+            || ruta.StartsWithSegments("/api/auth/login")
+            || ruta.StartsWithSegments("/api/auth/login-facial")
+            || ruta.StartsWithSegments("/api/auth/sesion");
+
         if (requiereCambio
-            && !ruta.StartsWithSegments("/api/auth/registro")
-            && !ruta.StartsWithSegments("/api/auth/login")
-            && !ruta.StartsWithSegments("/api/auth/login-facial")
-            && !ruta.StartsWithSegments("/api/auth/facial/verificar-captcha")
-            && !ruta.StartsWithSegments("/api/auth/google")
-            && !ruta.StartsWithSegments("/api/auth/sesion")
-            && !ruta.StartsWithSegments("/api/auth/cambiar-password-temporal")
-            && !ruta.StartsWithSegments("/api/auth/validar-enlace-inicial")
-            && !ruta.StartsWithSegments("/api/auth/cambiar-password-inicial")
-            && !ruta.StartsWithSegments("/api/auth/solicitar-restablecimiento")
-            && !ruta.StartsWithSegments("/api/auth/restablecer-password")
-            && !ruta.StartsWithSegments("/api/auth/credencial")
-            && !ruta.StartsWithSegments("/api/auth/logout"))
+            && !rutaPermitida)
         {
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
             await context.Response.WriteAsJsonAsync(new

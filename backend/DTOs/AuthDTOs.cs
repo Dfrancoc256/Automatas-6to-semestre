@@ -51,12 +51,12 @@ public class LoginDTO
 {
     [Required(ErrorMessage = "El nickname o correo es obligatorio")]
     [MinLength(3, ErrorMessage = "El identificador debe tener al menos 3 caracteres")]
-    [MaxLength(254)]
+    [MaxLength(30, ErrorMessage = "El correo o nickname no puede superar 30 caracteres")]
     public string Identificador { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "La contraseña es obligatoria")]
     [MinLength(8, ErrorMessage = "La contraseña debe tener al menos 8 caracteres")]
-    [MaxLength(128)]
+    [MaxLength(35, ErrorMessage = "La contraseña no puede superar 35 caracteres")]
     public string Password { get; set; } = string.Empty;
 
     // Token de reCAPTCHA
@@ -82,7 +82,8 @@ public class EnrolarFacialDTO
 
 public class LoginQrDTO
 {
-    [Required]
+    [Required(ErrorMessage = "El código QR es obligatorio")]
+    [MaxLength(2048, ErrorMessage = "El código QR no tiene un formato válido")]
     public string CodigoQr { get; set; } = string.Empty;
 
     [Required]
@@ -120,23 +121,9 @@ public class CambiarPasswordDTO
 
 public class CambiarPasswordTemporalDTO
 {
-    [Required(ErrorMessage = "La contraseña temporal es obligatoria")]
-    public string PasswordTemporal { get; set; } = string.Empty;
-
     [Required]
-    [RegularExpression(@"^(?=.{8,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).*$",
-        ErrorMessage = "La contraseña debe tener entre 8 y 128 caracteres, mayúscula, minúscula, número y carácter especial")]
-    public string NuevoPassword { get; set; } = string.Empty;
-}
-
-public class CambiarPasswordInicialDTO
-{
-    [Required]
-    public string Token { get; set; } = string.Empty;
-
-    [Required]
-    [RegularExpression(@"^(?=.{8,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).*$",
-        ErrorMessage = "La contraseña debe tener entre 8 y 128 caracteres, mayúscula, minúscula, número y carácter especial")]
+    [RegularExpression(@"^(?=.{8,35}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).*$",
+        ErrorMessage = "La contraseña debe tener entre 8 y 35 caracteres, mayúscula, minúscula, número y carácter especial")]
     public string NuevoPassword { get; set; } = string.Empty;
 }
 
@@ -162,6 +149,8 @@ public class AuthResponseDTO
     public DateTime Expiracion { get; set; }
     public string? CodigoQr { get; set; }
     public bool DebeCambiarPassword { get; set; }
+    // Nunca expone la clave: solo confirma que el correo con la clave temporal salió del servidor.
+    public bool PasswordTemporalEnviada { get; set; }
 }
 
 /// <summary>Datos mínimos de una sesión ya validada por la cookie HttpOnly.</summary>

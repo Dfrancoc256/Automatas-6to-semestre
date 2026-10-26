@@ -50,6 +50,8 @@
           placeholder="Ingresa tu correo o nickname"
           prepend-inner-icon="mdi-account-outline"
           autocomplete="username"
+          maxlength="30"
+          counter="30"
           :error="!!error"
           hide-details
           base-color="primary"
@@ -66,6 +68,8 @@
           :type="mostrarPass ? 'text' : 'password'"
           :append-inner-icon="mostrarPass ? 'mdi-eye-off' : 'mdi-eye'"
           autocomplete="current-password"
+          maxlength="35"
+          counter="35"
           @click:append-inner="mostrarPass = !mostrarPass"
           :error="!!error"
           hide-details
@@ -130,6 +134,17 @@
         >
           {{ intentosFacialesRestantes ? 'Ingresar con reconocimiento facial' : 'Reconocimiento facial no disponible' }}
         </v-btn>
+        <v-btn
+          variant="outlined"
+          color="primary"
+          block
+          class="mt-3"
+          prepend-icon="mdi-qrcode-scan"
+          :disabled="!puedeEnviar"
+          @click="abrirEscanerQr"
+        >
+          Ingresar con carnet QR
+        </v-btn>
       </div>
 
       <div class="text-center mt-5">
@@ -180,6 +195,29 @@
       </v-card>
     </v-dialog>
 
+    <v-dialog v-model="mostrarQr" max-width="460" :persistent="verificandoQr">
+      <v-card class="pa-6">
+        <v-card-title class="px-0 text-h6">Ingresar con carnet QR</v-card-title>
+        <v-card-text class="px-0 text-center">
+          <p class="text-body-2 text-medium-emphasis mb-4">
+            Enfoca con la cámara el código QR impreso en tu carnet institucional.
+          </p>
+          <QrLoginScanner
+            v-if="mostrarQr && !verificandoQr"
+            @detectado="ingresarConQr"
+            @error="errorQr = $event"
+          />
+          <v-progress-circular v-else-if="verificandoQr" indeterminate color="accent" size="44" class="my-10" />
+          <v-alert v-if="errorQr" type="error" variant="tonal" density="compact" class="mt-4">
+            {{ errorQr }}
+          </v-alert>
+        </v-card-text>
+        <v-card-actions class="px-0 justify-end">
+          <v-btn variant="outlined" :disabled="verificandoQr" @click="mostrarQr = false">Cancelar</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <v-dialog v-model="mostrarReset" max-width="420">
       <v-card class="pa-6">
         <v-card-title class="px-0 text-h6">Restablecer contraseña</v-card-title>
@@ -219,6 +257,47 @@
       </v-card>
     </v-dialog>
 
+    <v-dialog v-model="mostrarCambioPassword" max-width="440" persistent>
+      <v-card class="pa-6">
+        <v-card-title class="px-0 text-h6 d-flex align-center">
+          <span>Crea tu contraseña personal</span>
+          <v-spacer />
+          <v-btn icon="mdi-close" variant="text" size="small" aria-label="Cancelar cambio de contraseña" title="Cancelar" :disabled="cambiandoPassword" @click="cancelarCambioPassword" />
+        </v-card-title>
+        <v-card-text class="px-0">
+          <p class="text-body-2 text-medium-emphasis mb-4">
+            Tu contraseña temporal ya fue validada. Define una contraseña personal para continuar.
+          </p>
+          <v-text-field
+            v-model="nuevaPassword"
+            label="Nueva contraseña"
+            type="password"
+            autocomplete="new-password"
+            hint="Entre 8 y 35 caracteres, mayúscula, minúscula, número y símbolo"
+            persistent-hint
+            maxlength="35"
+            counter="35"
+            class="mb-3"
+          />
+          <v-text-field
+            v-model="confirmarNuevaPassword"
+            label="Confirmar nueva contraseña"
+            type="password"
+            autocomplete="new-password"
+            maxlength="35"
+            counter="35"
+          />
+          <v-alert v-if="errorCambioPassword" type="error" variant="tonal" density="compact" class="mt-3">
+            {{ errorCambioPassword }}
+          </v-alert>
+        </v-card-text>
+        <v-card-actions class="px-0 justify-end">
+          <v-btn color="accent" class="umg-gold-button" :loading="cambiandoPassword" @click="cambiarPasswordTemporal">
+            Guardar y continuar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -251,6 +330,14 @@ const enviandoReset = ref(false)
 const errorReset = ref('')
 const mensajeReset = ref('')
 const accesoExitoso = ref(false)
+const mostrarQr = ref(false)
+const verificandoQr = ref(false)
+const errorQr = ref('')
+const mostrarCambioPassword = ref(false)
+const nuevaPassword = ref('')
+const confirmarNuevaPassword = ref('')
+const errorCambioPassword = ref('')
+const cambiandoPassword = ref(false)
 const cargandoGoogle = ref(false)
 
 // Login facial
@@ -314,6 +401,10 @@ onMounted(() => {
   } else if (route.query.error === 'google') {
     error.value = 'No fue posible verificar la cuenta de Google. Intenta nuevamente.'
   }
+  if (auth.user?.debeCambiarPassword) {
+    abrirCambioPassword()
+    return
+  }
   if (auth.isAuthenticated) navigateTo(rutaDestino.value)
 })
 
@@ -328,7 +419,7 @@ const rutaDestino = computed(() => {
 async function loginPassword() {
   error.value = ''
   const identificadorInvalido = !identificadorValido(form.identificador)
-  const passwordInvalida = form.password.length < 8
+  const passwordInvalida = form.password.length < 8 || form.password.length > 35
   const captchaPendiente = !puedeEnviar.value
 
   if (identificadorInvalido && passwordInvalida && captchaPendiente) {
@@ -336,7 +427,7 @@ async function loginPassword() {
     return
   }
   if (identificadorInvalido && passwordInvalida) {
-    error.value = 'Completa tu correo o nombre de usuario y una contraseña de al menos 8 caracteres.'
+    error.value = 'Completa tu correo o nombre de usuario y una contraseña de entre 8 y 35 caracteres.'
     return
   }
   if (identificadorInvalido && captchaPendiente) {
@@ -344,15 +435,15 @@ async function loginPassword() {
     return
   }
   if (passwordInvalida && captchaPendiente) {
-    error.value = 'Completa una contraseña de al menos 8 caracteres y la verificación reCAPTCHA para continuar.'
+    error.value = 'Completa una contraseña de entre 8 y 35 caracteres y la verificación reCAPTCHA para continuar.'
     return
   }
   if (identificadorInvalido) {
-    error.value = 'Ingresa un correo válido o un nickname de 3 a 50 caracteres.'
+    error.value = 'Ingresa un correo válido de hasta 30 caracteres o un nickname de 3 a 25 caracteres.'
     return
   }
   if (passwordInvalida) {
-    error.value = 'La contraseña debe tener al menos 8 caracteres.'
+    error.value = 'La contraseña debe tener entre 8 y 35 caracteres.'
     return
   }
   if (!puedeEnviar.value) {
@@ -368,7 +459,10 @@ async function loginPassword() {
       recaptchaToken: bypassDesarrollo.value ? 'dev-bypass' : recaptchaToken.value
     })
     if (data.debeCambiarPassword) {
-      await informarActivacionPendiente()
+      // Conserva el estado pendiente en la cookie de metadatos. De esta forma,
+      // si se actualiza la página, el formulario obligatorio se vuelve a abrir.
+      auth.login(data)
+      abrirCambioPassword()
       return
     }
     accesoExitoso.value = true
@@ -424,6 +518,48 @@ async function abrirLoginFacial() {
   mostrarFacial.value = true
 }
 
+function abrirEscanerQr() {
+  if (!puedeEnviar.value) {
+    error.value = 'Completa la verificación reCAPTCHA antes de escanear tu carnet.'
+    return
+  }
+
+  error.value = ''
+  errorQr.value = ''
+  mostrarQr.value = true
+}
+
+async function ingresarConQr(codigoQr: string) {
+  if (verificandoQr.value) return
+
+  errorQr.value = ''
+  verificandoQr.value = true
+  try {
+    const { data } = await api.post('/auth/login-qr', {
+      codigoQr,
+      recaptchaToken: bypassDesarrollo.value ? 'dev-bypass' : recaptchaToken.value
+    })
+
+    auth.login(data)
+    if (data.debeCambiarPassword) {
+      mostrarQr.value = false
+      abrirCambioPassword()
+      return
+    }
+
+    accesoExitoso.value = true
+    mostrarQr.value = false
+    await new Promise(resolve => setTimeout(resolve, 650))
+    await navigateTo(rutaDestino.value)
+  } catch (e: any) {
+    errorQr.value = e.response?.data?.mensaje || 'El código QR no es válido o el carnet venció.'
+    recaptchaToken.value = ''
+    recaptcha.value?.reiniciar()
+  } finally {
+    verificandoQr.value = false
+  }
+}
+
 function cerrarPorAusenciaDeRostro() {
   if (verificandoFacial.value || rostroValidado.value) return
   mostrarFacial.value = false
@@ -448,7 +584,8 @@ async function verificarRostro(captura: { descriptor: number[] | null, fotoRecor
 
     if (data.debeCambiarPassword) {
       mostrarFacial.value = false
-      await informarActivacionPendiente()
+      auth.login(data)
+      abrirCambioPassword()
       return
     }
 
@@ -494,14 +631,13 @@ async function verificarRostro(captura: { descriptor: number[] | null, fotoRecor
   }
 }
 
-async function informarActivacionPendiente() {
-  try {
-    await api.post('/auth/logout')
-  } catch {
-    // La sesión limitada no da acceso a la aplicación.
-  }
-  auth.logout()
-  error.value = 'Antes de ingresar, crea tu contraseña con el enlace enviado a tu correo. Si venció, usa «¿Olvidaste tu contraseña?» para solicitar otro.'
+function abrirCambioPassword() {
+  // No se restaura ni almacena una contraseña escrita. Al refrescar, los
+  // campos quedan vacíos, pero el diálogo obligatorio vuelve a mostrarse.
+  nuevaPassword.value = ''
+  confirmarNuevaPassword.value = ''
+  errorCambioPassword.value = ''
+  mostrarCambioPassword.value = true
 }
 
 function abrirRecuperacion() {
@@ -537,10 +673,51 @@ async function solicitarRestablecimiento() {
   }
 }
 
+async function cambiarPasswordTemporal() {
+  errorCambioPassword.value = ''
+  const cumpleRegla = /^(?=.{8,35}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).*$/.test(nuevaPassword.value)
+  if (!cumpleRegla) {
+    errorCambioPassword.value = 'Usa entre 8 y 35 caracteres, con mayúscula, minúscula, número y símbolo.'
+    return
+  }
+  if (nuevaPassword.value !== confirmarNuevaPassword.value) {
+    errorCambioPassword.value = 'La confirmación no coincide con la nueva contraseña.'
+    return
+  }
+
+  cambiandoPassword.value = true
+  try {
+    const { data } = await api.post('/auth/cambiar-password-temporal', {
+      nuevoPassword: nuevaPassword.value
+    })
+    auth.login(data)
+    mostrarCambioPassword.value = false
+    await navigateTo(rutaDestino.value)
+  } catch (e: any) {
+    errorCambioPassword.value = e.response?.data?.mensaje || 'No se pudo actualizar la contraseña.'
+  } finally {
+    cambiandoPassword.value = false
+  }
+}
+
+async function cancelarCambioPassword() {
+  if (cambiandoPassword.value) return
+  mostrarCambioPassword.value = false
+  nuevaPassword.value = ''
+  confirmarNuevaPassword.value = ''
+  errorCambioPassword.value = ''
+  try {
+    await api.post('/auth/logout')
+  } catch {
+    // La limpieza local evita conservar una sesión temporal.
+  }
+  auth.logout()
+}
+
 function identificadorValido(valor: string) {
   const identificador = valor.trim()
-  if (identificador.includes('@')) return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identificador)
-  return /^[a-zA-Z0-9_.-]{3,50}$/.test(identificador)
+  if (identificador.includes('@')) return identificador.length <= 30 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identificador)
+  return /^[a-zA-Z0-9_.-]{3,25}$/.test(identificador)
 }
 
 async function continuarConGoogle() {

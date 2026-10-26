@@ -77,16 +77,16 @@
           </div>
 
           <div v-else class="text-center">
-            <p class="text-body-2 text-medium-emphasis mb-3">Personaliza tu foto para el perfil y la credencial.</p>
+            <p class="text-body-2 text-medium-emphasis mb-3">Personaliza la foto que aparecerá en tu perfil y credencial.</p>
             <div ref="vistaPreviaFoto" class="foto-preview mb-4">
               <img :src="capturaPendiente.fotoRecortada" :style="{ filter: filtroActual.css }"
                    class="foto-preview__imagen" alt="Vista previa de la credencial" />
               <img v-if="stickerActual !== 'ninguno'" :src="imagenesStickers[stickerActual]"
                    class="foto-preview__sticker"
                    :style="{ left: `${posicionSticker.x}px`, top: `${posicionSticker.y}px`, width: `${tamanoSticker}px` }"
-                   alt="Sticker decorativo" draggable="false" @pointerdown.prevent="iniciarArrastreSticker" />
+                   alt="Adorno seleccionado" draggable="false" @pointerdown.prevent="iniciarArrastreSticker" />
             </div>
-            <p class="text-caption font-weight-bold mb-2">Personaliza tu foto para la credencial</p>
+            <p class="text-caption font-weight-bold mb-2">Filtro de la fotografía</p>
             <div class="d-flex flex-wrap justify-center gap-2 mb-4">
               <v-btn v-for="filtro in filtros" :key="filtro.id" size="small"
                      :color="filtroActual.id === filtro.id ? 'accent' : 'primary'"
@@ -96,7 +96,7 @@
               </v-btn>
             </div>
             <div class="efectos-foto mb-4">
-              <p class="text-caption font-weight-bold mb-2">Agrega iconos y adornos</p>
+              <p class="text-caption font-weight-bold mb-2">Adorno opcional</p>
               <PhotoStickerSelector v-model="stickerActual" />
             </div>
             <p v-if="stickerActual !== 'ninguno'" class="text-caption text-medium-emphasis mb-4">
