@@ -199,6 +199,7 @@ public class ActualizarPerfilDTO
     [MaxLength(7_000_000, ErrorMessage = "La fotografía modificada excede el tamaño permitido")]
     public string? FotoModificadaBase64 { get; set; }
     public string? PasswordActual { get; set; }
-    [MinLength(8), MaxLength(128)]
+    [MinLength(8), MaxLength(35)]
     public string? NuevoPassword { get; set; }
+    public string? ConfirmarNuevoPassword { get; set; }
 }

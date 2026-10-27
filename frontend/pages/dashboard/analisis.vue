@@ -62,10 +62,10 @@
 
           <v-textarea
             v-if="contenido"
-            :model-value="contenido.substring(0, 500) + (contenido.length > 500 ? '...' : '')"
+            :model-value="contenido.substring(0, 1500) + (contenido.length > 1500 ? '...' : '')"
             label="Vista previa"
             readonly
-            rows="3"
+            rows="14"
             density="compact"
             class="mb-4"
           />
@@ -183,7 +183,7 @@
               </v-window-item>
 
               <v-window-item value="clasificacion" class="pa-4">
-                <p class="analysis-tab-intro">Palabras agrupadas según las reglas del idioma seleccionado.</p>
+                <p class="analysis-tab-intro">Se muestran las palabras registradas para este idioma. Las demás siguen en el conteo y la frecuencia, pero quedan sin categoría.</p>
                 <v-row class="classification-summary">
                   <v-col cols="12" sm="6" v-for="cat in categorias" :key="cat.key">
                     <button type="button" class="classification-summary__item" @click="abrirCategoria(cat)">

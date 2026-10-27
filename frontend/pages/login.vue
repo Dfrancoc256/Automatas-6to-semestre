@@ -34,7 +34,8 @@
         <button type="button" :class="{ 'is-active': modoRegistro }" :aria-pressed="modoRegistro" @click="cambiarModo('registro')">Crear cuenta</button>
       </div>
 
-      <Transition name="auth-flip" mode="out-in">
+      <Transition :name="modoRegistro ? 'auth-to-register' : 'auth-to-login'" mode="out-in"
+                  @after-enter="cambiandoModo = false">
       <div v-if="!modoRegistro" key="login" class="auth-form-content">
       <!-- Logo -->
       <div class="text-center mb-6">
@@ -257,42 +258,87 @@
       </v-card>
     </v-dialog>
 
-    <v-dialog v-model="mostrarCambioPassword" max-width="440" persistent>
-      <v-card class="pa-6">
-        <v-card-title class="px-0 text-h6 d-flex align-center">
-          <span>Crea tu contraseña personal</span>
-          <v-spacer />
+    <v-dialog v-model="mostrarCambioPassword" max-width="520" persistent scrollable>
+      <v-card class="password-change-card">
+        <div class="password-change-header">
+          <div class="password-change-heading">
+            <span class="password-change-icon"><v-icon icon="mdi-shield-key-outline" size="26" /></span>
+            <div>
+              <p class="password-change-eyebrow">SEGURIDAD DE TU CUENTA</p>
+              <h2 class="password-change-title">Crea tu contraseña personal</h2>
+            </div>
+          </div>
           <v-btn icon="mdi-close" variant="text" size="small" aria-label="Cancelar cambio de contraseña" title="Cancelar" :disabled="cambiandoPassword" @click="cancelarCambioPassword" />
-        </v-card-title>
-        <v-card-text class="px-0">
-          <p class="text-body-2 text-medium-emphasis mb-4">
-            Tu contraseña temporal ya fue validada. Define una contraseña personal para continuar.
+        </div>
+        <v-card-text class="password-change-body">
+          <p class="password-change-description">
+            Tu contraseña temporal ya fue validada. Crea una nueva para proteger tu cuenta y continuar.
           </p>
           <v-text-field
             v-model="nuevaPassword"
             label="Nueva contraseña"
-            type="password"
+            :type="mostrarNuevaPassword ? 'text' : 'password'"
             autocomplete="new-password"
-            hint="Entre 8 y 35 caracteres, mayúscula, minúscula, número y símbolo"
-            persistent-hint
+            variant="outlined"
             maxlength="35"
             counter="35"
-            class="mb-3"
-          />
+            hide-details="auto"
+            class="mb-4"
+          >
+            <template #append-inner>
+              <v-btn :icon="mostrarNuevaPassword ? 'mdi-eye-off-outline' : 'mdi-eye-outline'" variant="text" size="small"
+                     :aria-label="mostrarNuevaPassword ? 'Ocultar nueva contraseña' : 'Mostrar nueva contraseña'"
+                     @click="mostrarNuevaPassword = !mostrarNuevaPassword" />
+            </template>
+          </v-text-field>
+
+          <div class="password-strength" aria-live="polite">
+            <div class="password-strength-label">
+              <span>Seguridad estimada</span>
+              <strong :style="{ color: nivelPassword.color }">{{ nivelPassword.etiqueta }}</strong>
+            </div>
+            <v-progress-linear :model-value="nivelPassword.valor" :color="nivelPassword.color"
+                               bg-color="#E7EBEF" rounded height="8" />
+            <p class="password-strength-note">Estimación basada en la longitud y los tipos de caracteres.</p>
+          </div>
+
+          <div class="password-rules" role="list" aria-label="Requisitos de la contraseña">
+            <div v-for="regla in reglasPassword" :key="regla.etiqueta" role="listitem"
+                 class="password-rule" :class="{ 'password-rule--met': regla.cumple }">
+              <v-icon :icon="regla.cumple ? 'mdi-check-circle' : 'mdi-close-circle-outline'" size="18" />
+              <span>{{ regla.etiqueta }}</span>
+            </div>
+          </div>
+
           <v-text-field
             v-model="confirmarNuevaPassword"
             label="Confirmar nueva contraseña"
-            type="password"
+            :type="mostrarConfirmacionPassword ? 'text' : 'password'"
             autocomplete="new-password"
+            variant="outlined"
             maxlength="35"
-            counter="35"
-          />
-          <v-alert v-if="errorCambioPassword" type="error" variant="tonal" density="compact" class="mt-3">
+            hide-details="auto"
+            class="mt-5"
+          >
+            <template #append-inner>
+              <v-btn :icon="mostrarConfirmacionPassword ? 'mdi-eye-off-outline' : 'mdi-eye-outline'" variant="text" size="small"
+                     :aria-label="mostrarConfirmacionPassword ? 'Ocultar confirmación' : 'Mostrar confirmación'"
+                     @click="mostrarConfirmacionPassword = !mostrarConfirmacionPassword" />
+            </template>
+          </v-text-field>
+          <p v-if="confirmarNuevaPassword" class="password-confirmation"
+             :class="{ 'password-confirmation--met': contrasenasCoinciden }">
+            <v-icon :icon="contrasenasCoinciden ? 'mdi-check-circle' : 'mdi-close-circle-outline'" size="17" />
+            {{ contrasenasCoinciden ? 'Las contraseñas coinciden' : 'Las contraseñas no coinciden' }}
+          </p>
+          <v-alert v-if="errorCambioPassword" type="error" variant="tonal" density="compact" class="mt-4">
             {{ errorCambioPassword }}
           </v-alert>
         </v-card-text>
-        <v-card-actions class="px-0 justify-end">
-          <v-btn color="accent" class="umg-gold-button" :loading="cambiandoPassword" @click="cambiarPasswordTemporal">
+        <v-card-actions class="password-change-actions">
+          <v-btn variant="text" :disabled="cambiandoPassword" @click="cancelarCambioPassword">Cancelar</v-btn>
+          <v-btn color="accent" class="umg-gold-button" :loading="cambiandoPassword"
+                 :disabled="!passwordLista" @click="cambiarPasswordTemporal">
             Guardar y continuar
           </v-btn>
         </v-card-actions>
@@ -336,8 +382,27 @@ const errorQr = ref('')
 const mostrarCambioPassword = ref(false)
 const nuevaPassword = ref('')
 const confirmarNuevaPassword = ref('')
+const mostrarNuevaPassword = ref(false)
+const mostrarConfirmacionPassword = ref(false)
 const errorCambioPassword = ref('')
 const cambiandoPassword = ref(false)
+const reglasPassword = computed(() => [
+  { etiqueta: 'Entre 8 y 35 caracteres', cumple: nuevaPassword.value.length >= 8 && nuevaPassword.value.length <= 35 },
+  { etiqueta: 'Una letra mayúscula', cumple: /[A-Z]/.test(nuevaPassword.value) },
+  { etiqueta: 'Una letra minúscula', cumple: /[a-z]/.test(nuevaPassword.value) },
+  { etiqueta: 'Un número', cumple: /\d/.test(nuevaPassword.value) },
+  { etiqueta: 'Un símbolo', cumple: /[^A-Za-z0-9]/.test(nuevaPassword.value) }
+])
+const contrasenasCoinciden = computed(() => confirmarNuevaPassword.value.length > 0 && nuevaPassword.value === confirmarNuevaPassword.value)
+const passwordLista = computed(() => reglasPassword.value.every(regla => regla.cumple) && contrasenasCoinciden.value)
+const nivelPassword = computed(() => {
+  if (!nuevaPassword.value) return { etiqueta: 'Sin evaluar', valor: 0, color: '#94A3B8' }
+  const cumplidas = reglasPassword.value.filter(regla => regla.cumple).length
+  if (cumplidas < 3) return { etiqueta: 'Débil', valor: 25, color: '#B42318' }
+  if (cumplidas < 5) return { etiqueta: 'En progreso', valor: 50, color: '#C47F00' }
+  if (nuevaPassword.value.length < 12) return { etiqueta: 'Adecuada', valor: 75, color: '#2E7D32' }
+  return { etiqueta: 'Fuerte', valor: 100, color: '#15803D' }
+})
 const cargandoGoogle = ref(false)
 
 // Login facial
@@ -369,6 +434,7 @@ const puedeLoginFacial = computed(() =>
 )
 // El acceso y el registro comparten esta vista.
 const modoRegistro = ref(route.query.modo === 'registro')
+const cambiandoModo = ref(false)
 
 // Sincroniza el modo al cambiar la URL.
 watch(
@@ -380,8 +446,9 @@ watch(
 
 function cambiarModo(modo: 'login' | 'registro') {
   const mostrarRegistro = modo === 'registro'
-  if (modoRegistro.value === mostrarRegistro) return
+  if (modoRegistro.value === mostrarRegistro || cambiandoModo.value) return
 
+  cambiandoModo.value = true
   modoRegistro.value = mostrarRegistro
 
   // Actualiza la URL sin recargar la vista.
@@ -636,6 +703,8 @@ function abrirCambioPassword() {
   // campos quedan vacíos, pero el diálogo obligatorio vuelve a mostrarse.
   nuevaPassword.value = ''
   confirmarNuevaPassword.value = ''
+  mostrarNuevaPassword.value = false
+  mostrarConfirmacionPassword.value = false
   errorCambioPassword.value = ''
   mostrarCambioPassword.value = true
 }
@@ -675,8 +744,7 @@ async function solicitarRestablecimiento() {
 
 async function cambiarPasswordTemporal() {
   errorCambioPassword.value = ''
-  const cumpleRegla = /^(?=.{8,35}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).*$/.test(nuevaPassword.value)
-  if (!cumpleRegla) {
+  if (!reglasPassword.value.every(regla => regla.cumple)) {
     errorCambioPassword.value = 'Usa entre 8 y 35 caracteres, con mayúscula, minúscula, número y símbolo.'
     return
   }
@@ -692,6 +760,10 @@ async function cambiarPasswordTemporal() {
     })
     auth.login(data)
     mostrarCambioPassword.value = false
+    nuevaPassword.value = ''
+    confirmarNuevaPassword.value = ''
+    mostrarNuevaPassword.value = false
+    mostrarConfirmacionPassword.value = false
     await navigateTo(rutaDestino.value)
   } catch (e: any) {
     errorCambioPassword.value = e.response?.data?.mensaje || 'No se pudo actualizar la contraseña.'
@@ -705,6 +777,8 @@ async function cancelarCambioPassword() {
   mostrarCambioPassword.value = false
   nuevaPassword.value = ''
   confirmarNuevaPassword.value = ''
+  mostrarNuevaPassword.value = false
+  mostrarConfirmacionPassword.value = false
   errorCambioPassword.value = ''
   try {
     await api.post('/auth/logout')
@@ -743,27 +817,99 @@ async function continuarConGoogle() {
 </script>
 
 <style scoped>
-/* Una única tarjeta: al cambiar de modo gira sobre el eje vertical. */
-.auth-flip-enter-active,
-.auth-flip-leave-active {
+.password-change-card {
+  max-height: 92dvh;
+  border: 1px solid #DCE5EC;
+  border-radius: 16px;
+  background: #fff;
+}
+.password-change-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 24px 24px 18px;
+  border-bottom: 1px solid #E8ECF0;
+}
+.password-change-heading { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.password-change-icon {
+  display: grid;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 12px;
+  color: #8A6814;
+  background: #F8F1DD;
+}
+.password-change-eyebrow { margin: 0 0 3px; color: #8A6814; font-size: 10px; font-weight: 800; letter-spacing: .12em; }
+.password-change-title { margin: 0; color: #051B2E; font-size: 20px; font-weight: 700; line-height: 1.25; }
+.password-change-body { padding: 20px 24px 12px !important; }
+.password-change-description { margin: 0 0 20px; color: #475467; font-size: 13px; line-height: 1.55; }
+.password-strength { margin: 4px 0 18px; }
+.password-strength-label { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 9px; color: #344054; font-size: 12px; }
+.password-strength-label strong { font-weight: 700; }
+.password-strength-note { margin: 7px 0 0; color: #667085; font-size: 11px; line-height: 1.4; }
+.password-rules {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+  padding: 14px;
+  border: 1px solid #E8ECF0;
+  border-radius: 10px;
+  background: #F8FAFC;
+}
+.password-rule { display: flex; align-items: flex-start; gap: 7px; color: #B42318; font-size: 12px; line-height: 1.35; }
+.password-rule .v-icon { flex: 0 0 18px; }
+.password-rule--met { color: #15803D; }
+.password-confirmation { display: flex; align-items: center; gap: 7px; margin: 8px 0 0; color: #B42318; font-size: 12px; }
+.password-confirmation--met { color: #15803D; }
+.password-change-actions { justify-content: flex-end; gap: 8px; padding: 12px 24px 20px; border-top: 1px solid #E8ECF0; }
+@media (max-width: 480px) {
+  .password-change-header { padding: 20px 18px 16px; }
+  .password-change-title { font-size: 18px; }
+  .password-change-body { padding: 18px 18px 10px !important; }
+  .password-rules { grid-template-columns: 1fr; }
+  .password-change-actions { padding: 12px 18px 18px; }
+}
+/* El formulario se retira y entra en la dirección elegida, sin desmontar la tarjeta. */
+.auth-to-register-enter-active,
+.auth-to-register-leave-active,
+.auth-to-login-enter-active,
+.auth-to-login-leave-active {
   transform-style: preserve-3d;
-  transition: opacity .12s ease, transform .2s cubic-bezier(.22, 1, .36, 1);
+  backface-visibility: hidden;
+  will-change: opacity, transform;
 }
 
 .facial-success__photo { border: 3px solid #B48B21; }
 
-.auth-flip-enter-from {
-  opacity: 0;
-  transform: perspective(1200px) rotateY(-76deg) scale(.98);
+.auth-to-register-leave-active,
+.auth-to-login-leave-active {
+  transition: opacity .22s ease-in, transform .28s cubic-bezier(.55, 0, .8, .2);
 }
 
-.auth-flip-leave-to {
-  opacity: 0;
-  transform: perspective(1200px) rotateY(76deg) scale(.98);
+.auth-to-register-enter-active,
+.auth-to-login-enter-active {
+  transition: opacity .3s ease-out, transform .38s cubic-bezier(.16, 1, .3, 1);
 }
 
-.auth-flip-enter-to,
-.auth-flip-leave-from {
+.auth-to-register-leave-to,
+.auth-to-login-enter-from {
+  opacity: 0;
+  transform: perspective(1200px) translateX(-38px) rotateY(32deg) scale(.97);
+}
+
+.auth-to-login-leave-to,
+.auth-to-register-enter-from {
+  opacity: 0;
+  transform: perspective(1200px) translateX(38px) rotateY(-32deg) scale(.97);
+}
+
+.auth-to-register-enter-to,
+.auth-to-register-leave-from,
+.auth-to-login-enter-to,
+.auth-to-login-leave-from {
   opacity: 1;
   transform: perspective(1200px) rotateY(0) scale(1);
 }
@@ -871,13 +1017,11 @@ async function continuarConGoogle() {
   line-height: 1;
 }
 .auth-access-tabs { position: relative; display: inline-grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; background: #F5F6F7; border: 1px solid #E2E4E8; border-radius: 999px; isolation: isolate; }
-.auth-access-tabs::before { content: ''; position: absolute; z-index: -1; inset: 4px auto 4px 4px; width: calc(50% - 6px); background: #fff; border-radius: 999px; box-shadow: 0 2px 7px rgba(5,27,46,.12); transition: transform .28s cubic-bezier(.22, 1, .36, 1), box-shadow .28s ease; }
+.auth-access-tabs::before { content: ''; position: absolute; z-index: -1; inset: 4px auto 4px 4px; width: calc(50% - 6px); background: #fff; border-radius: 999px; box-shadow: 0 2px 7px rgba(5,27,46,.12); transition: transform .66s cubic-bezier(.22, 1, .36, 1), box-shadow .3s ease; }
 .auth-access-tabs button { padding: 6px 13px; border: 0; background: transparent; color: #6B7280; border-radius: 999px; font-size: 11px; font-weight: 700; cursor: pointer; transition: color .2s ease, transform .2s ease; }
 .auth-access-tabs button.is-active { color: #051B2E; }
 .auth-access-tabs button:hover, .auth-access-tabs button:focus-visible { color: #051B2E; transform: translateY(-1px); outline: none; }
 .auth-access-tabs--registro::before { transform: translateX(calc(100% + 4px)); }
-.auth-access-tabs--login:has(button:nth-child(2):hover)::before, .auth-access-tabs--login:has(button:nth-child(2):focus-visible)::before { transform: translateX(calc(100% + 4px)); box-shadow: 0 5px 12px rgba(5,27,46,.16); }
-.auth-access-tabs--registro:has(button:first-child:hover)::before, .auth-access-tabs--registro:has(button:first-child:focus-visible)::before { transform: translateX(0); box-shadow: 0 5px 12px rgba(5,27,46,.16); }
 /* Ajustes móviles. */
 @media (max-width: 700px) {
   .auth-access-tabs {
@@ -894,7 +1038,8 @@ async function continuarConGoogle() {
 }
 @media (prefers-reduced-motion: reduce) {
   .auth-access-tabs::before, .auth-access-tabs button { transition: none; }
-  .auth-flip-enter-active, .auth-flip-leave-active { transition: none; }
+  .auth-to-register-enter-active, .auth-to-register-leave-active,
+  .auth-to-login-enter-active, .auth-to-login-leave-active { transition: none; }
 }
 .login-register-link button { border: 0; background: transparent; color: #7A5E12; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
 .facial-success h2 { color: #051B2E; font-weight: 700; }

@@ -14,7 +14,8 @@ public sealed class AutomataFinitoDeterminista
     public IReadOnlyCollection<char> Alfabeto { get; }
     public int EstadoInicial => 0;
     public int EstadoPozo { get; }
-    public int CantidadTransiciones => _delta.Count;
+    // El AFD sigue siendo total: las transiciones ausentes llevan implícitamente al estado pozo.
+    public int CantidadTransiciones => Estados.Count * Alfabeto.Count;
 
     private AutomataFinitoDeterminista(
         Dictionary<(int Estado, char Simbolo), int> delta,
@@ -44,7 +45,9 @@ public sealed class AutomataFinitoDeterminista
                 return new ResultadoAutomata(false, Array.Empty<string>(), recorrido);
             }
 
-            estado = _delta[(estado, simbolo)];
+            estado = _delta.TryGetValue((estado, simbolo), out var siguiente)
+                ? siguiente
+                : EstadoPozo;
             recorrido.Add(estado);
         }
 
@@ -70,7 +73,9 @@ public sealed class AutomataFinitoDeterminista
             var simbolo = char.ToLowerInvariant(texto[indice]);
             if (!Alfabeto.Contains(simbolo)) break;
 
-            estado = _delta[(estado, simbolo)];
+            estado = _delta.TryGetValue((estado, simbolo), out var siguiente)
+                ? siguiente
+                : EstadoPozo;
             recorrido.Add(estado);
             if (estado == EstadoPozo) break;
 
@@ -88,7 +93,7 @@ public sealed class AutomataFinitoDeterminista
 
     /// <summary>
     /// Construye un AFD total. Las transiciones no definidas en el trie se
-    /// redirigen al estado pozo, de modo que δ está definida para todo q∈Q y a∈Σ.
+    /// redirigen implícitamente al estado pozo para todo q∈Q y a∈Σ.
     /// </summary>
     public static AutomataFinitoDeterminista CrearDesdeLexico(
         IReadOnlyDictionary<string, IEnumerable<string>> categorias)
@@ -128,15 +133,6 @@ public sealed class AutomataFinitoDeterminista
 
         var estadoPozo = siguienteEstado;
         estados.Add(estadoPozo);
-        foreach (var estado in estados)
-        {
-            foreach (var simbolo in alfabeto)
-            {
-                if (!delta.ContainsKey((estado, simbolo)))
-                    delta[(estado, simbolo)] = estadoPozo;
-            }
-        }
-
         return new AutomataFinitoDeterminista(delta, finales, estados, alfabeto, estadoPozo);
     }
 }

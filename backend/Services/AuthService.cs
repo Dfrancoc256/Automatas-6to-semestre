@@ -575,10 +575,18 @@ public class AuthService : IAuthService
         if (!string.IsNullOrEmpty(dto.MetodoNotificacion))
             usuario.MetodoNotificacion = dto.MetodoNotificacion;
 
-        if (!string.IsNullOrEmpty(dto.PasswordActual) && !string.IsNullOrEmpty(dto.NuevoPassword))
+        if (dto.PasswordActual != null || dto.NuevoPassword != null || dto.ConfirmarNuevoPassword != null)
         {
+            if (string.IsNullOrWhiteSpace(dto.PasswordActual) || string.IsNullOrWhiteSpace(dto.NuevoPassword)
+                || string.IsNullOrWhiteSpace(dto.ConfirmarNuevoPassword))
+                throw new InvalidOperationException("Completa la contraseña actual, la nueva y su confirmación.");
+            if (dto.NuevoPassword != dto.ConfirmarNuevoPassword)
+                throw new InvalidOperationException("La confirmación no coincide con la nueva contraseña.");
             if (!BCrypt.Net.BCrypt.Verify(dto.PasswordActual, usuario.PasswordHash))
                 throw new InvalidOperationException("La contraseña actual es incorrecta.");
+            if (!System.Text.RegularExpressions.Regex.IsMatch(dto.NuevoPassword,
+                @"^(?=.{8,35}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).*$"))
+                throw new InvalidOperationException("La nueva contraseña debe tener entre 8 y 35 caracteres, mayúscula, minúscula, número y símbolo.");
             usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NuevoPassword);
             usuario.DebeCambiarPassword = false;
         }

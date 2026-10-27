@@ -1,16 +1,26 @@
 <template>
   <div>
-    <div class="d-flex align-center mb-6">
+    <div class="d-flex align-center mb-5">
       <v-icon color="accent" class="mr-3">mdi-account-edit</v-icon>
       <div>
         <h1 class="text-h5 font-weight-bold" style="color:#051B2E">Mi Perfil</h1>
-        <p class="text-body-2 text-medium-emphasis">Gestiona tu información personal</p>
+        <p class="text-body-2 text-medium-emphasis">Gestiona tus datos y el acceso a tu cuenta</p>
       </div>
     </div>
 
+    <v-tabs v-model="pestanaActiva" color="accent" class="profile-tabs mb-6"
+            aria-label="Secciones de mi perfil">
+      <v-tab value="informacion" prepend-icon="mdi-account-outline" :disabled="enrolando">
+        Información personal
+      </v-tab>
+      <v-tab value="seguridad" prepend-icon="mdi-shield-lock-outline" :disabled="enrolando">
+        Seguridad
+      </v-tab>
+    </v-tabs>
+
     <v-row>
       <!-- Avatar y datos rápidos -->
-      <v-col cols="12" md="4">
+      <v-col v-if="pestanaActiva === 'informacion'" cols="12" md="4">
         <v-card class="pa-6 text-center">
           <v-avatar size="96" class="mb-4" color="accent">
             <v-img v-if="fotoPerfilUrl" :src="fotoPerfilUrl" eager />
@@ -26,9 +36,8 @@
         </v-card>
       </v-col>
 
-      <!-- Formulario de edición -->
-      <v-col cols="12" md="8">
-        <v-card class="pa-6 mb-6">
+      <v-col cols="12" :md="pestanaActiva === 'informacion' ? 8 : 12">
+        <v-card v-if="pestanaActiva === 'seguridad'" class="pa-6 mb-6 profile-security-card">
           <div class="d-flex align-center justify-space-between mb-4">
             <h2 class="text-subtitle-1 font-weight-bold mb-0">Reconocimiento facial</h2>
             <v-chip v-if="perfil?.tieneRostroEnrolado" color="success" size="small" variant="tonal">
@@ -113,10 +122,10 @@
           </div>
         </v-card>
 
-        <v-card class="pa-6">
+        <v-card v-if="pestanaActiva === 'informacion'" class="pa-6 mb-6">
           <h2 class="text-subtitle-1 font-weight-bold mb-4">Actualizar información</h2>
 
-          <v-form @submit.prevent="guardar" ref="formRef">
+          <v-form @submit.prevent="guardarPerfil">
             <v-text-field :model-value="perfil?.correo" label="Correo"
                           prepend-inner-icon="mdi-email" readonly
                           variant="filled" class="mb-3" />
@@ -128,16 +137,6 @@
                       :items="['email','whatsapp','ambos']"
                       class="mb-4" />
 
-            <v-divider class="mb-4" />
-            <h3 class="text-subtitle-2 font-weight-bold mb-3">Cambiar contraseña</h3>
-
-            <v-text-field v-model="form.passwordActual" label="Contraseña actual"
-                          prepend-inner-icon="mdi-lock-outline" type="password" class="mb-3" />
-            <v-text-field v-model="form.nuevoPassword"
-                          label="Nueva contraseña (mín. 8 caracteres)"
-                          prepend-inner-icon="mdi-lock" type="password" class="mb-4"
-                          :rules="form.nuevoPassword ? [v => v.length >= 8 || 'Mínimo 8'] : []" />
-
             <v-alert v-if="msgExito" type="success" variant="tonal" density="compact" class="mb-4">
               {{ msgExito }}
             </v-alert>
@@ -148,6 +147,81 @@
             <v-btn type="submit" color="accent" :loading="guardando"
                    prepend-icon="mdi-content-save" block>
               Guardar cambios
+            </v-btn>
+          </v-form>
+        </v-card>
+
+        <v-card v-if="pestanaActiva === 'seguridad'" class="pa-6 profile-security-card">
+          <div class="d-flex align-center mb-2">
+            <v-icon icon="mdi-shield-key-outline" color="accent" class="mr-3" />
+            <h2 class="text-subtitle-1 font-weight-bold">Cambiar contraseña</h2>
+          </div>
+          <p class="text-body-2 text-medium-emphasis mb-5">Confirma tu contraseña actual antes de guardar una nueva.</p>
+
+          <v-form @submit.prevent="cambiarPassword">
+            <v-text-field v-model="password.passwordActual" label="Contraseña actual"
+                          prepend-inner-icon="mdi-lock-outline" autocomplete="current-password"
+                          :type="mostrarActual ? 'text' : 'password'" variant="outlined" class="mb-3">
+              <template #append-inner>
+                <v-btn :icon="mostrarActual ? 'mdi-eye-off-outline' : 'mdi-eye-outline'" variant="text" size="small"
+                       :aria-label="mostrarActual ? 'Ocultar contraseña actual' : 'Mostrar contraseña actual'"
+                       @click="mostrarActual = !mostrarActual" />
+              </template>
+            </v-text-field>
+            <v-text-field v-model="password.nuevoPassword" label="Nueva contraseña"
+                          prepend-inner-icon="mdi-lock-plus-outline" autocomplete="new-password"
+                          :type="mostrarNueva ? 'text' : 'password'" variant="outlined"
+                          maxlength="35" counter="35" class="mb-3">
+              <template #append-inner>
+                <v-btn :icon="mostrarNueva ? 'mdi-eye-off-outline' : 'mdi-eye-outline'" variant="text" size="small"
+                       :aria-label="mostrarNueva ? 'Ocultar nueva contraseña' : 'Mostrar nueva contraseña'"
+                       @click="mostrarNueva = !mostrarNueva" />
+              </template>
+            </v-text-field>
+
+            <div class="password-strength mb-4" aria-live="polite">
+              <div class="d-flex justify-space-between text-body-2 mb-2">
+                <span>Seguridad estimada</span>
+                <strong :style="{ color: nivelPassword.color }">{{ nivelPassword.etiqueta }}</strong>
+              </div>
+              <v-progress-linear :model-value="nivelPassword.valor" :color="nivelPassword.color"
+                                 bg-color="#E7EBEF" rounded height="8" />
+              <p class="text-caption text-medium-emphasis mt-2">Estimación basada en la longitud y los tipos de caracteres.</p>
+            </div>
+
+            <div class="password-rules mb-5" role="list" aria-label="Requisitos de la nueva contraseña">
+              <div v-for="regla in reglasPassword" :key="regla.etiqueta" role="listitem"
+                   class="password-rule" :class="{ 'password-rule--met': regla.cumple }">
+                <v-icon :icon="regla.cumple ? 'mdi-check-circle' : 'mdi-close-circle-outline'" size="18" />
+                <span>{{ regla.etiqueta }}</span>
+              </div>
+            </div>
+
+            <v-text-field v-model="password.confirmacion" label="Confirmar nueva contraseña"
+                          prepend-inner-icon="mdi-lock-check-outline" autocomplete="new-password"
+                          :type="mostrarConfirmacion ? 'text' : 'password'" variant="outlined"
+                          maxlength="35" class="mb-1">
+              <template #append-inner>
+                <v-btn :icon="mostrarConfirmacion ? 'mdi-eye-off-outline' : 'mdi-eye-outline'" variant="text" size="small"
+                       :aria-label="mostrarConfirmacion ? 'Ocultar confirmación' : 'Mostrar confirmación'"
+                       @click="mostrarConfirmacion = !mostrarConfirmacion" />
+              </template>
+            </v-text-field>
+            <p v-if="password.confirmacion" class="password-match mb-4"
+               :class="{ 'password-match--met': coincidenPassword }">
+              <v-icon :icon="coincidenPassword ? 'mdi-check-circle' : 'mdi-close-circle-outline'" size="18" />
+              {{ coincidenPassword ? 'Las contraseñas coinciden' : 'Las contraseñas no coinciden' }}
+            </p>
+
+            <v-alert v-if="msgPasswordExito" type="success" variant="tonal" density="compact" class="mb-4">
+              {{ msgPasswordExito }}
+            </v-alert>
+            <v-alert v-if="msgPasswordError" type="error" variant="tonal" density="compact" class="mb-4">
+              {{ msgPasswordError }}
+            </v-alert>
+            <v-btn type="submit" color="accent" prepend-icon="mdi-lock-reset" block
+                   :loading="cambiandoPassword" :disabled="!passwordLista || cambiandoPassword">
+              Cambiar contraseña
             </v-btn>
           </v-form>
         </v-card>
@@ -164,14 +238,37 @@ const auth     = useAuthStore()
 const { api }  = useApi()
 const { calentar } = useFacialRecognition()
 const { fotoUrl } = useMediaUrl()
+const pestanaActiva = ref<'informacion' | 'seguridad'>('informacion')
 const perfil   = ref<any>(null)
 const fotoPerfilUrl = computed(() => fotoUrl(perfil.value?.fotoModificada))
 const guardando = ref(false)
 const msgExito = ref(''); const msgError = ref('')
-const formRef  = ref<any>(null)
 const form = reactive({
-  telefono: '', metodoNotificacion: 'email',
-  passwordActual: '', nuevoPassword: ''
+  telefono: '', metodoNotificacion: 'email'
+})
+const password = reactive({ passwordActual: '', nuevoPassword: '', confirmacion: '' })
+const cambiandoPassword = ref(false)
+const msgPasswordExito = ref('')
+const msgPasswordError = ref('')
+const mostrarActual = ref(false)
+const mostrarNueva = ref(false)
+const mostrarConfirmacion = ref(false)
+const reglasPassword = computed(() => [
+  { etiqueta: 'Entre 8 y 35 caracteres', cumple: password.nuevoPassword.length >= 8 && password.nuevoPassword.length <= 35 },
+  { etiqueta: 'Una letra mayúscula', cumple: /[A-Z]/.test(password.nuevoPassword) },
+  { etiqueta: 'Una letra minúscula', cumple: /[a-z]/.test(password.nuevoPassword) },
+  { etiqueta: 'Un número', cumple: /\d/.test(password.nuevoPassword) },
+  { etiqueta: 'Un símbolo', cumple: /[^A-Za-z0-9]/.test(password.nuevoPassword) }
+])
+const coincidenPassword = computed(() => password.confirmacion.length > 0 && password.nuevoPassword === password.confirmacion)
+const passwordLista = computed(() => password.passwordActual.length > 0 && reglasPassword.value.every(regla => regla.cumple) && coincidenPassword.value)
+const nivelPassword = computed(() => {
+  if (!password.nuevoPassword) return { etiqueta: 'Sin evaluar', valor: 0, color: '#94A3B8' }
+  const cumplidas = reglasPassword.value.filter(regla => regla.cumple).length
+  if (cumplidas < 3) return { etiqueta: 'Débil', valor: 25, color: '#B42318' }
+  if (cumplidas < 5) return { etiqueta: 'En progreso', valor: 50, color: '#C47F00' }
+  if (password.nuevoPassword.length < 12) return { etiqueta: 'Adecuada', valor: 75, color: '#2E7D32' }
+  return { etiqueta: 'Fuerte', valor: 100, color: '#15803D' }
 })
 
 // Enrolamiento facial
@@ -201,6 +298,10 @@ const filtroActual = ref(filtros[0]!)
 let arrastrandoSticker = false
 let desplazamientoSticker = { x: 0, y: 0 }
 
+watch(pestanaActiva, nueva => {
+  if (nueva !== 'seguridad' && camaraFacialActiva.value) cancelarEnrolamiento()
+})
+
 onMounted(async () => {
   calentar()
   try {
@@ -211,24 +312,48 @@ onMounted(async () => {
   } catch { /* ignore */ }
 })
 
-async function guardar() {
+async function guardarPerfil() {
   msgExito.value = ''; msgError.value = ''
   guardando.value = true
   try {
-    const payload: any = {
+    const payload = {
       telefono: form.telefono,
       metodoNotificacion: form.metodoNotificacion
     }
-    if (form.passwordActual && form.nuevoPassword) {
-      payload.passwordActual = form.passwordActual
-      payload.nuevoPassword  = form.nuevoPassword
-    }
     await api.put('/auth/perfil', payload)
     msgExito.value = 'Perfil actualizado correctamente.'
-    form.passwordActual = ''; form.nuevoPassword = ''
   } catch (e: any) {
     msgError.value = e.response?.data?.mensaje || 'Error al guardar.'
   } finally { guardando.value = false }
+}
+
+async function cambiarPassword() {
+  msgPasswordExito.value = ''
+  msgPasswordError.value = ''
+  if (!passwordLista.value) {
+    msgPasswordError.value = 'Completa los tres campos y cumple todos los requisitos de la nueva contraseña.'
+    return
+  }
+
+  cambiandoPassword.value = true
+  try {
+    await api.put('/auth/perfil', {
+      passwordActual: password.passwordActual,
+      nuevoPassword: password.nuevoPassword,
+      confirmarNuevoPassword: password.confirmacion
+    })
+    msgPasswordExito.value = 'Tu contraseña se cambió correctamente.'
+    password.passwordActual = ''
+    password.nuevoPassword = ''
+    password.confirmacion = ''
+    mostrarActual.value = false
+    mostrarNueva.value = false
+    mostrarConfirmacion.value = false
+  } catch (e: any) {
+    msgPasswordError.value = e.response?.data?.mensaje || 'No se pudo cambiar la contraseña. Intenta nuevamente.'
+  } finally {
+    cambiandoPassword.value = false
+  }
 }
 
 function formatFecha(iso: string) {
@@ -370,6 +495,9 @@ async function enrolar() {
 </script>
 
 <style scoped>
+.profile-tabs { border-bottom: 1px solid #D8E1EA; }
+.profile-tabs :deep(.v-tab) { text-transform: none; font-weight: 700; letter-spacing: 0; }
+.profile-security-card { max-width: 960px; margin-left: auto; margin-right: auto; }
 .facial-enrol-foto {
   border: 3px solid #B48B21;
 }
@@ -400,4 +528,8 @@ async function enrolar() {
   padding-top: 4px;
   border-top: 1px solid rgba(5, 27, 46, .12);
 }
+.password-strength, .password-rules { max-width: 520px; }
+.password-rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(205px, 1fr)); gap: 8px 16px; }
+.password-rule, .password-match { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #B42318; }
+.password-rule--met, .password-match--met { color: #15803D; }
 </style>
