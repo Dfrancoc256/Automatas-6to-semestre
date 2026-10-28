@@ -12,6 +12,9 @@
     "InstanceName": "umg-lenguajes"
   },
   "Recaptcha": {
-    "BypassInDevelopment": false
+    "BypassInDevelopment": false,
+    "SecretKey": "",
+    "MinScore": 0.5,
+    "AllowedHostnames": ["localhost", "analizador-umg.duckdns.org"]
   }
 }

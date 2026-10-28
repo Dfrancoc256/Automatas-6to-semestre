@@ -4,7 +4,7 @@ namespace LenguajesFormalesAPI.Services;
 
 public interface IRecaptchaService
 {
-    Task<bool> ValidarAsync(string token);
+    Task<bool> ValidarAsync(string token, string accionEsperada);
 }
 
 public class RecaptchaService : IRecaptchaService
@@ -23,7 +23,7 @@ public class RecaptchaService : IRecaptchaService
         _logger     = logger;
     }
 
-    public async Task<bool> ValidarAsync(string token)
+    public async Task<bool> ValidarAsync(string token, string accionEsperada)
     {
         var bypassHabilitado = _environment.IsDevelopment()
             && _config.GetValue<bool>("Recaptcha:BypassInDevelopment");
@@ -35,7 +35,7 @@ public class RecaptchaService : IRecaptchaService
         }
 
         var secretKey = _config["Recaptcha:SecretKey"];
-        if (string.IsNullOrEmpty(secretKey))
+        if (string.IsNullOrWhiteSpace(secretKey) || string.IsNullOrWhiteSpace(token))
         {
             _logger.LogError("reCAPTCHA SecretKey no configurado");
             return false;
@@ -56,10 +56,38 @@ public class RecaptchaService : IRecaptchaService
             if (!response.IsSuccessStatusCode)
                 return false;
 
-            var json = await response.Content.ReadAsStringAsync();
-            var doc  = JsonDocument.Parse(json);
-            return doc.RootElement.TryGetProperty("success", out var success)
-                && success.ValueKind is JsonValueKind.True;
+            var json = await response.Content.ReadAsStringAsync(timeout.Token);
+            using var doc = JsonDocument.Parse(json);
+            var resultado = doc.RootElement;
+            if (!resultado.TryGetProperty("success", out var success) || success.ValueKind != JsonValueKind.True
+                || !resultado.TryGetProperty("score", out var score) || !score.TryGetDouble(out var puntuacion)
+                || !resultado.TryGetProperty("action", out var action) || action.GetString() != accionEsperada
+                || !resultado.TryGetProperty("hostname", out var hostname))
+            {
+                _logger.LogWarning("Respuesta de reCAPTCHA v3 incompleta o con acción incorrecta para {Accion}", accionEsperada);
+                return false;
+            }
+
+            var dominio = hostname.GetString();
+            var dominiosPermitidos = _config.GetSection("Recaptcha:AllowedHostnames").Get<string[]>() ?? [];
+            if (dominiosPermitidos.Length == 0)
+            {
+                if (Uri.TryCreate(_config["App:PublicUrl"], UriKind.Absolute, out var urlPublica))
+                    dominiosPermitidos = [urlPublica.Host];
+                if (_environment.IsDevelopment())
+                    dominiosPermitidos = [.. dominiosPermitidos, "localhost", "127.0.0.1"];
+            }
+
+            var minimo = Math.Clamp(_config.GetValue("Recaptcha:MinScore", 0.5), 0, 1);
+            var dominioValido = dominiosPermitidos.Contains(dominio, StringComparer.OrdinalIgnoreCase);
+            if (!dominioValido || puntuacion < minimo)
+            {
+                _logger.LogWarning("reCAPTCHA v3 rechazado para {Accion}: puntuación {Puntuacion}, dominio {Dominio}",
+                    accionEsperada, puntuacion, dominio);
+                return false;
+            }
+
+            return true;
         }
         catch (Exception ex)
         {
