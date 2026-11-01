@@ -1,5 +1,5 @@
 // Las rutas no incluidas aquí requieren sesión.
-const rutasPublicas = new Set(['/', '/login', '/registro', '/register/photo'])
+const rutasPublicas = new Set(['/', '/login', '/registro', '/register/photo', '/crear-password'])
 
 export default defineNuxtRouteMiddleware(async (to) => {
   if (rutasPublicas.has(to.path)) return
