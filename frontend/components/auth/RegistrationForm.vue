@@ -109,30 +109,32 @@
 
           <!-- Paso 2: foto -->
           <v-stepper-window-item :value="2">
-            <div class="text-center mb-4">
-              <p class="text-body-2 mb-4">Toma una foto: la credencial usará un recorte centrado en tu rostro</p>
+            <div class="registro-foto-intro">
+              <h2>{{ fotoCapturada ? 'Personaliza tu credencial' : 'Toma tu foto' }}</h2>
+              <p>{{ fotoCapturada ? 'Elige un estilo y, si quieres, agrega un sticker.' : 'Tu credencial usará un recorte centrado en tu rostro.' }}</p>
+            </div>
 
-              <!-- Cámara con marco guía y animación de escaneo -->
-              <FaceScanner
-                v-if="!fotoCapturada"
-                ref="escaner"
-                :auto="false"
-                con-foto
-                class="mb-4"
-                @error="error = $event"
-              />
+            <input
+              ref="selectorFoto"
+              class="selector-foto-oculto"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              capture="user"
+              @change="seleccionarFoto"
+            />
 
-              <input
-                ref="selectorFoto"
-                class="selector-foto-oculto"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                capture="user"
-                @change="seleccionarFoto"
-              />
+            <div v-if="!fotoCapturada" class="registro-captura">
+              <FaceScanner ref="escaner" :auto="false" con-foto @error="error = $event" />
+              <div class="registro-captura__acciones">
+                <v-btn color="accent" class="umg-gold-button" prepend-icon="mdi-camera-iris"
+                       :loading="procesandoRostro" @click="capturarFoto">Capturar foto</v-btn>
+                <v-btn color="primary" variant="outlined" prepend-icon="mdi-image-plus"
+                       @click="selectorFoto?.click()">Tomar o subir foto</v-btn>
+              </div>
+            </div>
 
-              <!-- Foto capturada -->
-              <div v-if="fotoCapturada" class="mb-4">
+            <div v-else class="registro-editor">
+              <div class="registro-editor__preview">
                 <div ref="vistaPreviaFoto" class="foto-preview">
                   <img :src="fotoParaCredencial || fotoCapturada" :style="{ filter: filtroActual.css }"
                        class="foto-preview__imagen" alt="Vista previa de la credencial" />
@@ -141,43 +143,32 @@
                        :style="{ left: `${posicionSticker.x}px`, top: `${posicionSticker.y}px`, width: `${tamanoSticker}px` }"
                        alt="Sticker decorativo" draggable="false" @pointerdown.prevent="iniciarArrastreSticker" />
                 </div>
-                <p v-if="procesandoRostro" class="text-caption mt-1">Analizando rostro...</p>
-                <p v-else-if="rostroDetectado" class="text-caption mt-1 text-success">✓ Foto capturada · rostro detectado y recortado</p>
-                <p v-else class="text-caption mt-1 text-warning">
-                  ✓ Foto capturada · no se detectó un rostro claro (podrás enrolarlo después desde tu perfil)
+                <p v-if="procesandoRostro" class="registro-editor__estado">Analizando rostro...</p>
+                <p v-else-if="rostroDetectado" class="registro-editor__estado registro-editor__estado--ok">
+                  <v-icon size="15">mdi-check-circle</v-icon> Rostro detectado
+                </p>
+                <p v-else class="registro-editor__estado registro-editor__estado--aviso">
+                  Rostro poco claro. Podrás enrolarlo desde tu perfil.
                 </p>
               </div>
 
-              <div v-if="fotoCapturada" class="mb-4">
-                <p class="text-caption font-weight-bold mb-2">Personaliza tu foto para la credencial</p>
-                <div class="d-flex flex-wrap justify-center gap-2">
-                  <v-btn v-for="filtro in filtros" :key="filtro.id" size="small"
-                         :color="filtroActual.id === filtro.id ? 'accent' : 'primary'"
-                         :variant="filtroActual.id === filtro.id ? 'flat' : 'outlined'"
-                         :prepend-icon="filtro.icono"
-                         @click="filtroActual = filtro">
-                    {{ filtro.nombre }}
-                  </v-btn>
-                </div>
-              </div>
+              <div class="registro-editor__opciones">
+                <section class="registro-editor__seccion" aria-label="Filtros de la fotografía">
+                  <div class="registro-editor__titulo"><v-icon size="17">mdi-image-filter</v-icon><h3>Filtro</h3></div>
+                  <div class="registro-filtros" role="group" aria-label="Elegir filtro">
+                    <button v-for="filtro in filtros" :key="filtro.id" type="button"
+                            class="registro-filtros__opcion" :class="{ 'is-active': filtroActual.id === filtro.id }"
+                            :aria-pressed="filtroActual.id === filtro.id" @click="filtroActual = filtro">
+                      <v-icon size="17">{{ filtro.icono }}</v-icon><span>{{ filtro.nombre }}</span>
+                    </button>
+                  </div>
+                </section>
 
-              <div v-if="fotoCapturada" class="efectos-foto mb-4">
-                <p class="text-caption font-weight-bold mb-2">Agrega iconos y adornos</p>
-                <PhotoStickerSelector v-model="stickerActual" />
-              </div>
-              <p v-if="fotoCapturada && stickerActual !== 'ninguno'" class="text-caption text-medium-emphasis mb-4">
-                Arrastra el icono sobre la foto para colocarlo donde prefieras.
-              </p>
-
-              <div class="d-flex flex-wrap gap-2 justify-center mb-4">
-                <v-btn v-if="!fotoCapturada" color="accent" class="umg-gold-button"
-                       prepend-icon="mdi-camera-iris" :loading="procesandoRostro" @click="capturarFoto">
-                  Capturar foto
-                </v-btn>
-                <v-btn v-if="!fotoCapturada" color="primary" variant="outlined"
-                       prepend-icon="mdi-image-plus" @click="selectorFoto?.click()">
-                  Tomar o subir foto
-                </v-btn>
+                <section class="registro-editor__seccion" aria-label="Stickers decorativos">
+                  <div class="registro-editor__titulo"><v-icon size="17">mdi-sticker-emoji</v-icon><h3>Sticker <span>Opcional</span></h3></div>
+                  <PhotoStickerSelector v-model="stickerActual" compact />
+                  <p class="registro-editor__ayuda">{{ stickerActual === 'ninguno' ? 'Desliza para ver las opciones.' : 'Arrastra el sticker sobre la foto para moverlo.' }}</p>
+                </section>
               </div>
             </div>
 
@@ -185,15 +176,7 @@
               <span class="registro-error__message">{{ error }}</span>
             </v-alert>
             <template v-if="fotoCapturada">
-              <p class="text-body-2 text-medium-emphasis text-center mb-2">Confirma la verificación de seguridad antes de crear la cuenta.</p>
-              <RecaptchaV2
-                v-if="requiereRecaptcha"
-                ref="recaptcha"
-                v-model:token="recaptchaToken"
-                :site-key="recaptchaSiteKey"
-                class="mb-3"
-              />
-              <v-alert v-else-if="!bypassDesarrollo" type="warning" variant="tonal" density="compact" class="mb-3">
+              <v-alert v-if="!puedeEnviar" type="warning" variant="tonal" density="compact" class="mb-3">
                 Falta configurar la clave pública de reCAPTCHA.
               </v-alert>
             </template>
@@ -201,16 +184,6 @@
               Reintentar registro
             </v-btn>
 
-            <div class="registro-actions">
-              <v-btn color="secondary" variant="outlined" prepend-icon="mdi-refresh"
-                     :disabled="cargando" @click="retomar">
-                Retomar
-              </v-btn>
-              <v-btn color="accent" class="umg-gold-button" :loading="cargando"
-                     :disabled="!puedeRegistrar" @click="registrar">
-                Registrarme
-              </v-btn>
-            </div>
           </v-stepper-window-item>
 
           <!-- Paso 3: éxito -->
@@ -239,6 +212,13 @@
         </v-stepper-window>
       </v-stepper>
 
+      <div v-if="paso === 2" class="registro-actions">
+        <v-btn color="secondary" variant="outlined" prepend-icon="mdi-refresh"
+               :disabled="cargando" @click="retomar">Retomar</v-btn>
+        <v-btn color="accent" class="umg-gold-button" :loading="cargando"
+               :disabled="!puedeRegistrar" @click="registrar">Registrarme</v-btn>
+      </div>
+
       <div class="text-center mt-4">
         <span class="text-body-2 text-medium-emphasis">¿Ya tienes cuenta? </span>
         <button type="button" class="auth-inline-link" @click="emit('cambiarModo', 'login')">Inicia sesión</button>
@@ -248,6 +228,7 @@
 </template>
 
 <script setup lang="ts">
+import { obtenerTokenRecaptcha, prepararRecaptcha } from '~/utils/recaptchaV3'
 const emit = defineEmits<{ cambiarModo: [modo: 'login' | 'registro'] }>()
 
 const auth    = useAuthStore()
@@ -290,6 +271,7 @@ function activarEdicion() {
 }
 
 onMounted(async () => {
+  prepararRecaptcha(recaptchaSiteKey.value)
   if (!googleRegistroToken.value) return
   mostrarOpcionesRegistro.value = false
   try {
@@ -312,12 +294,10 @@ function crearConCorreo() {
 function registrarConGoogle() {
   window.location.assign(`${config.public.apiBase}/auth/google/registrar`)
 }
-const recaptchaToken = ref('')
-const recaptcha = ref<{ reiniciar: () => void } | null>(null)
 const recaptchaSiteKey = computed(() => config.public.recaptchaSiteKey.trim())
 const requiereRecaptcha = computed(() => recaptchaSiteKey.value.length > 0)
 const bypassDesarrollo = computed(() => import.meta.dev && !requiereRecaptcha.value)
-const puedeEnviar = computed(() => bypassDesarrollo.value || recaptchaToken.value.length > 0)
+const puedeEnviar = computed(() => bypassDesarrollo.value || requiereRecaptcha.value)
 const puedeRegistrar = computed(() => !!fotoCapturada.value && puedeEnviar.value)
 
 // La cámara se administra en FaceScanner.
@@ -383,14 +363,6 @@ async function siguientePaso() {
   paso.value = 2
   calentar()
 }
-
-watch(paso, (pasoActual) => {
-  // Al volver a Datos se descarta un token viejo; se solicitará uno nuevo al final.
-  if (pasoActual !== 2) {
-    recaptchaToken.value = ''
-    recaptcha.value?.reiniciar()
-  }
-})
 
 async function capturarFoto() {
   error.value = ''
@@ -542,8 +514,13 @@ onBeforeUnmount(terminarArrastreSticker)
 
 async function registrar() {
   error.value = ''
+  if (!puedeRegistrar.value || cargando.value) return
   cargando.value = true
   try {
+    const fotoModificadaBase64 = await crearFotoPersonalizada()
+    const recaptchaToken = bypassDesarrollo.value
+      ? 'dev-bypass'
+      : await obtenerTokenRecaptcha(recaptchaSiteKey.value, 'registro')
     const payload = {
       correo:             form.correo,
       nombre:             form.nombre,
@@ -553,10 +530,10 @@ async function registrar() {
       metodoNotificacion: form.metodoNotificacion,
       // Guarda solo el recorte facial.
       fotoBase64:         fotoParaCredencial.value || fotoCapturada.value,
-      fotoModificadaBase64: await crearFotoPersonalizada(),
+      fotoModificadaBase64,
       descriptor:         descriptorFacial.value,
       googleRegistroToken: googleRegistroToken.value || undefined,
-      recaptchaToken:     bypassDesarrollo.value ? 'dev-bypass' : recaptchaToken.value
+      recaptchaToken
     }
     const { data } = await api.post('/auth/registro', payload)
     passwordTemporalEnviada.value = data.passwordTemporalEnviada === true
@@ -564,14 +541,7 @@ async function registrar() {
     else auth.logout()
     paso.value = 3
   } catch (e: any) {
-    error.value = obtenerMensajeErrorRegistro(e)
-    // El token debe renovarse después de cada envío.
-    if (requiereRecaptcha.value && !bypassDesarrollo.value) {
-      recaptchaToken.value = ''
-      recaptcha.value?.reiniciar()
-      paso.value = 1
-      error.value += ' Completa nuevamente reCAPTCHA antes de reintentar.'
-    }
+    error.value = e.response ? obtenerMensajeErrorRegistro(e) : e.message || obtenerMensajeErrorRegistro(e)
   } finally {
     cargando.value = false
   }
@@ -652,6 +622,53 @@ async function descargarCredencial() {
 .registro-content--captura :deep(.v-stepper-header) { min-height: 60px; }
 .registro-content--captura :deep(.face-scanner) { max-width: 420px; }
 .selector-foto-oculto { display: none; }
+.registro-foto-intro { margin: 6px 0 16px; text-align: center; }
+.registro-foto-intro h2 { margin: 0; color: #051B2E; font-size: 17px; font-weight: 750; line-height: 1.3; }
+.registro-foto-intro p { margin: 4px 0 0; color: #617284; font-size: 12px; line-height: 1.45; }
+.registro-captura { display: grid; justify-items: center; gap: 16px; }
+.registro-captura__acciones { display: flex; flex-wrap: wrap; justify-content: center; gap: 9px; }
+.registro-editor {
+  display: grid;
+  grid-template-columns: 142px minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+  width: 100%;
+  padding: 15px;
+  border: 1px solid #DEE6ED;
+  border-radius: 15px;
+  background: #F9FBFC;
+}
+.registro-editor__preview { min-width: 0; text-align: center; }
+.registro-editor__estado { display: flex; align-items: center; justify-content: center; gap: 3px; margin: 9px 0 0; color: #5F6E7E; font-size: 11px; line-height: 1.4; }
+.registro-editor__estado--ok { color: #087443; font-weight: 650; }
+.registro-editor__estado--aviso { color: #A3610A; }
+.registro-editor__opciones { display: grid; min-width: 0; gap: 14px; }
+.registro-editor__seccion { min-width: 0; }
+.registro-editor__seccion + .registro-editor__seccion { padding-top: 13px; border-top: 1px solid #E3E9EE; }
+.registro-editor__titulo { display: flex; align-items: center; gap: 6px; margin-bottom: 9px; color: #153047; }
+.registro-editor__titulo h3 { margin: 0; font-size: 12px; font-weight: 750; }
+.registro-editor__titulo h3 span { margin-left: 4px; color: #7E8A95; font-size: 10px; font-weight: 500; }
+.registro-editor__ayuda { margin: 3px 0 0; color: #718092; font-size: 10px; line-height: 1.3; }
+.registro-filtros { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+.registro-filtros__opcion {
+  display: grid;
+  min-width: 0;
+  min-height: 52px;
+  place-content: center;
+  justify-items: center;
+  gap: 2px;
+  padding: 5px 2px;
+  border: 1px solid #DCE4EB;
+  border-radius: 9px;
+  background: #fff;
+  color: #274055;
+  cursor: pointer;
+  transition: border-color .18s ease, background-color .18s ease, box-shadow .18s ease;
+}
+.registro-filtros__opcion span { overflow: hidden; max-width: 100%; font-size: 9px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.registro-filtros__opcion:hover { border-color: #B48B21; }
+.registro-filtros__opcion.is-active { border-color: #B48B21; background: #FFF8E8; color: #78580C; box-shadow: inset 0 0 0 1px #B48B21; }
+.registro-filtros__opcion:focus-visible { outline: 2px solid #125789; outline-offset: 2px; }
 .foto-preview {
   position: relative;
   width: 120px;
@@ -672,19 +689,17 @@ async function descargarCredencial() {
   -webkit-user-drag: none;
 }
 .foto-preview__sticker:active { cursor: grabbing; }
-.efectos-foto {
-  max-width: 420px;
-  margin-right: auto;
-  margin-left: auto;
-  padding-top: 4px;
-  border-top: 1px solid rgba(5, 27, 46, .12);
-}
 .registro-actions {
   display: flex;
   align-items: stretch;
   justify-content: center;
   gap: 12px;
   width: 100%;
+  flex: 0 0 auto;
+  margin-top: 6px;
+  padding: 14px 6px 2px;
+  border-top: 1px solid #E4E9ED;
+  background: #fff;
 }
 .registro-actions .v-btn { flex: 1 1 0; max-width: 300px; }
 .auth-inline-link { border: 0; background: transparent; color: #7A5E12; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
@@ -760,6 +775,9 @@ async function descargarCredencial() {
   .registro-content :deep(.v-stepper-header) { min-height: 64px; }
   .registro-content :deep(.v-stepper-item__title) { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
   .registro-content--captura :deep(.face-scanner) { max-width: 100%; }
+  .registro-editor { grid-template-columns: 1fr; gap: 13px; padding: 13px; }
+  .registro-editor__preview { display: grid; justify-items: center; }
+  .registro-editor__opciones { gap: 12px; }
   .registro-choice { width: 100%; padding-inline: 0; }
   .registro-choice__action { width: 100% !important; }
   .registro-error :deep(.v-alert__content) { min-width: 0; width: 100%; }

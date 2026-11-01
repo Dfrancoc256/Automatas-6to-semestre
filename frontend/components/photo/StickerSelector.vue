@@ -1,6 +1,6 @@
 <template>
-  <div class="sticker-selector">
-    <p class="text-caption font-weight-bold mb-2">
+  <div class="sticker-selector" :class="{ 'sticker-selector--compact': compact }">
+    <p v-if="!compact" class="text-caption font-weight-bold mb-2">
       Agrega un sticker
     </p>
 
@@ -11,11 +11,12 @@
         type="button"
         class="sticker-button"
         :class="{ seleccionado: modelValue === sticker.id }"
+        :aria-pressed="modelValue === sticker.id"
         @click="seleccionar(sticker.id)"
       >
-        <span class="sticker-emoji">
-          {{ sticker.emoji }}
-        </span>
+        <img v-if="compact && sticker.id !== 'ninguno'" class="sticker-imagen"
+             :src="`/stickers/${sticker.id}.png`" alt="" />
+        <span v-else class="sticker-emoji">{{ sticker.emoji }}</span>
 
         <span class="sticker-nombre">
           {{ sticker.nombre }}
@@ -28,6 +29,7 @@
 <script setup lang="ts">
 defineProps<{
   modelValue: string
+  compact?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -107,8 +109,9 @@ function seleccionar(id: string) {
 }
 
 .sticker-button.seleccionado {
-  border: 2px solid #b48b21;
+  border-color: #b48b21;
   background: #fffaf0;
+  box-shadow: inset 0 0 0 1px #b48b21;
 }
 
 .sticker-emoji {
@@ -121,4 +124,23 @@ function seleccionar(id: string) {
   color: #051b2e;
   font-weight: 600;
 }
+.sticker-selector--compact .sticker-list {
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  overflow-x: auto;
+  padding: 3px 2px 7px;
+  scrollbar-width: thin;
+  scrollbar-color: #b48b21 transparent;
+  scroll-snap-type: x proximity;
+}
+.sticker-selector--compact .sticker-button {
+  flex: 0 0 65px;
+  min-width: 65px;
+  height: 65px;
+  padding: 7px 3px;
+  scroll-snap-align: start;
+}
+.sticker-imagen { width: 29px; height: 29px; object-fit: contain; }
+.sticker-selector--compact .sticker-emoji { display: grid; height: 29px; place-items: center; font-size: 22px; }
+.sticker-selector--compact .sticker-nombre { font-size: 9px; }
 </style>

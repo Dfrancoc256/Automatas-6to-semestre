@@ -84,14 +84,7 @@
           <v-icon size="15" start>mdi-alert-circle-outline</v-icon>{{ error }}
         </p>
 
-        <RecaptchaV2
-          v-if="requiereRecaptcha"
-          ref="recaptcha"
-          v-model:token="recaptchaToken"
-          :site-key="recaptchaSiteKey"
-          class="mt-6"
-        />
-        <v-alert v-else-if="!bypassDesarrollo" type="warning" variant="tonal" density="compact" class="mt-6">
+        <v-alert v-if="!puedeEnviar" type="warning" variant="tonal" density="compact" class="mt-6">
           Falta configurar la clave pública de reCAPTCHA.
         </v-alert>
 
@@ -234,13 +227,6 @@
             prepend-inner-icon="mdi-email-outline"
             :disabled="enviandoReset || !!mensajeReset"
           />
-          <RecaptchaV2
-            v-if="requiereRecaptcha && !mensajeReset"
-            ref="recaptchaReset"
-            v-model:token="recaptchaResetToken"
-            :site-key="recaptchaSiteKey"
-            class="mt-3"
-          />
           <v-alert v-if="errorReset" type="error" variant="tonal" density="compact" class="mt-4">
             {{ errorReset }}
           </v-alert>
@@ -348,6 +334,7 @@
 </template>
 
 <script setup lang="ts">
+import { obtenerTokenRecaptcha, prepararRecaptcha } from '~/utils/recaptchaV3'
 definePageMeta({ layout: 'default' })
 // Conexiones necesarias para reCAPTCHA.
 useHead({
@@ -370,8 +357,6 @@ const cargando     = ref(false)
 const error        = ref('')
 const mostrarReset = ref(false)
 const correoReset = ref('')
-const recaptchaResetToken = ref('')
-const recaptchaReset = ref<{ reiniciar: () => void } | null>(null)
 const enviandoReset = ref(false)
 const errorReset = ref('')
 const mensajeReset = ref('')
@@ -413,21 +398,22 @@ const errorFacial       = ref('')
 const rostroValidado    = ref(false)
 const fotoLoginRecortada = ref<string | null>(null)
 const escanerLogin      = ref<{ reiniciar: () => void } | null>(null)
-const recaptcha = ref<{ reiniciar: () => void } | null>(null)
 const intentosFaciales = ref(0)
 const maxIntentosFaciales = 3
 const permisoFacialActivo = ref(false)
 
 const form = reactive({ identificador: '', password: '' })
-const recaptchaToken = ref('')
 const recaptchaSiteKey = computed(() => config.public.recaptchaSiteKey.trim())
 const requiereRecaptcha = computed(() => recaptchaSiteKey.value.length > 0)
 const bypassDesarrollo = computed(() => import.meta.dev && !requiereRecaptcha.value)
-const puedeEnviar = computed(() => bypassDesarrollo.value || recaptchaToken.value.length > 0)
+const puedeEnviar = computed(() => bypassDesarrollo.value || requiereRecaptcha.value)
 const puedeSolicitarReset = computed(() =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoReset.value)
-  && (bypassDesarrollo.value || recaptchaResetToken.value.length > 0)
+  && puedeEnviar.value
 )
+const tokenSeguridad = (accion: string) => bypassDesarrollo.value
+  ? Promise.resolve('dev-bypass')
+  : obtenerTokenRecaptcha(recaptchaSiteKey.value, accion)
 const intentosFacialesRestantes = computed(() => Math.max(0, maxIntentosFaciales - intentosFaciales.value))
 const puedeLoginFacial = computed(() =>
   (permisoFacialActivo.value || puedeEnviar.value) && intentosFacialesRestantes.value > 0
@@ -461,10 +447,11 @@ function cambiarModo(modo: 'login' | 'registro') {
 }
 
 onMounted(() => {
+  prepararRecaptcha(recaptchaSiteKey.value)
   calentar()
   auth.restore()
   if (route.query.error === 'google-existente') {
-    error.value = 'Esta cuenta de Google ya está registrada. Completa reCAPTCHA y usa “Continuar con Google” para iniciar sesión.'
+    error.value = 'Esta cuenta de Google ya está registrada. Usa “Continuar con Google” para iniciar sesión.'
   } else if (route.query.error === 'google') {
     error.value = 'No fue posible verificar la cuenta de Google. Intenta nuevamente.'
   }
@@ -487,22 +474,8 @@ async function loginPassword() {
   error.value = ''
   const identificadorInvalido = !identificadorValido(form.identificador)
   const passwordInvalida = form.password.length < 8 || form.password.length > 35
-  const captchaPendiente = !puedeEnviar.value
-
-  if (identificadorInvalido && passwordInvalida && captchaPendiente) {
-    error.value = 'Completa tu correo o nombre de usuario, la contraseña y la verificación reCAPTCHA para continuar.'
-    return
-  }
   if (identificadorInvalido && passwordInvalida) {
     error.value = 'Completa tu correo o nombre de usuario y una contraseña de entre 8 y 35 caracteres.'
-    return
-  }
-  if (identificadorInvalido && captchaPendiente) {
-    error.value = 'Completa tu correo o nombre de usuario y la verificación reCAPTCHA para continuar.'
-    return
-  }
-  if (passwordInvalida && captchaPendiente) {
-    error.value = 'Completa una contraseña de entre 8 y 35 caracteres y la verificación reCAPTCHA para continuar.'
     return
   }
   if (identificadorInvalido) {
@@ -514,16 +487,17 @@ async function loginPassword() {
     return
   }
   if (!puedeEnviar.value) {
-    error.value = 'Completa la verificación reCAPTCHA para continuar.'
+    error.value = 'Falta configurar la verificación de seguridad.'
     return
   }
 
   cargando.value = true
   try {
+    const recaptchaToken = await tokenSeguridad('login')
     const { data } = await api.post('/auth/login', {
       identificador: form.identificador,
       password: form.password,
-      recaptchaToken: bypassDesarrollo.value ? 'dev-bypass' : recaptchaToken.value
+      recaptchaToken
     })
     if (data.debeCambiarPassword) {
       // Conserva el estado pendiente en la cookie de metadatos. De esta forma,
@@ -537,11 +511,7 @@ async function loginPassword() {
     await new Promise(resolve => setTimeout(resolve, 650))
     await navigateTo(rutaDestino.value)
   } catch (e: any) {
-    error.value = e.response?.data?.mensaje || 'No fue posible iniciar sesión.'
-    if (requiereRecaptcha.value && !bypassDesarrollo.value) {
-      recaptchaToken.value = ''
-      recaptcha.value?.reiniciar()
-    }
+    error.value = e.response?.data?.mensaje || e.message || 'No fue posible iniciar sesión.'
   } finally {
     cargando.value = false
   }
@@ -550,8 +520,8 @@ async function loginPassword() {
 async function abrirLoginFacial() {
   if (!puedeLoginFacial.value) {
     error.value = intentosFacialesRestantes.value === 0
-      ? 'Se agotaron los tres intentos. Completa reCAPTCHA para iniciar nuevos intentos.'
-      : 'Completa la verificación reCAPTCHA para continuar.'
+      ? 'Se agotaron los tres intentos de reconocimiento facial.'
+      : 'Falta configurar la verificación de seguridad.'
     return
   }
 
@@ -563,19 +533,15 @@ async function abrirLoginFacial() {
   if (!permisoFacialActivo.value) {
     preparandoFacial.value = true
     try {
+      const recaptchaToken = await tokenSeguridad('login_facial')
       const { data } = await api.post('/auth/facial/verificar-captcha', {
-        recaptchaToken: bypassDesarrollo.value ? 'dev-bypass' : recaptchaToken.value
+        recaptchaToken
       })
       permisoFacialActivo.value = true
       intentosFaciales.value = Math.max(0, maxIntentosFaciales - Number(data.intentosRestantes || maxIntentosFaciales))
-      // El token se consumió al crear el permiso; no se solicitará de nuevo
-      // hasta agotar los tres intentos o vencer los cinco minutos.
-      recaptchaToken.value = ''
-      recaptcha.value?.reiniciar()
+      // El permiso se conserva hasta agotar los intentos o vencer.
     } catch (e: any) {
-      error.value = e.response?.data?.mensaje || 'No fue posible habilitar el reconocimiento facial.'
-      recaptchaToken.value = ''
-      recaptcha.value?.reiniciar()
+      error.value = e.response?.data?.mensaje || e.message || 'No fue posible habilitar el reconocimiento facial.'
       return
     } finally {
       preparandoFacial.value = false
@@ -587,7 +553,7 @@ async function abrirLoginFacial() {
 
 function abrirEscanerQr() {
   if (!puedeEnviar.value) {
-    error.value = 'Completa la verificación reCAPTCHA antes de escanear tu carnet.'
+    error.value = 'Falta configurar la verificación de seguridad.'
     return
   }
 
@@ -602,9 +568,10 @@ async function ingresarConQr(codigoQr: string) {
   errorQr.value = ''
   verificandoQr.value = true
   try {
+    const recaptchaToken = await tokenSeguridad('login_qr')
     const { data } = await api.post('/auth/login-qr', {
       codigoQr,
-      recaptchaToken: bypassDesarrollo.value ? 'dev-bypass' : recaptchaToken.value
+      recaptchaToken
     })
 
     auth.login(data)
@@ -619,9 +586,7 @@ async function ingresarConQr(codigoQr: string) {
     await new Promise(resolve => setTimeout(resolve, 650))
     await navigateTo(rutaDestino.value)
   } catch (e: any) {
-    errorQr.value = e.response?.data?.mensaje || 'El código QR no es válido o el carnet venció.'
-    recaptchaToken.value = ''
-    recaptcha.value?.reiniciar()
+    errorQr.value = e.response?.data?.mensaje || e.message || 'El código QR no es válido o el carnet venció.'
   } finally {
     verificandoQr.value = false
   }
@@ -637,7 +602,7 @@ function cerrarPorAusenciaDeRostro() {
 async function verificarRostro(captura: { descriptor: number[] | null, fotoRecortada: string | null }) {
   if (!captura.descriptor || !captura.fotoRecortada || verificandoFacial.value) return
   if (!permisoFacialActivo.value || intentosFacialesRestantes.value === 0) {
-    errorFacial.value = 'El permiso de reconocimiento facial venció. Completa reCAPTCHA para iniciar nuevos intentos.'
+    errorFacial.value = 'El permiso de reconocimiento facial venció. Inicia nuevos intentos.'
     return
   }
 
@@ -673,9 +638,8 @@ async function verificarRostro(captura: { descriptor: number[] | null, fotoRecor
 
     if (estado === 429 || intentosFacialesRestantes.value === 0) {
       permisoFacialActivo.value = false
-      recaptchaToken.value = ''
-      recaptcha.value?.reiniciar()
-      errorFacial.value = 'Se agotaron los tres intentos. Completa reCAPTCHA para iniciar nuevos intentos.'
+      errorFacial.value = 'Se agotaron los tres intentos. Cierra este diálogo e inicia nuevos intentos.'
+      intentosFaciales.value = 0
     } else {
       errorFacial.value = estado === 401
         ? `Rostro no reconocido. Te quedan ${intentosFacialesRestantes.value} intento(s).`
@@ -683,8 +647,7 @@ async function verificarRostro(captura: { descriptor: number[] | null, fotoRecor
 
       if (estado === 400) {
         permisoFacialActivo.value = false
-        recaptchaToken.value = ''
-        recaptcha.value?.reiniciar()
+        intentosFaciales.value = 0
       }
     }
 
@@ -711,32 +674,29 @@ function abrirCambioPassword() {
 
 function abrirRecuperacion() {
   correoReset.value = ''
-  recaptchaResetToken.value = ''
   errorReset.value = ''
   mensajeReset.value = ''
   mostrarReset.value = true
-  nextTick(() => recaptchaReset.value?.reiniciar())
 }
 
 async function solicitarRestablecimiento() {
   errorReset.value = ''
   mensajeReset.value = ''
   if (!puedeSolicitarReset.value) {
-    errorReset.value = 'Ingresa un correo válido y completa reCAPTCHA.'
+    errorReset.value = 'Ingresa un correo válido y verifica que la protección de seguridad esté configurada.'
     return
   }
 
   enviandoReset.value = true
   try {
+    const recaptchaToken = await tokenSeguridad('restablecimiento')
     const { data } = await api.post('/auth/solicitar-restablecimiento', {
       correo: correoReset.value,
-      recaptchaToken: bypassDesarrollo.value ? 'dev-bypass' : recaptchaResetToken.value
+      recaptchaToken
     })
     mensajeReset.value = data.mensaje
   } catch (e: any) {
-    errorReset.value = e.response?.data?.mensaje || 'No fue posible enviar el enlace. Intenta nuevamente.'
-    recaptchaResetToken.value = ''
-    recaptchaReset.value?.reiniciar()
+    errorReset.value = e.response?.data?.mensaje || e.message || 'No fue posible enviar el enlace. Intenta nuevamente.'
   } finally {
     enviandoReset.value = false
   }
@@ -797,20 +757,19 @@ function identificadorValido(valor: string) {
 async function continuarConGoogle() {
   error.value = ''
   if (!puedeEnviar.value) {
-    error.value = 'Completa la verificación reCAPTCHA antes de continuar con Google.'
+    error.value = 'Falta configurar la verificación de seguridad.'
     return
   }
 
   cargandoGoogle.value = true
   try {
+    const recaptchaToken = await tokenSeguridad('google_login')
     await api.post('/auth/google/verificar-captcha', {
-      recaptchaToken: bypassDesarrollo.value ? 'dev-bypass' : recaptchaToken.value
+      recaptchaToken
     })
     window.location.assign(`${config.public.apiBase}/auth/google/iniciar`)
   } catch (e: any) {
-    error.value = e.response?.data?.mensaje || 'No fue posible validar reCAPTCHA. Intenta nuevamente.'
-    recaptchaToken.value = ''
-    recaptcha.value?.reiniciar()
+    error.value = e.response?.data?.mensaje || e.message || 'No fue posible validar reCAPTCHA. Intenta nuevamente.'
     cargandoGoogle.value = false
   }
 }

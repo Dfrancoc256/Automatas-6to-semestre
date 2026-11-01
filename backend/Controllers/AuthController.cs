@@ -62,7 +62,7 @@ public class AuthController : ControllerBase
                 .SelectMany(v => v.Errors)
                 .Select(e => e.ErrorMessage) });
 
-        if (!await _recaptcha.ValidarAsync(dto.RecaptchaToken))
+        if (!await _recaptcha.ValidarAsync(dto.RecaptchaToken, "registro"))
             return BadRequest(new { mensaje = "Verificación reCAPTCHA inválida." });
 
         try
@@ -115,7 +115,7 @@ public class AuthController : ControllerBase
         if (!dto.Identificador.Contains('@') && dto.Identificador.Trim().Length > 25)
             return BadRequest(new { mensaje = "El nickname no puede superar 25 caracteres." });
 
-        if (!await _recaptcha.ValidarAsync(dto.RecaptchaToken))
+        if (!await _recaptcha.ValidarAsync(dto.RecaptchaToken, "login"))
             return BadRequest(new { mensaje = "Verificación reCAPTCHA inválida." });
 
         var ip        = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "desconocido";
@@ -143,7 +143,7 @@ public class AuthController : ControllerBase
     [EnableRateLimiting("auth")]
     public async Task<IActionResult> VerificarCaptchaGoogle([FromBody] RecaptchaTokenDTO dto)
     {
-        if (!ModelState.IsValid || !await _recaptcha.ValidarAsync(dto.RecaptchaToken))
+        if (!ModelState.IsValid || !await _recaptcha.ValidarAsync(dto.RecaptchaToken, "google_login"))
             return BadRequest(new { mensaje = "Completa la verificación reCAPTCHA antes de continuar con Google." });
 
         var permiso = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
@@ -291,7 +291,7 @@ public class AuthController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(new { errores = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage) });
 
-        if (!await _recaptcha.ValidarAsync(dto.RecaptchaToken))
+        if (!await _recaptcha.ValidarAsync(dto.RecaptchaToken, "restablecimiento"))
             return BadRequest(new { mensaje = "Verificación reCAPTCHA inválida." });
 
         bool enviado;
@@ -350,7 +350,7 @@ public class AuthController : ControllerBase
                 .SelectMany(v => v.Errors)
                 .Select(e => e.ErrorMessage) });
 
-        if (!await _recaptcha.ValidarAsync(dto.RecaptchaToken))
+        if (!await _recaptcha.ValidarAsync(dto.RecaptchaToken, "login_qr"))
             return BadRequest(new { mensaje = "Verificación reCAPTCHA inválida." });
 
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "desconocido";
@@ -405,7 +405,7 @@ public class AuthController : ControllerBase
     [EnableRateLimiting("auth")]
     public async Task<IActionResult> VerificarCaptchaFacial([FromBody] RecaptchaTokenDTO dto)
     {
-        if (!ModelState.IsValid || !await _recaptcha.ValidarAsync(dto.RecaptchaToken))
+        if (!ModelState.IsValid || !await _recaptcha.ValidarAsync(dto.RecaptchaToken, "login_facial"))
             return BadRequest(new { mensaje = "Completa la verificación reCAPTCHA antes de usar el reconocimiento facial." });
 
         var permiso = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
@@ -439,7 +439,7 @@ public class AuthController : ControllerBase
             || !_cache.TryGetValue<FacialLoginPermit>($"facial-captcha:{permiso}", out var intento)
             || intento is null)
         {
-            return BadRequest(new { mensaje = "Completa reCAPTCHA para iniciar los tres intentos de reconocimiento facial." });
+            return BadRequest(new { mensaje = "El permiso de reconocimiento facial venció. Inicia nuevamente el reconocimiento." });
         }
 
         int intentosRestantes;
@@ -447,7 +447,7 @@ public class AuthController : ControllerBase
         {
             if (intento.IntentosRestantes <= 0)
                 return StatusCode(StatusCodes.Status429TooManyRequests,
-                    new { mensaje = "Se agotaron los tres intentos. Completa reCAPTCHA para iniciar nuevos intentos.", intentosRestantes = 0 });
+                    new { mensaje = "Se agotaron los tres intentos. Inicia nuevamente el reconocimiento.", intentosRestantes = 0 });
 
             intento.IntentosRestantes--;
             intentosRestantes = intento.IntentosRestantes;
@@ -466,7 +466,7 @@ public class AuthController : ControllerBase
             {
                 if (intentosRestantes == 0)
                     return StatusCode(StatusCodes.Status429TooManyRequests,
-                        new { mensaje = "Se agotaron los tres intentos. Completa reCAPTCHA para iniciar nuevos intentos.", intentosRestantes });
+                        new { mensaje = "Se agotaron los tres intentos. Inicia nuevamente el reconocimiento.", intentosRestantes });
 
                 return Unauthorized(new { mensaje = "Rostro no reconocido.", intentosRestantes });
             }
