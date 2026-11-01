@@ -1,5 +1,6 @@
 // URL pública de fotografías guardadas por el backend en /uploads/fotos.
 export function useMediaUrl() {
+  const config = useRuntimeConfig()
   function fotoUrl(ruta?: string | null): string | undefined {
     if (!ruta) return undefined
 
@@ -10,8 +11,12 @@ export function useMediaUrl() {
     const coincidencia = limpia.match(/(?:^|\/)(?:uploads\/)?(fotos\/.+)$/i)
     if (!coincidencia) return undefined
 
-    // La aplicación y el backend comparten el mismo dominio detrás de Nginx.
-    // Una ruta relativa evita depender de una API_BASE configurada con otro host.
+    if (import.meta.dev) {
+      const base = (config.public.apiBase as string).replace(/\/api\/?$/, '')
+      return `${base}/uploads/${coincidencia[1]}`
+    }
+
+    // En producción, frontend y backend comparten el dominio detrás de Nginx.
     return `/uploads/${coincidencia[1]}`
   }
 

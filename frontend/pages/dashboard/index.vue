@@ -152,7 +152,7 @@ const modulos = computed(() => {
   return disponibles
 })
 
-let temporizadorSaludo: ReturnType<typeof setInterval> | undefined
+let temporizadorSaludo: number | undefined
 
 function actualizarSaludo() {
   const hora = new Date().getHours()

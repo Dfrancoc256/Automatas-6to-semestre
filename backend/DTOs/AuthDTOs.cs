@@ -121,20 +121,6 @@ public class CambiarPasswordDTO
 
 public class CambiarPasswordTemporalDTO
 {
-    [Required(ErrorMessage = "La contraseña temporal es obligatoria")]
-    public string PasswordTemporal { get; set; } = string.Empty;
-
-    [Required]
-    [RegularExpression(@"^(?=.{8,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).*$",
-        ErrorMessage = "La contraseña debe tener entre 8 y 128 caracteres, mayúscula, minúscula, número y carácter especial")]
-    public string NuevoPassword { get; set; } = string.Empty;
-}
-
-public class CambiarPasswordInicialDTO
-{
-    [Required]
-    public string Token { get; set; } = string.Empty;
-
     [Required]
     [RegularExpression(@"^(?=.{8,35}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).*$",
         ErrorMessage = "La contraseña debe tener entre 8 y 35 caracteres, mayúscula, minúscula, número y carácter especial")]
@@ -213,6 +199,7 @@ public class ActualizarPerfilDTO
     [MaxLength(7_000_000, ErrorMessage = "La fotografía modificada excede el tamaño permitido")]
     public string? FotoModificadaBase64 { get; set; }
     public string? PasswordActual { get; set; }
-    [MinLength(8), MaxLength(128)]
+    [MinLength(8), MaxLength(35)]
     public string? NuevoPassword { get; set; }
+    public string? ConfirmarNuevoPassword { get; set; }
 }

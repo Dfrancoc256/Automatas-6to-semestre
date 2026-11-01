@@ -11,6 +11,7 @@ public class AppDbContext : DbContext
     public DbSet<BitacoraLogin> BitacoraLogins { get; set; }
     public DbSet<ResultadoAnalisis> ResultadosAnalisis { get; set; }
     public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
+    public DbSet<EntradaLexica> EntradasLexicas { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -68,6 +69,17 @@ public class AppDbContext : DbContext
                   .WithMany(u => u.TokensRestablecimiento)
                   .HasForeignKey(t => t.UsuarioId)
                   .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<EntradaLexica>(entity =>
+        {
+            entity.HasIndex(e => new { e.Idioma, e.Palabra }).IsUnique();
+            entity.ToTable(table =>
+            {
+                table.HasCheckConstraint("CK_lexico_idioma", "idioma IN ('español', 'inglés', 'ruso', 'chino', 'árabe')");
+                table.HasCheckConstraint("CK_lexico_categoria", "categoria IN ('nombre_propio', 'sustantivo', 'verbo', 'adjetivo', 'pronombre', 'conector', 'preposición')");
+                table.HasCheckConstraint("CK_lexico_palabra", "length(trim(palabra)) > 0");
+            });
         });
     }
 }

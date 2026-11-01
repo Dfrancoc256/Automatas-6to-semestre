@@ -17,8 +17,6 @@ public interface IJwtService
     ClaimsPrincipal? ValidarCodigoQrCredencial(string token);
     string GenerarTokenRegistroGoogle(string subject, string correo, string nombre, string? apellido = null, string? telefono = null, string? fechaNacimiento = null);
     ClaimsPrincipal? ValidarTokenRegistroGoogle(string token);
-    string GenerarEnlaceCambioInicial(Usuario usuario);
-    bool ValidarEnlaceCambioInicial(string token, Usuario usuario);
 }
 
 public class JwtService : IJwtService
@@ -102,35 +100,6 @@ public class JwtService : IJwtService
 
     public ClaimsPrincipal? ValidarTokenRegistroGoogle(string token) =>
         ValidarTokenInterno(token, "registro_google");
-
-    public string GenerarEnlaceCambioInicial(Usuario usuario)
-    {
-        var vencimiento = DateTimeOffset.UtcNow.AddMinutes(15).ToUnixTimeSeconds();
-        var contenido = $"cambio_inicial.{usuario.Id}.{vencimiento}";
-        return $"{contenido}.{FirmarCambioInicial(contenido, usuario.PasswordHash)}";
-    }
-
-    public bool ValidarEnlaceCambioInicial(string token, Usuario usuario)
-    {
-        if (string.IsNullOrWhiteSpace(token) || !usuario.Activo || !usuario.DebeCambiarPassword)
-            return false;
-
-        var partes = token.Split('.');
-        if (partes.Length != 4 || partes[0] != "cambio_inicial"
-            || !int.TryParse(partes[1], out var usuarioId) || usuarioId != usuario.Id
-            || !long.TryParse(partes[2], out var vencimiento)
-            || DateTimeOffset.UtcNow.ToUnixTimeSeconds() >= vencimiento)
-            return false;
-
-        var contenido = $"{partes[0]}.{partes[1]}.{partes[2]}";
-        return FirmaCoincide(partes[3], FirmarCambioInicial(contenido, usuario.PasswordHash));
-    }
-
-    private string FirmarCambioInicial(string contenido, string passwordHash)
-    {
-        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(ObtenerClaveSecreta()));
-        return Base64UrlEncoder.Encode(hmac.ComputeHash(Encoding.UTF8.GetBytes($"{contenido}.{passwordHash}")));
-    }
 
     private IEnumerable<Claim> CrearClaimsBase(Usuario usuario) =>
     [

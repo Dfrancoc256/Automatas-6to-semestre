@@ -371,6 +371,37 @@ public class DashboardController : ControllerBase
             return StatusCode(502, new { mensaje = "No se pudo enviar el carnet PDF en este momento." });
         }
     }
+
+    [HttpPost("usuarios/{id:int}/notificacion")]
+    [Authorize(Roles = "ADMIN")]
+    public async Task<IActionResult> NotificarUsuario(int id, [FromBody] NotificarUsuarioDTO dto)
+    {
+        var usuario = await _db.Usuarios.FindAsync(id);
+        if (usuario == null) return NotFound();
+
+        var nombre = WebUtility.HtmlEncode(usuario.NombreCompleto);
+        var mensaje = $"Hola {usuario.NombreCompleto}, un administrador actualizó la información de tu cuenta en el Analizador Léxico UMG.";
+
+        if (dto.Canal == "email")
+        {
+            await _email.SendEmailAsync(
+                usuario.Correo,
+                "Actualización de cuenta - Analizador Léxico UMG",
+                $"<p>Hola {nombre},</p><p>Un administrador actualizó la información de tu cuenta en el Analizador Léxico UMG.</p>");
+        }
+        else if (dto.Canal == "whatsapp")
+        {
+            var enviado = await _whatsApp.SendTextAsync(usuario.Telefono, mensaje);
+            if (!enviado)
+                return StatusCode(502, new { mensaje = "No se pudo enviar el mensaje por WhatsApp." });
+        }
+        else
+        {
+            return BadRequest(new { mensaje = "Canal inválido." });
+        }
+
+        return Ok(new { mensaje = "Notificación enviada." });
+    }
 }
 
 public record CambiarRolDTO(string? Rol);
@@ -397,3 +428,5 @@ public class EnviarCredencialUsuarioDTO
     [System.ComponentModel.DataAnnotations.RegularExpression("^(email|whatsapp)$")]
     public string Canal { get; set; } = string.Empty;
 }
+
+public record NotificarUsuarioDTO(string Canal);

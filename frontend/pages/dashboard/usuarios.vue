@@ -36,6 +36,13 @@
             <div class="d-flex align-center justify-end ga-1">
               <v-tooltip text="Enviar carnet PDF por correo"><template #activator="{ props }"><v-btn v-bind="props" icon="mdi-email-outline" size="small" variant="text" color="primary" @click="abrirEnvioCredencial(item, 'email')" /></template></v-tooltip>
               <v-tooltip text="Enviar carnet PDF por WhatsApp"><template #activator="{ props }"><v-btn v-bind="props" icon="mdi-whatsapp" size="small" variant="text" color="success" @click="abrirEnvioCredencial(item, 'whatsapp')" /></template></v-tooltip>
+              <v-menu>
+                <template #activator="{ props }"><v-btn v-bind="props" icon="mdi-bell-outline" size="small" variant="text" title="Notificar actualización" aria-label="Notificar actualización" /></template>
+                <v-list density="compact">
+                  <v-list-item title="Notificar por correo" @click="notificar(item, 'email')" />
+                  <v-list-item title="Notificar por WhatsApp" @click="notificar(item, 'whatsapp')" />
+                </v-list>
+              </v-menu>
               <v-tooltip text="Editar usuario"><template #activator="{ props }"><v-btn v-bind="props" icon="mdi-pencil-outline" size="small" variant="text" @click="abrirEdicion(item)" /></template></v-tooltip>
               <v-tooltip :text="item.activo ? 'Desactivar usuario' : 'Activar usuario'"><template #activator="{ props }"><v-btn v-bind="props" :icon="item.activo ? 'mdi-account-off-outline' : 'mdi-account-check-outline'" size="small" variant="text" :color="item.activo ? 'error' : 'success'" @click="item.activo ? pedirDesactivacion(item) : toggleUsuario(item)" /></template></v-tooltip>
             </div>
@@ -165,6 +172,10 @@ async function enviarCredencial() {
     confirmar(data.mensaje || 'Carnet PDF enviado.')
   } catch (e: any) { errorCredencial.value = e.response?.data?.mensaje || 'No fue posible enviar el carnet PDF.' }
   finally { enviandoCredencial.value = false }
+}
+async function notificar(usuario: any, canal: 'email' | 'whatsapp') {
+  try { const { data } = await api.post(`/dashboard/usuarios/${usuario.id}/notificacion`, { canal }); confirmar(data.mensaje || 'Notificación enviada.') }
+  catch (e: any) { error.value = e.response?.data?.mensaje || 'No fue posible enviar la notificación.' }
 }
 function confirmar(texto: string) { mensaje.value = texto; mensajeVisible.value = true }
 function fecha(valor: string) { return new Date(valor).toLocaleDateString('es-GT') }

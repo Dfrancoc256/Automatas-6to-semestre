@@ -36,3 +36,23 @@ public class ResultadoAnalisis
     [ForeignKey("UsuarioId")]
     public Usuario? Usuario { get; set; }
 }
+
+[Table("lexico_entradas")]
+public class EntradaLexica
+{
+    [Key]
+    [Column("id")]
+    public int Id { get; set; }
+
+    [Required, MaxLength(30)]
+    [Column("idioma")]
+    public string Idioma { get; set; } = string.Empty;
+
+    [Required, MaxLength(120)]
+    [Column("palabra")]
+    public string Palabra { get; set; } = string.Empty;
+
+    [Required, MaxLength(30)]
+    [Column("categoria")]
+    public string Categoria { get; set; } = string.Empty;
+}
